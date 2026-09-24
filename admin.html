@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dota Drop : Админ</title>
+<title>Dota Drop · Админ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--gold:#f7c948;--grn:#3ddc84;--red:#e74c3c;--pur:#ffd35c;--orange:#e67e22;--blue:#3498db}
@@ -13,7 +13,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);bac
 .top h1{font-size:17px}
 .badge{background:var(--pur);color:#241a00;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:800}
 
-/* Статистика */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
 .stat-card .sv{font-size:24px;font-weight:900;color:var(--gold);margin-bottom:4px}
@@ -48,11 +47,9 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px}
 .balance-big{font-size:28px;font-weight:900;color:var(--gold);text-align:center;padding:10px 0}
 
-/* Поиск */
 .search-box{margin-bottom:12px}
 .search-box input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--txt);width:100%}
 
-/* Модалка деталей */
 .modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(6,12,8,.95);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal-overlay[hidden]{display:none}
 .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto}
@@ -65,7 +62,11 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 .detail-section{margin-top:16px}
 .detail-section h4{font-size:14px;color:var(--gold);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
 
-/* Пикер предметов */
+.inv-item{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:6px}
+.inv-item img{width:52px;height:40px;object-fit:contain}
+.inv-item .in{flex:1;font-size:13px;font-weight:600}
+.inv-item .ic{color:var(--gold);font-size:12px;font-weight:700}
+
 .picker-overlay{position:fixed;inset:0;z-index:200;background:rgba(6,12,8,.97);display:flex;flex-direction:column;padding:16px}
 .picker-overlay[hidden]{display:none}
 .picker-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;max-height:90vh;display:flex;flex-direction:column}
@@ -79,7 +80,11 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 .pick-row .pn{flex:1;font-size:13px;font-weight:600}
 .pick-row .pc{color:var(--mut);font-size:11px}
 
-.player-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.player-info{display:flex;flex-direction:column;gap:2px}
+.player-name{font-weight:600;font-size:13px}
+.player-balance{color:var(--gold);font-size:11px}
+.player-items{color:var(--mut);font-size:11px}
+.player-items a{color:var(--blue);cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -89,7 +94,6 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <span class="badge" id="ownerBadge">—</span>
 </div>
 
-<!-- СТАТИСТИКА -->
 <div class="stats-grid" id="statsGrid">
   <div class="stat-card"><div class="sv" id="statPlayers">—</div><div class="sl">Игроков</div></div>
   <div class="stat-card"><div class="sv" id="statStars">—</div><div class="sl">Звёзд</div></div>
@@ -103,19 +107,17 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div class="tab" data-tab="gifts">🎁 Подарки</div>
   <div class="tab" data-tab="promos">🎫 Промо</div>
   <div class="tab" data-tab="payments">💳 Платежи</div>
-  <div class="tab" data-tab="messages"> Сообщения</div>
+  <div class="tab" data-tab="messages">📢 Сообщения</div>
 </div>
 
-<!-- ═══════ ИГРОКИ ═══════ -->
 <div class="card tab-pane" data-pane="players">
   <h2>Список игроков</h2>
   <div class="search-box">
-    <input id="playerSearch" placeholder="🔍 Поиск по ID, имени или username..." oninput="filterPlayers()">
+    <input id="playerSearch" placeholder=" Поиск по ID, имени или username..." oninput="filterPlayers()">
   </div>
   <div id="playersBody"><div class="empty">Загрузка…</div></div>
 </div>
 
-<!-- ═══════ ВЫДАЧИ ═══════ -->
 <div class="card tab-pane" data-pane="grants" style="display:none">
   <h2>Выдать игроку</h2>
   <div class="row">
@@ -131,7 +133,6 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   </div>
   <button id="btnPickItem" class="btn ghost" style="display:none;margin-bottom:8px" onclick="openItemPicker()">🔍 ВЫБРАТЬ ПРЕДМЕТ</button>
   
-  <!-- Быстрые шаблоны -->
   <div class="hint" style="margin-bottom:6px">Быстрые шаблоны (только для осколков):</div>
   <div class="btn-row">
     <button class="btn ghost" onclick="setAmount(100)">+100</button>
@@ -146,7 +147,6 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
     <button class="btn pur" onclick="grantOne()">ВЫДАТЬ</button>
   </div>
   
-  <!-- Кнопка аннулировать -->
   <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
     <h2 style="color:var(--red)">⚠️ Аннулировать всё</h2>
     <div class="hint" style="margin-bottom:8px">
@@ -165,7 +165,6 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <button class="btn red" onclick="grantAll()">РАЗДАТЬ ВСЕМ ИГРОКАМ</button>
 </div>
 
-<!-- ═══════ ПОДАРКИ ═══════ -->
 <div class="card tab-pane" data-pane="gifts" style="display:none">
   <h2>Баланс бота</h2>
   <div class="balance-big"><span id="botStars">0</span> ⭐</div>
@@ -184,7 +183,6 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div class="hint">ID подарка можно посмотреть через плагин aiogram. Баланс бота спишется автоматически.</div>
 </div>
 
-<!-- ═══════ ПРОМО ═══════ -->
 <div class="card tab-pane" data-pane="promos" style="display:none">
   <h2>Создать промокод</h2>
   <div class="row">
@@ -203,13 +201,11 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div id="promosBody"><div class="empty">Загрузка…</div></div>
 </div>
 
-<!-- ═══════ ПЛАТЕЖИ ═══════ -->
 <div class="card tab-pane" data-pane="payments" style="display:none">
   <h2>Лента донатов</h2>
   <div id="paymentsBody"><div class="empty">Загрузка…</div></div>
 </div>
 
-<!-- ══════ СООБЩЕНИЯ ═══════ -->
 <div class="card tab-pane" data-pane="messages" style="display:none">
   <h2>Личное сообщение</h2>
   <input id="mUid" type="number" placeholder="ID игрока">
@@ -221,19 +217,17 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <button class="btn red" onclick="broadcast()" style="margin-top:8px">РАЗослать ВСЕМ</button>
 </div>
 
-<!-- ═══ ПИКЕР ПРЕДМЕТОВ ═══ -->
 <div class="picker-overlay" id="itemPicker" hidden>
   <div class="picker-box">
     <div class="picker-header">
       <h3>Выбери предмет</h3>
-      <button class="picker-close" onclick="closeItemPicker()">✕</button>
+      <button class="picker-close" onclick="closeItemPicker()"></button>
     </div>
     <input id="pickerSearch" placeholder="Поиск предмета..." oninput="filterItems()">
     <div class="picker-list" id="pickerList"></div>
   </div>
 </div>
 
-<!-- ═══ МОДАЛКА ДЕТАЛЕЙ ИГРОКА ═══ -->
 <div class="modal-overlay" id="playerModal" hidden>
   <div class="modal-box">
     <div class="modal-header">
@@ -241,6 +235,16 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
       <button class="modal-close" onclick="closePlayerModal()">✕</button>
     </div>
     <div id="modalContent">Загрузка…</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="inventoryModal" hidden>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="invModalTitle">Инвентарь игрока</h3>
+      <button class="modal-close" onclick="closeInventoryModal()">✕</button>
+    </div>
+    <div id="invModalContent">Загрузка…</div>
   </div>
 </div>
 
@@ -255,7 +259,6 @@ if (!initData) {
   document.body.innerHTML = '<div class="card"><h2>⛔ Открыть можно только из Telegram</h2></div>';
 }
 
-// ═══ УТИЛИТЫ ═══
 function escapeHtml(text){
   if(text === null || text === undefined) return "";
   if(typeof text !== "string") text = String(text);
@@ -308,7 +311,7 @@ async function api(path, body){
     });
     const j = await r.json();
     if (j.error === "forbidden") {
-      document.body.innerHTML = '<div class="card"><h2>⛔ Доступ только для администратора</h2></div>';
+      document.body.innerHTML = '<div class="card"><h2> Доступ только для администратора</h2></div>';
       throw new Error("forbidden");
     }
     return j;
@@ -318,7 +321,6 @@ async function api(path, body){
   }
 }
 
-// табы
 document.querySelectorAll(".tab").forEach(t => {
   t.onclick = () => {
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
@@ -329,7 +331,6 @@ document.querySelectorAll(".tab").forEach(t => {
   };
 });
 
-// тип выдачи
 document.getElementById("gType").onchange = e => {
   const isItem = e.target.value === "item";
   document.getElementById("gAmount").style.display = isItem ? "none" : "";
@@ -337,12 +338,10 @@ document.getElementById("gType").onchange = e => {
   document.getElementById("btnPickItem").style.display = isItem ? "" : "none";
 };
 
-// быстрые шаблоны
 window.setAmount = (val) => {
   document.getElementById("gAmount").value = val;
 };
 
-// ═══ СТАТИСТИКА ══
 async function loadStats(){
   try {
     const j = await api("/admin/stats");
@@ -353,7 +352,6 @@ async function loadStats(){
   } catch(e){}
 }
 
-// ═══ ПИКЕР ПРЕДМЕТОВ ═══
 const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
 const ITEMS = [
  {id:"royale_with_cheese",n:"Royale With Cheese",cost:2},{id:"tango_single",n:"Tango (Shared)",cost:30},{id:"blood_grenade",n:"Blood Grenade",cost:50},
@@ -426,6 +424,7 @@ const ITEMS = [
  {id:"arcane_blink",n:"Arcane Blink",cost:6800},{id:"overwhelming_blink",n:"Overwhelming Blink",cost:6800},{id:"swift_blink",n:"Swift Blink",cost:6800},
  {id:"wind_waker",n:"Wind Waker",cost:6800},{id:"dagon_5",n:"Dagon 5",cost:7400}
 ];
+const itemById = id => ITEMS.find(i => i.id === id);
 
 window.openItemPicker = () => {
   document.getElementById("itemPicker").hidden = false;
@@ -455,7 +454,6 @@ window.selectItem = (id, name) => {
   toast(`Выбран: ${name}`);
 };
 
-// ═══ ИГРОКИ ═══
 let allPlayers = [];
 let allBans = [];
 
@@ -475,14 +473,25 @@ function renderPlayers(players){
   const body = document.getElementById("playersBody");
   if (!players.length){ body.innerHTML = '<div class="empty">Никого не найдено</div>'; return; }
   body.innerHTML = `<table>
-    <tr><th>ID</th><th>Имя</th><th>Заходил</th><th>Действия</th></tr>
+    <tr><th>ID</th><th>Имя / Баланс / Предметы</th><th>Заходил</th><th>Действия</th></tr>
     ${players.map(p => {
       const banned = banSet.has(String(p.user_id));
       const displayName = formatPlayerName(p);
       const seen = formatDate(p.last_seen);
+      const balance = p.stats?.balance || 0;
+      const inv = p.stats?.inventory || {};
+      const itemCount = Object.keys(inv).length;
+      const totalItems = Object.values(inv).reduce((sum, count) => sum + count, 0);
       return `<tr>
         <td>${p.user_id}</td>
-        <td><span class="player-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</span>${banned?'<br><span style="color:var(--red);font-size:11px">🚫 ЗАБАНЕН</span>':""}</td>
+        <td>
+          <div class="player-info">
+            <div class="player-name">${escapeHtml(displayName)}</div>
+            <div class="player-balance">💰 ${balance} осколков</div>
+            <div class="player-items">🎒 ${itemCount} видов (${totalItems} шт.) ${itemCount > 0 ? `<a onclick="showInventory(${p.user_id})">[?]</a>` : ''}</div>
+            ${banned?'<div style="color:var(--red);font-size:11px">🚫 ЗАБАНЕН</div>':""}
+          </div>
+        </td>
         <td>${seen}</td>
         <td>
           <div class="tr-actions">
@@ -513,7 +522,42 @@ window.filterPlayers = () => {
   renderPlayers(filtered);
 };
 
-// ══ ДЕТАЛИ ИГРОКА ══
+window.showInventory = async (uid) => {
+  const modal = document.getElementById("inventoryModal");
+  const content = document.getElementById("invModalContent");
+  const title = document.getElementById("invModalTitle");
+  modal.hidden = false;
+  content.innerHTML = "Загрузка…";
+  title.textContent = "Инвентарь игрока #" + uid;
+  
+  try {
+    const j = await api("/admin/player_inventory", {user_id: uid});
+    const inv = j.inventory || {};
+    const items = Object.entries(inv);
+    
+    if(!items.length){
+      content.innerHTML = '<div class="empty">Инвентарь пуст</div>';
+      return;
+    }
+    
+    content.innerHTML = items.map(([itemId, count]) => {
+      const item = itemById(itemId);
+      if(!item) return `<div class="inv-item"><span class="in">${escapeHtml(itemId)} (неизвестно)</span><span class="ic">x${count}</span></div>`;
+      return `<div class="inv-item">
+        <img src="${CDN}${item.id}.png" alt="${escapeHtml(item.n)}" onerror="this.style.visibility='hidden'">
+        <span class="in">${escapeHtml(item.n)}</span>
+        <span class="ic">x${count} · ${item.cost}💎</span>
+      </div>`;
+    }).join("");
+  } catch(e) {
+    content.innerHTML = '<div class="empty" style="color:var(--red)">Ошибка загрузки</div>';
+  }
+};
+
+window.closeInventoryModal = () => {
+  document.getElementById("inventoryModal").hidden = true;
+};
+
 window.showPlayerDetails = async (uid) => {
   const modal = document.getElementById("playerModal");
   const content = document.getElementById("modalContent");
@@ -530,6 +574,9 @@ window.showPlayerDetails = async (uid) => {
     
     const displayName = formatPlayerName(p);
     const stats = p.stats || {};
+    const balance = stats.balance || 0;
+    const inv = stats.inventory || {};
+    const itemCount = Object.keys(inv).length;
     const casesOpened = stats.casesOpened || 0;
     const coinsSpent = stats.coinsSpent || 0;
     
@@ -537,6 +584,8 @@ window.showPlayerDetails = async (uid) => {
       <div class="detail-row"><span class="dl">ID</span><span class="dv">${p.user_id}</span></div>
       <div class="detail-row"><span class="dl">Имя</span><span class="dv">${escapeHtml(displayName)}</span></div>
       <div class="detail-row"><span class="dl">Username</span><span class="dv">${escapeHtml(p.username || "—")}</span></div>
+      <div class="detail-row"><span class="dl">Баланс</span><span class="dv" style="color:var(--gold)">${balance} осколков</span></div>
+      <div class="detail-row"><span class="dl">Предметов</span><span class="dv">${itemCount} видов</span></div>
       <div class="detail-row"><span class="dl">Последний заход</span><span class="dv">${formatDate(p.last_seen)}</span></div>
       <div class="detail-row"><span class="dl">Статус</span><span class="dv" style="color:${banned?'var(--red)':'var(--grn)'}">${banned?'🚫 Забанен':'✅ Активен'}</span></div>
       
@@ -551,7 +600,7 @@ window.showPlayerDetails = async (uid) => {
         ${grants.length ? grants.map(g => `
           <div class="detail-row">
             <span class="dl">${formatDate(g.created_at)}</span>
-            <span class="dv">${g.type === 'coins' ? '+'+g.amount+' осколков' : 'Предмет: '+escapeHtml(g.item_id||'')}</span>
+            <span class="dv">${g.type === 'coins' ? (g.amount > 0 ? '+'+g.amount : g.amount)+' осколков' : 'Предмет: '+escapeHtml(g.item_id||'')}</span>
           </div>
         `).join("") : '<div class="hint">Выдач не было</div>'}
       </div>
@@ -571,7 +620,6 @@ window.closePlayerModal = () => {
   document.getElementById("playerModal").hidden = true;
 };
 
-// ══ ДЕЙСТВИЯ ═══
 window.quickGrant = uid => {
   document.querySelector('[data-tab="grants"]').click();
   document.getElementById("gUid").value = uid;
@@ -602,7 +650,6 @@ window.resetPlayer = async uid => {
   toast("Прогресс сброшен"); loadPlayers();
 };
 
-// ═══ ВЫДАЧИ ══
 window.grantOne = async () => {
   const user_id = +document.getElementById("gUid").value;
   const type = document.getElementById("gType").value;
@@ -639,7 +686,6 @@ window.grantAll = async () => {
   toast(`Раздано: ${j.count} игрокам`);
 };
 
-// ═══ ПОДАРКИ ═══
 async function loadBotBalance(){
   const j = await api("/admin/bot_balance");
   if (j.bot_stars !== undefined) document.getElementById("botStars").textContent = j.bot_stars;
@@ -670,7 +716,6 @@ window.sendGiftManual = async () => {
   else toast("Ошибка: " + (j.error||""));
 };
 
-// ═══ ПРОМО ═══
 window.promoCreate = async () => {
   const code = document.getElementById("pCode").value.trim().toUpperCase();
   const amount = +document.getElementById("pAmount").value;
@@ -708,7 +753,6 @@ window.promoDelete = async code => {
   toast("Удалён"); loadPromos();
 };
 
-// ═══ ПЛАТЕЖИ ══
 async function loadPayments(){
   const j = await api("/admin/payments");
   const payments = j.payments || [];
@@ -727,7 +771,6 @@ async function loadPayments(){
   </table>`;
 }
 
-// ═══ СООБЩЕНИЯ ═══
 window.sendOne = async () => {
   const user_id = +document.getElementById("mUid").value;
   const text = document.getElementById("mText").value.trim();
@@ -744,7 +787,6 @@ window.broadcast = async () => {
   toast(`Отправлено: ${j.sent}`);
 };
 
-// ═══ СТАРТ ═══
 (async () => {
   document.getElementById("ownerBadge").textContent = "OWNER";
   await loadStats();
