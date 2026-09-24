@@ -29,9 +29,7 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradi
 .shard-orb.fly{transition:transform .7s cubic-bezier(.4,.1,.5,1),opacity .7s ease-in;opacity:0 !important}
 #loadTxt{color:var(--mut);font-size:14px;min-height:18px}
 #loadBtn{min-width:220px}
-.multicast-badge{font-family:'Cinzel',serif;font-weight:900;letter-spacing:3px;text-transform:uppercase;text-align:center;font-size:28px;margin:2px 0 10px;line-height:1;
- background:linear-gradient(180deg,#ffe95c 0%,#f7c948 45%,#c8860a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
- filter:drop-shadow(0 0 8px rgba(247,201,72,.7)) drop-shadow(0 2px 3px rgba(0,0,0,.9));animation:badgePop .5s ease-out}
+.multicast-badge{font-family:'Cinzel',serif;font-weight:900;letter-spacing:3px;text-transform:uppercase;text-align:center;font-size:28px;margin:2px 0 10px;line-height:1;background:linear-gradient(180deg,#ffe95c 0%,#f7c948 45%,#c8860a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px rgba(247,201,72,.7)) drop-shadow(0 2px 3px rgba(0,0,0,.9));animation:badgePop .5s ease-out}
 @keyframes badgePop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 .topbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(10,18,12,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .logo{font-weight:900;font-size:19px}.logo i{font-style:italic;color:#ff9d2e;font-family:Georgia,serif;font-weight:700}
@@ -140,7 +138,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px;animation:tin .25s}
 @keyframes tin{from{opacity:0;transform:translateY(8px)}}
 
-/* ═══ ПРОФИЛЬ ═══ */
 .profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto}
 .profile-head{display:flex;gap:16px;align-items:center;margin-bottom:18px}
 .profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
@@ -163,20 +160,13 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ach-card .ach-name{font-size:11px;font-weight:700;color:var(--txt);min-height:28px;display:flex;align-items:center;justify-content:center;padding:0 2px}
 .ach-card.locked .ach-name{color:var(--mut);font-style:italic}
 
-/* ═══ ПАНЕЛЬКА ДОСТИЖЕНИЯ (Steam-стиль) ═══ */
-.ach-notify{position:fixed;top:-120px;left:50%;transform:translateX(-50%);z-index:60;
-  background:linear-gradient(180deg,#1d3324,#14251a);border:1px solid var(--grn);
-  border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;
-  box-shadow:0 8px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(61,220,132,.3);
-  transition:top .5s cubic-bezier(.2,.8,.2,1);
-  min-width:260px;max-width:380px}
+.ach-notify{position:fixed;top:-120px;left:50%;transform:translateX(-50%);z-index:60;background:linear-gradient(180deg,#1d3324,#14251a);border:1px solid var(--grn);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(61,220,132,.3);transition:top .5s cubic-bezier(.2,.8,.2,1);min-width:260px;max-width:380px}
 .ach-notify.show{top:16px}
 .ach-notify .an-img{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0}
 .ach-notify .an-label{font-size:10px;color:var(--grn);letter-spacing:1px;text-transform:uppercase;font-weight:700}
 .ach-notify .an-title{font-size:16px;font-weight:800;margin:2px 0}
 .ach-notify .an-desc{font-size:12px;color:var(--mut)}
 
-/* ══ МАГАЗИН ═══ */
 .shop-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:400px;width:100%}
 .shop-row{display:flex;align-items:center;gap:12px;background:#0d1a12;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;cursor:pointer;transition:transform .1s}
 .shop-row:active{transform:scale(.98)}
@@ -187,13 +177,11 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .nocoins-emoji{font-size:48px;margin-bottom:8px}
 .nocoins-title{font-size:18px;font-weight:900;margin-bottom:6px}
 
-/* ═══ ЭКРАН БАНА ═══ */
 .ban-box{background:var(--panel);border:2px solid var(--red);border-radius:16px;padding:30px 20px;max-width:380px;width:100%;text-align:center}
 .ban-emoji{font-size:64px;margin-bottom:12px}
 .ban-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:8px}
 .ban-reason{color:var(--mut);font-size:14px;margin-bottom:16px}
 
-/* ═══ ОКОШКО ВЫДАЧ ═══ */
 .grants-box{background:var(--panel);border:2px solid var(--grn);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center}
 .grants-emoji{font-size:56px;margin-bottom:10px}
 .grants-title{font-size:20px;font-weight:900;color:var(--grn);margin-bottom:12px}
@@ -215,7 +203,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <button class="btn pur big" id="loadBtn" disabled>ВОЙТИ</button>
 </div>
 
-<!-- ══ ПАНЕЛЬКА ДОСТИЖЕНИЯ СВЕРХУ ═══ -->
 <div id="achieveNotif" class="ach-notify">
   <img class="an-img" src="">
   <div class="an-body">
@@ -276,7 +263,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <button class="nav-btn" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Инвентарь</button>
 </nav>
 
-<!-- ЭКРАН КЕЙСА -->
 <div class="overlay view" id="caseView" hidden>
   <div class="cv-body">
     <div class="case-top"><span id="cvTitle"></span><button class="x" id="cvClose">✕</button></div>
@@ -289,7 +275,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ МАГАЗИН: ВЫБОР ТАРИФА ═══ -->
 <div class="overlay" id="shopOverlay" hidden>
   <div class="shop-box">
     <div class="case-top"><span>💎 Купить осколки</span><button class="x" id="shopClose">✕</button></div>
@@ -298,7 +283,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ══ НЕ ХВАТАЕТ ОСКОЛКОВ ═══ -->
 <div class="overlay" id="noCoinsOverlay" hidden>
   <div class="nocoins-box">
     <div class="nocoins-emoji">😔</div>
@@ -309,7 +293,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ ПРОФИЛЬ ══ -->
 <div class="overlay" id="profileOverlay" hidden>
   <div class="profile-box">
     <div class="case-top"><span>Профиль</span><button class="x" id="profileClose">✕</button></div>
@@ -333,7 +316,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ ПИКЕР ══ -->
 <div class="overlay" id="picker" hidden>
   <div class="picker-box">
     <div class="case-top"><span id="pickerTitle">Выбор</span><button class="x" id="pickerClose">✕</button></div>
@@ -342,7 +324,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ ЭКРАН БАНА ═══ -->
 <div class="overlay" id="banOverlay" hidden>
   <div class="ban-box">
     <div class="ban-emoji">🚫</div>
@@ -352,11 +333,10 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ ОКОШКО ВЫДАЧ ═══ -->
 <div class="overlay" id="grantsOverlay" hidden>
   <div class="grants-box">
     <div class="grants-emoji"></div>
-    <div class="grants-title">Тебе начислено!</div>
+    <div class="grants-title" id="grantsTitle">Тебе начислено!</div>
     <div id="grantsList"></div>
     <button class="btn pur big" id="grantsClose">ЗАБРАТЬ</button>
   </div>
@@ -482,7 +462,6 @@ const chestPool = ch => ITEMS.filter(i => i.cost > ch.min && i.cost <= ch.max).s
 const SHARD = `<img class="shard" src="${SHARD_URL}" alt="">`;
 const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
 
-/* ═══ ОПЛАТА (Telegram Stars) ═══ */
 const API_URL = "https://dota-drop-telegram.onrender.com";
 const PACKS = [
   { stars:1, coins:100 },
@@ -532,7 +511,6 @@ function showNoCoins(need){
 $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openShop(); };
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
-/* ═══ ДОСТИЖЕНИЯ ═══ */
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus",
     img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png",
@@ -545,7 +523,6 @@ const ACHIEVEMENTS = [
     check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
-/* ══ ЗВУК ══ */
 let musicOn = localStorage.getItem("dotaDrop_music") !== "0";
 const music = new Audio(); music.loop = true; music.volume = 0.25;
 if (MUSIC_URL) music.src = MUSIC_URL;
@@ -572,7 +549,6 @@ function playSell(){ if(sellAudio){ sellAudio.currentTime=0; sellAudio.play().ca
 function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play().catch(()=>{}); } }
 function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
 
-/* ══ СОХРАНЕНИЯ (версия 2 — все стартуют заново) ══ */
 const LKEY = "dotaDrop_save_v2";
 function defaultState(){ return {
   coins:CONFIG.startCoins, inv:{}, promos:[],
@@ -593,7 +569,6 @@ function loadLocal(){
     if(!S.avatar) S.avatar = "";
     if(!S.freeRecruitDate) S.freeRecruitDate = "";
   }catch(e){}
-  // Удаляем старый сейв v1
   localStorage.removeItem("dotaDrop_save");
 }
 function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringify(S)); }catch(e){} }
@@ -612,7 +587,6 @@ function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i))
   for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
-/* ═══ ДОСТИЖЕНИЯ: проверка и уведомление ═══ */
 function checkAchievements(){
   ACHIEVEMENTS.forEach(a => {
     if (!S.achievements.includes(a.id) && a.check(S)){
@@ -641,7 +615,6 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
   b.classList.add("active"); $("#tab-"+b.dataset.tab).classList.add("active"); });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
-/* ══ КЕЙСЫ ══ */
 const RISK_COLORS = ["#2ecc71","#f1c40f","#e67e22","#e74c3c"], RISK_NAMES=["L","M","H","E"];
 function riskHtml(ch){
   const segs = RISK_NAMES.map((_,i)=>`<i style="background:${i<=ch.risk?RISK_COLORS[i]:"#2c4634"}">${i===ch.risk?'<span class="dot" style="left:50%"></span>':""}</i>`).join("");
@@ -852,7 +825,6 @@ function backToIdle(){
 }
 $("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
 
-/* ══ АПГРЕЙД ═ */
 let upOwn=null, upTarget=null;
 (function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180;
   h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; }
@@ -927,7 +899,6 @@ $("#btnSpin").onclick = () => {
   }));
 };
 
-/* ══ ПИКЕР ══ */
 let pickCb=null;
 function openPicker(title,list,cb){ pickCb=cb; $("#pickerTitle").textContent=title; $("#pickerSearch").value="";
   window._pl=list; drawPicker(list); $("#picker").hidden=false; }
@@ -938,7 +909,6 @@ $("#pickerList").onclick = e => { const r=e.target.closest(".pick-row"); if(!r) 
 $("#pickerClose").onclick = () => $("#picker").hidden=true;
 $("#pickerSearch").oninput = e => { const q=e.target.value.toLowerCase(); drawPicker(window._pl.filter(i=>i.n.toLowerCase().includes(q)||i.id.includes(q))); };
 
-/* ══ ЗАДАНИЯ ═ */
 function renderTasks(){
   const can = S.daily.last !== today();
   const reward = Math.min(CONFIG.dailyBase + S.daily.streak*CONFIG.dailyStreakStep, CONFIG.dailyMax);
@@ -974,7 +944,6 @@ $("#btnPromo").onclick = () => {
     .catch(()=> toast("Нет связи с сервером"));
 };
 
-/* ══ ИНВЕНТАРЬ ═ */
 function renderInv(){
   const ids=Object.keys(S.inv);
   $("#invCount").textContent = ids.length?`(${ids.length})`:"";
@@ -990,7 +959,6 @@ function renderInv(){
 window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); toast(`+${p}`); } };
 window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
 
-/* ══ ПРОФИЛЬ ═══ */
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar");
@@ -1040,7 +1008,7 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
-/* ══ СИНХРОНИЗАЦИЯ С СЕРВЕРОМ ══ */
+// ═══ СИНХРОНИЗАЦИЯ С СЕРВЕРОМ (ОБНОВЛЕНА) ═══
 async function syncWithServer(){
   const uid = tgUserId();
   if(!uid) return;
@@ -1064,20 +1032,94 @@ async function syncWithServer(){
 
 function showGrants(grants){
   const list = $("#grantsList");
-  list.innerHTML = grants.map(g => {
-    let html = "";
-    if(g.type === "coins"){
-      html = `<div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>`;
-      if(g.reason) html += `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>`;
+  const title = $("#grantsTitle");
+  const emoji = document.querySelector(".grants-emoji");
+  
+  let hasNormalGrants = false;
+  let html = "";
+  
+  grants.forEach(g => {
+    // Обработка обычных выдач
+    if(g.type === "coins" && g.amount > 0){
+      hasNormalGrants = true;
+      html += `<div class="grant-item">
+        <div class="gi-type">Осколки</div>
+        <div class="gi-amount">+${g.amount}</div>
+        ${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}
+      </div>`;
       S.coins += g.amount;
-    } else if(g.type === "item"){
+    }
+    // Списание осколков (отрицательное значение)
+    else if(g.type === "coins" && g.amount < 0){
+      hasNormalGrants = true;
+      const absAmount = Math.abs(g.amount);
+      const actualDeduction = Math.min(S.coins, absAmount); // Не уходим ниже 0
+      S.coins = Math.max(0, S.coins - absAmount);
+      html += `<div class="grant-item">
+        <div class="gi-type" style="color:var(--red)">Списание осколков</div>
+        <div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>
+        ${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}
+      </div>`;
+    }
+    // Выдача предмета
+    else if(g.type === "item"){
+      hasNormalGrants = true;
       const it = itemById(g.item_id);
-      html = `<div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>`;
-      if(g.reason) html += `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>`;
+      html += `<div class="grant-item">
+        <div class="gi-type">Предмет</div>
+        <div class="gi-amount">${it ? it.n : g.item_id}</div>
+        ${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}
+      </div>`;
       if(it) addInv(it.id);
     }
-    return `<div class="grant-item">${html}</div>`;
-  }).join("");
+    // Обнуление баланса
+    else if(g.type === "clear_coins"){
+      const oldCoins = S.coins;
+      S.coins = 0;
+      html += `<div class="grant-item">
+        <div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div>
+        <div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>
+        ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
+      </div>`;
+    }
+    // Очистка инвентаря
+    else if(g.type === "clear_items"){
+      const itemCount = Object.keys(S.inv).length;
+      S.inv = {};
+      html += `<div class="grant-item">
+        <div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div>
+        <div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>
+        ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
+      </div>`;
+    }
+    // Сброс прогресса
+    else if(g.type === "reset"){
+      S.coins = CONFIG.startCoins;
+      S.inv = {};
+      S.stats = {casesOpened: 0, coinsSpent: 0};
+      html += `<div class="grant-item">
+        <div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div>
+        <div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div>
+        <div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>
+        ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
+      </div>`;
+    }
+  });
+  
+  if(!hasNormalGrants){
+    // Если были только служебные grant (clear/reset), показываем их
+    if(html){
+      title.textContent = "Административные действия";
+      emoji.textContent = "⚠️";
+    } else {
+      return; // Нечего показывать
+    }
+  } else {
+    title.textContent = "Тебе начислено!";
+    emoji.textContent = "🎁";
+  }
+  
+  list.innerHTML = html;
   save();
   balance();
   renderInv();
@@ -1085,7 +1127,6 @@ function showGrants(grants){
 }
 $("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
 
-/* ══ СТАРТ ══ */
 function refreshAll(){ balance(); renderChests(); renderTasks(); renderInv(); slotDraw(); drawMusicBtn();
   const wf=$("#wheelFrame");
   if (WHEEL_FRAME_URL){ wf.src=WHEEL_FRAME_URL; wf.style.display=""; } else { wf.style.display="none"; }
@@ -1101,7 +1142,6 @@ function boot(){
 }
 boot();
 
-/* ══ ПРЕДЗАГРУЗКА ══ */
 (function preloader(){
   const pr = $("#preloader");
   const orbit = $("#orbit");
@@ -1166,7 +1206,6 @@ boot();
 
   btn.onclick = () => {
     if (btn.disabled) return;
-    // Музыка включается только если была включена
     if (musicOn) {
       music.play().then(() => {
         localStorage.setItem("dotaDrop_music","1");
@@ -1192,7 +1231,6 @@ boot();
     setTimeout(() => {
       pr.classList.add("done");
       setTimeout(() => { pr.classList.add("gone"); pr.remove(); }, 500);
-      // Синхронизация с сервером после входа
       syncWithServer();
     }, 1000);
   };
