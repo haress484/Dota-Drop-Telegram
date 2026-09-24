@@ -25,52 +25,33 @@ input,select,textarea{background:#0d1a12;border:1px solid var(--line);border-rad
 .btn.grn{background:linear-gradient(180deg,#4ae89a,#2ecc71);color:#0c1410}
 .btn.red{background:var(--red);color:#fff}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:#cfe8cf}
-.btn.sm{padding:5px 8px;font-size:10px;min-width:32px;white-space:nowrap}
 .btn:disabled{opacity:.4;cursor:default}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-.tr-actions{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start}
+.tr-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tr-actions .btn{padding:6px 10px;font-size:12px;flex:1;min-width:60px;max-width:90px;text-align:center}
 .empty{text-align:center;color:var(--mut);padding:20px}
 .hint{color:var(--mut);font-size:12px;margin-top:6px}
 #toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:6px}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px}
-.gift-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.gift-card img{width:60px;height:60px;object-fit:contain;background:#0d1a12;border-radius:8px}
-.gift-card .info{flex:1}
-.gift-card .name{font-weight:700;margin-bottom:2px;font-size:13px}
-.gift-card .price{color:var(--gold);font-size:12px}
 .balance-big{font-size:28px;font-weight:900;color:var(--gold);text-align:center;padding:10px 0}
-
-/* Мобильная адаптация */
-@media (max-width: 480px) {
-  .tr-actions {
-    flex-direction: column;
-    gap: 3px;
-  }
-  .tr-actions .btn.sm {
-    width: 100%;
-    text-align: center;
-  }
-  table { font-size: 12px; }
-  th, td { padding: 6px 4px; }
-}
 </style>
 </head>
 <body>
 
 <div class="top">
-  <h1>🛠 Dota Drop · Админ</h1>
+  <h1> Dota Drop · Админ</h1>
   <span class="badge" id="ownerBadge">—</span>
 </div>
 
 <div class="tabs" id="tabs">
   <div class="tab active" data-tab="players">👥 Игроки</div>
-  <div class="tab" data-tab="grants"> Выдачи</div>
+  <div class="tab" data-tab="grants">💎 Выдачи</div>
   <div class="tab" data-tab="gifts">🎁 Подарки</div>
   <div class="tab" data-tab="promos">🎫 Промо</div>
   <div class="tab" data-tab="payments">💳 Платежи</div>
-  <div class="tab" data-tab="messages">📢 Сообщения</div>
+  <div class="tab" data-tab="messages"> Сообщения</div>
 </div>
 
 <!-- ═══════ ИГРОКИ ═══════ -->
@@ -109,7 +90,7 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 <!-- ═══════ ПОДАРКИ ═══════ -->
 <div class="card tab-pane" data-pane="gifts" style="display:none">
   <h2>Баланс бота</h2>
-  <div class="balance-big"><span id="botStars">0</span> </div>
+  <div class="balance-big"><span id="botStars">0</span> ⭐</div>
   <div class="row">
     <input id="topupStars" type="number" placeholder="Сколько звёзд внести">
     <button class="btn grn" onclick="topupBot()">ПОПОЛНИТЬ</button>
@@ -117,8 +98,12 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div class="hint">При нажатии "Пополнить" откроется окно оплаты Telegram. Звёзды спишутся с твоего аккаунта и зачислятся на баланс бота.</div>
   <hr style="margin:16px 0;border-color:var(--line)">
   <h2>Отправить подарок</h2>
-  <input id="giftUid" type="number" placeholder="ID получателя">
-  <div id="giftsList" style="margin-top:10px"><div class="empty">Загрузка подарков…</div></div>
+  <div class="row">
+    <input id="giftUid" type="number" placeholder="ID получателя">
+    <input id="giftIdInput" type="text" placeholder="ID подарка (напр. 5170145012310081615)">
+  </div>
+  <button class="btn pur" onclick="sendGiftManual()">ОТПРАВИТЬ ПОДАРОК</button>
+  <div class="hint">ID подарка можно посмотреть через плагин aiogram. Баланс бота спишется автоматически.</div>
 </div>
 
 <!-- ═══════ ПРОМО ═══════ -->
@@ -140,7 +125,7 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div id="promosBody"><div class="empty">Загрузка…</div></div>
 </div>
 
-<!-- ═══════ ПЛАТЕЖИ ══════ -->
+<!-- ═══════ ПЛАТЕЖИ ═══════ -->
 <div class="card tab-pane" data-pane="payments" style="display:none">
   <h2>Лента донатов</h2>
   <div id="paymentsBody"><div class="empty">Загрузка…</div></div>
@@ -229,13 +214,15 @@ async function loadPlayers(){
         <td>${p.user_id}</td>
         <td>${name}${banned?'<br><span style="color:var(--red);font-size:11px">🚫 ЗАБАНЕН</span>':""}</td>
         <td>${seen}</td>
-        <td class="tr-actions">
-          ${banned
-            ? `<button class="btn sm grn" onclick="unban(${p.user_id})">Разбан</button>`
-            : `<button class="btn sm red" onclick="ban(${p.user_id})">Бан</button>`}
-          <button class="btn sm ghost" onclick="quickGrant(${p.user_id})">+оск</button>
-          <button class="btn sm ghost" onclick="quickSend(${p.user_id})">💬</button>
-          <button class="btn sm ghost" onclick="quickGift(${p.user_id})"></button>
+        <td>
+          <div class="tr-actions">
+            ${banned
+              ? `<button class="btn sm grn" onclick="unban(${p.user_id})">Разбан</button>`
+              : `<button class="btn sm red" onclick="ban(${p.user_id})">Бан</button>`}
+            <button class="btn sm ghost" onclick="quickGrant(${p.user_id})">+оск</button>
+            <button class="btn sm ghost" onclick="quickSend(${p.user_id})">💬</button>
+            <button class="btn sm ghost" onclick="quickGift(${p.user_id})">🎁</button>
+          </div>
         </td>
       </tr>`;
     }).join("")}
@@ -306,34 +293,22 @@ window.topupBot = async () => {
     else if (status === "failed") toast("Ошибка оплаты");
   });
 };
-async function loadGifts(){
-  const j = await api("/admin/available_gifts");
-  const list = j.gifts || [];
-  const body = document.getElementById("giftsList");
-  if (!list.length){ body.innerHTML = '<div class="empty">Подарков нет в продаже</div>'; return; }
-  body.innerHTML = list.map(g => `
-    <div class="gift-card">
-      <img src="${g.image}" alt="${g.id}" onerror="this.style.display='none'">
-      <div class="info">
-        <div class="name">${g.id}</div>
-        <div class="price">${g.star_count} ⭐ · осталось ${g.remaining_count >= 0 ? g.remaining_count : "∞"}</div>
-      </div>
-      <button class="btn sm pur" onclick="sendGift('${g.id}', ${g.star_count})">Отправить</button>
-    </div>
-  `).join("");
-}
-window.sendGift = async (gift_id, cost) => {
+window.sendGiftManual = async () => {
   const user_id = +document.getElementById("giftUid").value;
+  const gift_id = document.getElementById("giftIdInput").value.trim();
   if (!user_id) return toast("Укажи ID получателя");
-  const balance = +document.getElementById("botStars").textContent;
-  if (balance < cost) return toast(`На балансе бота только ${balance} ⭐, нужно ${cost}`);
-  if (!confirm(`Отправить подарок ${gift_id} (${cost} ⭐) игроку ${user_id}?`)) return;
+  if (!gift_id) return toast("Укажи ID подарка");
+  if (!confirm(`Отправить подарок ${gift_id} игроку ${user_id}?`)) return;
   const j = await api("/admin/send_gift", {user_id, gift_id});
-  if (j.ok) { toast("Подарок отправлен!"); loadBotBalance(); }
+  if (j.ok) {
+    toast("Подарок отправлен!");
+    loadBotBalance();
+    document.getElementById("giftIdInput").value = "";
+  }
   else toast("Ошибка: " + (j.error||""));
 };
 
-// ══ ПРОМО ═══
+// ═══ ПРОМО ═══
 window.promoCreate = async () => {
   const code = document.getElementById("pCode").value.trim().toUpperCase();
   const amount = +document.getElementById("pAmount").value;
@@ -356,7 +331,7 @@ async function loadPromos(){
     <tr><th>Код</th><th>Сумма</th><th>Исп/Макс</th><th></th></tr>
     ${j.promos.map(p=>`
       <tr>
-        <td>${p.code}${p.secret?' 🏆':''}</td>
+        <td>${p.code}${p.secret?' ':''}</td>
         <td>${p.amount}</td>
         <td>${p.uses}/${p.max_uses}</td>
         <td><button class="btn sm red" onclick="promoDelete('${p.code}')">×</button></td>
@@ -412,7 +387,6 @@ window.broadcast = async () => {
   loadPromos();
   loadPayments();
   loadBotBalance();
-  loadGifts();
 })();
 </script>
 </body>
