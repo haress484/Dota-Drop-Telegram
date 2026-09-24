@@ -36,22 +36,36 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 #toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:6px}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px}
 .balance-big{font-size:28px;font-weight:900;color:var(--gold);text-align:center;padding:10px 0}
+
+/* Пикер предметов */
+.picker-overlay{position:fixed;inset:0;z-index:200;background:rgba(6,12,8,.97);display:flex;flex-direction:column;padding:16px}
+.picker-overlay[hidden]{display:none}
+.picker-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;max-height:90vh;display:flex;flex-direction:column}
+.picker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.picker-header h3{font-size:16px;color:var(--gold)}
+.picker-close{background:none;border:none;color:var(--mut);font-size:22px;cursor:pointer}
+.picker-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.pick-row{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer}
+.pick-row:hover{background:var(--panel2)}
+.pick-row img{width:52px;height:40px;object-fit:contain}
+.pick-row .pn{flex:1;font-size:13px;font-weight:600}
+.pick-row .pc{color:var(--mut);font-size:11px}
 </style>
 </head>
 <body>
 
 <div class="top">
-  <h1> Dota Drop · Админ</h1>
+  <h1>🛠 Dota Drop · Админ</h1>
   <span class="badge" id="ownerBadge">—</span>
 </div>
 
 <div class="tabs" id="tabs">
   <div class="tab active" data-tab="players">👥 Игроки</div>
   <div class="tab" data-tab="grants">💎 Выдачи</div>
-  <div class="tab" data-tab="gifts">🎁 Подарки</div>
+  <div class="tab" data-tab="gifts"> Подарки</div>
   <div class="tab" data-tab="promos">🎫 Промо</div>
   <div class="tab" data-tab="payments">💳 Платежи</div>
-  <div class="tab" data-tab="messages"> Сообщения</div>
+  <div class="tab" data-tab="messages">📢 Сообщения</div>
 </div>
 
 <!-- ═══════ ИГРОКИ ═══════ -->
@@ -74,6 +88,7 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
     <input id="gAmount" type="number" placeholder="Сумма осколков">
     <input id="gItem" placeholder="item_id (если предмет)" style="display:none">
   </div>
+  <button id="btnPickItem" class="btn ghost" style="display:none;margin-bottom:8px" onclick="openItemPicker()"> ВЫБРАТЬ ПРЕДМЕТ</button>
   <input id="gReason" placeholder="Причина (необязательно, для окошка игроку)">
   <div class="row" style="margin-top:8px">
     <button class="btn pur" onclick="grantOne()">ВЫДАТЬ</button>
@@ -143,6 +158,18 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <button class="btn red" onclick="broadcast()" style="margin-top:8px">РАЗослать ВСЕМ</button>
 </div>
 
+<!-- ═══ ПИКЕР ПРЕДМЕТОВ ═══ -->
+<div class="picker-overlay" id="itemPicker" hidden>
+  <div class="picker-box">
+    <div class="picker-header">
+      <h3>Выбери предмет</h3>
+      <button class="picker-close" onclick="closeItemPicker()">✕</button>
+    </div>
+    <input id="pickerSearch" placeholder="Поиск предмета..." oninput="filterItems()">
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
@@ -195,6 +222,109 @@ document.getElementById("gType").onchange = e => {
   const isItem = e.target.value === "item";
   document.getElementById("gAmount").style.display = isItem ? "none" : "";
   document.getElementById("gItem").style.display = isItem ? "" : "none";
+  document.getElementById("btnPickItem").style.display = isItem ? "" : "none";
+};
+
+// ═══ ПИКЕР ПРЕДМЕТОВ ═══
+const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
+const ITEMS = [
+ {id:"royale_with_cheese",n:"Royale With Cheese",cost:2},{id:"tango_single",n:"Tango (Shared)",cost:30},{id:"blood_grenade",n:"Blood Grenade",cost:50},
+ {id:"courier",n:"Animal Courier",cost:50},{id:"smoke_of_deceit",n:"Smoke of Deceit",cost:50},{id:"ward_dispenser",n:"Observer & Sentry Wards",cost:50},
+ {id:"ward_sentry",n:"Sentry Ward",cost:50},{id:"branches",n:"Iron Branch",cost:55},{id:"clarity",n:"Clarity",cost:60},
+ {id:"enchanted_mango",n:"Enchanted Mango",cost:65},{id:"faerie_fire",n:"Faerie Fire",cost:65},{id:"tome_of_knowledge",n:"Tome of Knowledge",cost:75},
+ {id:"dust",n:"Dust of Appearance",cost:80},{id:"tango",n:"Tango",cost:90},{id:"flask",n:"Healing Salve",cost:100},
+ {id:"flying_courier",n:"Flying Courier",cost:100},{id:"quelling_blade",n:"Quelling Blade",cost:100},{id:"stout_shield",n:"Stout Shield",cost:100},
+ {id:"tpscroll",n:"Town Portal Scroll",cost:100},{id:"gauntlets",n:"Gauntlets of Strength",cost:140},{id:"mantle",n:"Mantle of Intelligence",cost:140},
+ {id:"slippers",n:"Slippers of Agility",cost:140},{id:"circlet",n:"Circlet",cost:155},{id:"ring_of_protection",n:"Ring of Protection",cost:175},
+ {id:"ring_of_regen",n:"Ring of Regen",cost:175},{id:"sobi_mask",n:"Sage's Mask",cost:175},{id:"magic_stick",n:"Magic Stick",cost:200},
+ {id:"infused_raindrop",n:"Infused Raindrops",cost:225},{id:"wind_lace",n:"Wind Lace",cost:225},{id:"fluffy_hat",n:"Fluffy Hat",cost:250},
+ {id:"wizard_hat",n:"Wizard Hat",cost:250},{id:"blight_stone",n:"Orb of Blight",cost:300},{id:"orb_of_frost",n:"Orb of Frost",cost:300},
+ {id:"orb_of_venom",n:"Orb of Venom",cost:350},{id:"buckler",n:"Buckler",cost:425},{id:"headdress",n:"Headdress",cost:425},
+ {id:"ring_of_basilius",n:"Ring of Basilius",cost:425},{id:"belt_of_strength",n:"Belt of Strength",cost:450},{id:"blades_of_attack",n:"Blades of Attack",cost:450},
+ {id:"boots_of_elves",n:"Band of Elvenskin",cost:450},{id:"crown",n:"Crown",cost:450},{id:"gloves",n:"Gloves of Haste",cost:450},
+ {id:"robe",n:"Robe of the Magi",cost:450},{id:"shawl",n:"Sparkling Shawl",cost:450},{id:"magic_wand",n:"Magic Wand",cost:460},
+ {id:"boots",n:"Boots of Speed",cost:500},{id:"chainmail",n:"Chainmail",cost:500},{id:"bracer",n:"Bracer",cost:505},
+ {id:"null_talisman",n:"Null Talisman",cost:505},{id:"wraith_band",n:"Wraith Band",cost:505},{id:"voodoo_mask",n:"Voodoo Mask",cost:650},
+ {id:"bottle",n:"Bottle",cost:675},{id:"ring_of_health",n:"Ring of Health",cost:700},{id:"void_stone",n:"Void Stone",cost:700},
+ {id:"energy_booster",n:"Energy Booster",cost:800},{id:"soul_ring",n:"Soul Ring",cost:805},{id:"urn_of_shadows",n:"Urn of Shadows",cost:825},
+ {id:"quarterstaff",n:"Quarterstaff",cost:875},{id:"chasm_stone",n:"Chasm Stone",cost:900},{id:"cloak",n:"Cloak",cost:900},
+ {id:"gem",n:"Gem of True Sight",cost:900},{id:"javelin",n:"Javelin",cost:900},{id:"lifesteal",n:"Morbid Mask",cost:900},
+ {id:"shadow_amulet",n:"Shadow Amulet",cost:900},{id:"tranquil_boots",n:"Tranquil Boots",cost:900},{id:"splintmail",n:"Splintmail",cost:950},
+ {id:"helm_of_iron_will",n:"Helm of Iron Will",cost:975},{id:"blade_of_alacrity",n:"Blade of Alacrity",cost:1000},{id:"blitz_knuckles",n:"Blitz Knuckles",cost:1000},
+ {id:"broadsword",n:"Broadsword",cost:1000},{id:"cheese",n:"Cheese",cost:1000},{id:"diadem",n:"Diadem",cost:1000},
+ {id:"ogre_axe",n:"Ogre Axe",cost:1000},{id:"pocket_roshan",n:"Pocket Roshan",cost:1000},{id:"refresher_shard",n:"Refresher Shard",cost:1000},
+ {id:"staff_of_wizardry",n:"Staff of Wizardry",cost:1000},{id:"vitality_booster",n:"Vitality Booster",cost:1000},{id:"orb_of_corrosion",n:"Orb of Corrosion",cost:1050},
+ {id:"falcon_blade",n:"Falcon Blade",cost:1125},{id:"cornucopia",n:"Cornucopia",cost:1200},{id:"point_booster",n:"Point Booster",cost:1200},
+ {id:"talisman_of_evasion",n:"Talisman of Evasion",cost:1300},{id:"claymore",n:"Claymore",cost:1350},{id:"pavise",n:"Pavise",cost:1350},
+ {id:"aghanims_shard",n:"Aghanim's Shard",cost:1400},{id:"pers",n:"Perseverance",cost:1400},{id:"platemail",n:"Platemail",cost:1400},
+ {id:"power_treads",n:"Power Treads",cost:1400},{id:"phase_boots",n:"Phase Boots",cost:1450},{id:"arcane_boots",n:"Arcane Boots",cost:1500},
+ {id:"ghost",n:"Ghost Scepter",cost:1500},{id:"mithril_hammer",n:"Mithril Hammer",cost:1600},{id:"drum",n:"Drum of Endurance",cost:1625},
+ {id:"oblivion_staff",n:"Oblivion Staff",cost:1625},{id:"ring_of_tarrasque",n:"Ring of Tarrasque",cost:1700},{id:"tiara_of_selemene",n:"Tiara of Selemene",cost:1700},
+ {id:"vanguard",n:"Vanguard",cost:1700},{id:"veil_of_discord",n:"Veil of Discord",cost:1700},{id:"essence_distiller",n:"Essence Distiller",cost:1775},
+ {id:"mekansm",n:"Mekansm",cost:1775},{id:"dragon_lance",n:"Dragon Lance",cost:1900},{id:"mask_of_madness",n:"Mask of Madness",cost:1900},
+ {id:"hyperstone",n:"Hyperstone",cost:2000},{id:"crystalys",n:"Crystalys",cost:2000},{id:"necronomicon",n:"Necronomicon",cost:2050},
+ {id:"kaya",n:"Kaya",cost:2100},{id:"sange",n:"Sange",cost:2100},{id:"yasha",n:"Yasha",cost:2100},
+ {id:"glimmer_cape",n:"Glimmer Cape",cost:2150},{id:"demon_edge",n:"Demon Edge",cost:2200},{id:"force_staff",n:"Force Staff",cost:2200},
+ {id:"hand_of_midas",n:"Hand of Midas",cost:2200},{id:"vladmir",n:"Vladmir's Offering",cost:2200},{id:"blink",n:"Blink Dagger",cost:2250},
+ {id:"holy_locket",n:"Holy Locket",cost:2250},{id:"rod_of_atos",n:"Rod of Atos",cost:2250},{id:"aether_lens",n:"Aether Lens",cost:2275},
+ {id:"blade_mail",n:"Blade Mail",cost:2400},{id:"armlet",n:"Armlet of Mordiggian",cost:2500},{id:"diffusal_blade",n:"Diffusal Blade",cost:2500},
+ {id:"travel_boots",n:"Boots of Travel",cost:2500},{id:"helm_of_the_dominator",n:"Helm of the Dominator",cost:2550},{id:"specialists_array",n:"Specialist's Array",cost:2550},
+ {id:"solar_crest",n:"Solar Crest",cost:2575},{id:"consecrated_wraps",n:"Consecrated Wraps",cost:2600},{id:"cyclone",n:"Eul's Scepter",cost:2600},
+ {id:"phylactery",n:"Phylactery",cost:2600},{id:"echo_sabre",n:"Echo Sabre",cost:2700},{id:"spirit_vessel",n:"Spirit Vessel",cost:2725},
+ {id:"witch_blade",n:"Witch Blade",cost:2775},{id:"eagle",n:"Eaglesong",cost:2800},{id:"mystic_staff",n:"Mystic Staff",cost:2800},
+ {id:"reaver",n:"Reaver",cost:2800},{id:"ultimate_orb",n:"Ultimate Orb",cost:2800},{id:"meteor_hammer",n:"Meteor Hammer",cost:2850},
+ {id:"basher",n:"Skull Basher",cost:2875},{id:"maelstrom",n:"Maelstrom",cost:2950},{id:"aeon_disk",n:"Aeon Disk",cost:3000},
+ {id:"dagon",n:"Dagon",cost:3000},{id:"soul_booster",n:"Soul Booster",cost:3000},{id:"mage_slayer",n:"Mage Slayer",cost:3100},
+ {id:"invis_sword",n:"Shadow Blade",cost:3250},{id:"orchid",n:"Orchid Malevolence",cost:3275},{id:"necronomicon_2",n:"Necronomicon 2",cost:3300},
+ {id:"revenants_brooch",n:"Revenant's Brooch",cost:3300},{id:"heavens_halberd",n:"Heaven's Halberd",cost:3400},{id:"relic",n:"Sacred Relic",cost:3400},
+ {id:"desolator",n:"Desolator",cost:3500},{id:"crimson_guard",n:"Crimson Guard",cost:3725},{id:"pipe",n:"Pipe of Insight",cost:3725},
+ {id:"wraith_pact",n:"Wraith Pact",cost:3800},{id:"lotus_orb",n:"Lotus Orb",cost:3850},{id:"bfury",n:"Battle Fury",cost:3900},
+ {id:"eternal_shroud",n:"Eternal Shroud",cost:3900},{id:"moon_shard",n:"Moon Shard",cost:4000},{id:"black_king_bar",n:"Black King Bar",cost:4050},
+ {id:"dagon_2",n:"Dagon 2",cost:4100},{id:"kaya_and_sange",n:"Kaya and Sange",cost:4200},{id:"sange_and_yasha",n:"Sange and Yasha",cost:4200},
+ {id:"ultimate_scepter",n:"Aghanim's Scepter",cost:4200},{id:"yasha_and_kaya",n:"Yasha and Kaya",cost:4200},{id:"boots_of_bearing",n:"Boots of Bearing",cost:4225},
+ {id:"nullifier",n:"Nullifier",cost:4350},{id:"guardian_greaves",n:"Guardian Greaves",cost:4450},{id:"hurricane_pike",n:"Hurricane Pike",cost:4450},
+ {id:"shivas",n:"Shiva's Guard",cost:4500},{id:"travel_boots_2",n:"Boots of Travel 2",cost:4500},{id:"necronomicon_3",n:"Necronomicon 3",cost:4550},
+ {id:"gungir",n:"Gleipnir",cost:4650},{id:"manta",n:"Manta Style",cost:4650},{id:"bloodstone",n:"Bloodstone",cost:4700},
+ {id:"harpoon",n:"Harpoon",cost:4700},{id:"radiance",n:"Radiance",cost:4700},{id:"crellas_crozier",n:"Crelia's Crozier",cost:4800},
+ {id:"sphere",n:"Linken's Sphere",cost:4800},{id:"octarine_core",n:"Octarine Core",cost:4900},{id:"monkey_king_bar",n:"Monkey King Bar",cost:5000},
+ {id:"refresher",n:"Refresher Orb",cost:5000},{id:"satanic",n:"Satanic",cost:5050},{id:"daedalus",n:"Daedalus",cost:5100},
+ {id:"assault",n:"Assault Cuirass",cost:5125},{id:"dagon_3",n:"Dagon 3",cost:5200},{id:"ethereal_blade",n:"Ethereal Blade",cost:5200},
+ {id:"heart",n:"Heart of Tarrasque",cost:5200},{id:"scythe_of_vyse",n:"Scythe of Vyse",cost:5200},{id:"butterfly",n:"Butterfly",cost:5450},
+ {id:"mjollnir",n:"Mjollnir",cost:5500},{id:"angels_demise",n:"Angel's Demise",cost:5600},{id:"casters_rapier",n:"Caster's Rapier",cost:5600},
+ {id:"rapier",n:"Divine Rapier",cost:5600},{id:"helm_of_the_overlord",n:"Helm of the Overlord",cost:5650},{id:"silver_edge",n:"Silver Edge",cost:5700},
+ {id:"ultimate_scepter_2",n:"Aghanim's Blessing",cost:5800},{id:"hydras_breath",n:"Hydra's Breath",cost:5900},{id:"skadi",n:"Eye of Skadi",cost:5900},
+ {id:"devastator",n:"Devastator",cost:5975},{id:"disperser",n:"Disperser",cost:6100},{id:"abyssal_blade",n:"Abyssal Blade",cost:6250},
+ {id:"dagon_4",n:"Dagon 4",cost:6300},{id:"trident",n:"Trident",cost:6301},{id:"bloodthorn",n:"Bloodthorn",cost:6400},
+ {id:"arcane_blink",n:"Arcane Blink",cost:6800},{id:"overwhelming_blink",n:"Overwhelming Blink",cost:6800},{id:"swift_blink",n:"Swift Blink",cost:6800},
+ {id:"wind_waker",n:"Wind Waker",cost:6800},{id:"dagon_5",n:"Dagon 5",cost:7400}
+];
+
+window.openItemPicker = () => {
+  document.getElementById("itemPicker").hidden = false;
+  document.getElementById("pickerSearch").value = "";
+  renderPickerList(ITEMS);
+};
+window.closeItemPicker = () => {
+  document.getElementById("itemPicker").hidden = true;
+};
+window.filterItems = () => {
+  const q = document.getElementById("pickerSearch").value.toLowerCase();
+  const filtered = ITEMS.filter(i => i.n.toLowerCase().includes(q) || i.id.toLowerCase().includes(q));
+  renderPickerList(filtered);
+};
+function renderPickerList(list){
+  document.getElementById("pickerList").innerHTML = list.map(it => `
+    <div class="pick-row" onclick="selectItem('${it.id}','${it.n}')">
+      <img src="${CDN}${it.id}.png" alt="${it.n}" onerror="this.style.visibility='hidden'">
+      <span class="pn">${it.n}</span>
+      <span class="pc">${it.cost}</span>
+    </div>
+  `).join("") || '<div class="empty">Ничего не найдено</div>';
+}
+window.selectItem = (id, name) => {
+  document.getElementById("gItem").value = id;
+  document.getElementById("itemPicker").hidden = true;
+  toast(`Выбран: ${name}`);
 };
 
 // ═══ ИГРОКИ ═══
@@ -251,7 +381,7 @@ window.unban = async uid => {
   toast("Разбанен"); loadPlayers();
 };
 
-// ═══ ВЫДАЧИ ═══
+// ══ ВЫДАЧИ ═══
 window.grantOne = async () => {
   const user_id = +document.getElementById("gUid").value;
   const type = document.getElementById("gType").value;
@@ -260,7 +390,7 @@ window.grantOne = async () => {
   const reason = document.getElementById("gReason").value.trim() || null;
   if (!user_id) return toast("Укажи ID");
   if (type === "coins" && amount <= 0) return toast("Укажи сумму");
-  if (type === "item" && !item_id) return toast("Укажи item_id");
+  if (type === "item" && !item_id) return toast("Укажи item_id или выбери предмет");
   await api("/admin/grant", {user_id, type, amount, item_id, reason});
   toast("Выдача добавлена в очередь");
   document.getElementById("gUid").value = "";
@@ -331,7 +461,7 @@ async function loadPromos(){
     <tr><th>Код</th><th>Сумма</th><th>Исп/Макс</th><th></th></tr>
     ${j.promos.map(p=>`
       <tr>
-        <td>${p.code}${p.secret?' ':''}</td>
+        <td>${p.code}${p.secret?' 🏆':''}</td>
         <td>${p.amount}</td>
         <td>${p.uses}/${p.max_uses}</td>
         <td><button class="btn sm red" onclick="promoDelete('${p.code}')">×</button></td>
