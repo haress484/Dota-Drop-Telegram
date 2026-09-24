@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import logging
 from datetime import datetime, timezone
+from urllib.parse import parse_qsl
 
 import aiohttp
 from aiogram import Bot, Dispatcher, F
@@ -44,12 +45,16 @@ class DB:
         async with aiohttp.ClientSession() as s:
             async with s.request(method, self.base + path, headers=self.h, json=data) as r:
                 try:
-                    return await r.json()
+                    body = await r.json()
                 except Exception:
-                    return None
+                    body = None
+                if r.status >= 300:
+                    print(f"DB ERROR {method} {path} -> {r.status}: {body}")
+                return body
 
     async def select(self, table, q=""):
-        return await self._req("GET", f"/{table}{q}") or []
+        res = await self._req("GET", f"/{table}{q}")
+        return res if isinstance(res, list) else []
 
     async def insert(self, table, rows):
         return await self._req("POST", f"/{table}", rows)
@@ -60,9 +65,12 @@ class DB:
         async with aiohttp.ClientSession() as s:
             async with s.post(self.base + f"/{table}", headers=h, json=rows) as r:
                 try:
-                    return await r.json()
+                    body = await r.json()
                 except Exception:
-                    return None
+                    body = None
+                if r.status >= 300:
+                    print(f"DB ERROR POST /{table} -> {r.status}: {body}")
+                return body
 
     async def update(self, table, q, data):
         return await self._req("PATCH", f"/{table}{q}", data)
@@ -147,17 +155,6 @@ async def cmd_start(message: Message):
     except Exception as e:
         print("start: ошибка сохранения stats:", e)
 
-    if not await check_sub(uid):
-        sent = await message.answer(
-            "👋 Привет! Чтобы получить доступ к боту, подпишись на канал:\n\n"
-            "📢 @the_kubicki\n\nПосле подписки нажми кнопку ниже.",
-            reply_markup=SUB_KB)
-    else:
-        sent = await message.answer(
-            "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
-            reply_markup=play_kb(uid))
-    await merge_player_stats(uid, {"last_msg_id": sent.message_id})
-
 @dp.callback_query(F.data == "check_sub")
 async def cb_check_sub(cb: CallbackQuery):
     uid = cb.from_user.id
@@ -198,7 +195,6 @@ async def cors_middleware(request, handler):
 def json_resp(data, status=200):
     return web.json_response(data, status=status)
 
-# ---- создание счёта на звёзды ----
 async def handle_create_invoice(request):
     uid = request.query.get("user_id")
     stars = int(request.query.get("stars", 10))
@@ -216,7 +212,6 @@ async def handle_create_invoice(request):
     except Exception as e:
         return json_resp({"error": str(e)}, 500)
 
-# ---- синхронизация страницы: бан, выдачи, статистика ----
 async def handle_sync(request):
     uid = request.query.get("user_id")
     if not uid:
@@ -239,7 +234,6 @@ async def handle_sync(request):
             pass
     return json_resp({"banned": False, "grants": grants})
 
-# ---- проверка промокода (серверная) ----
 async def handle_promo(request):
     code = (request.query.get("code") or "").strip().upper()
     uid = request.query.get("user_id")
@@ -259,10 +253,8 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
-# ---- проверка админа по подписи Telegram ----
 def validate_tg(init_data):
     try:
-        from urllib.parse import parse_qsl
         pairs = dict(parse_qsl(init_data, strict_parsing=True))
     except Exception:
         return None
@@ -293,7 +285,6 @@ async def admin_auth(request):
         return None, data
     return user, data
 
-# ---- админ-эндпоинты ----
 async def handle_admin(request):
     user, data = await admin_auth(request)
     if not user:
@@ -373,9 +364,21 @@ async def handle_admin(request):
 
     return json_resp({"error": "unknown path"}, 404)
 
+async def handle_dbtest(request):
+    sel = await db.select("players", "?limit=1")
+    up = await db.upsert("meta", [{"key": "dbtest", "value": {"t": now_iso()}}])
+    back = await db.select("meta", "?key=eq.dbtest")
+    return json_resp({
+        "url_set": bool(SUPABASE_URL),
+        "key_set": bool(SUPABASE_KEY),
+        "select_players": sel,
+        "upsert_meta": up,
+        "read_back": back})
+
 async def start_web_server():
     app = web.Application(middlewares=[cors_middleware])
     app.router.add_get("/create_invoice", handle_create_invoice)
+    app.router.add_get("/dbtest", handle_dbtest)
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/promo", handle_promo)
     for p in ["/admin/players", "/admin/grant", "/admin/grant_all", "/admin/ban",
