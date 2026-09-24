@@ -14,7 +14,9 @@ from aiogram.types import (Message, CallbackQuery, LabeledPrice, WebAppInfo,
 from aiohttp import web
 
 # ================= НАСТРОЙКИ =================
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8877203912:AAGZlkkgJZZV1suF9EyqEWKp7PIRv2VxOz4")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+if not BOT_TOKEN:
+    raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
 ADMIN_URL = WEB_APP_URL + "admin.html"
