@@ -111,11 +111,11 @@ async def merge_player_stats(uid, patch):
 def play_kb(user_id):
     rows = [[InlineKeyboardButton(text="🎮 ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
     if user_id == OWNER_ID:
-        rows.append([InlineKeyboardButton(text=" АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL))])
+        rows.append([InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL))])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/the_kubicki")],
+    [InlineKeyboardButton(text=" Подписаться на канал", url="https://t.me/the_kubicki")],
     [InlineKeyboardButton(text="✅ Я подписался, проверить", callback_data="check_sub")]
 ])
 
@@ -164,7 +164,7 @@ async def cmd_start(message: Message):
             reply_markup=SUB_KB)
     else:
         sent = await message.answer(
-            "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
+            " Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
             reply_markup=play_kb(uid))
     
     LAST_MSG[uid] = sent.message_id
@@ -251,19 +251,19 @@ async def handle_create_invoice(request):
     except Exception as e:
         return json_resp({"error": str(e)}, 500)
 
-# ---- синхронизация страницы: бан, выдачи, статистика ----
+# ---- синхронизация страницы ----
 async def handle_sync(request):
     uid = request.query.get("user_id")
     if not uid:
         return json_resp({"error": "no user_id"}, 400)
     uid = int(uid)
+    
     banned = await db.select("bans", f"?user_id=eq.{uid}")
     if banned:
         return json_resp({"banned": True, "reason": banned[0].get("reason")})
     
     grants = await db.select("grants", f"?user_id=eq.{uid}&consumed=eq.false&order=created_at.asc")
     
-    # Помечаем все как consumed
     if grants:
         ids = ",".join(str(g["id"]) for g in grants)
         await db.update("grants", f"?id=in.({ids})", {"consumed": True})
@@ -280,7 +280,7 @@ async def handle_sync(request):
     
     return json_resp({"banned": False, "grants": grants})
 
-# ---- проверка промокода (серверная) ----
+# ---- проверка промокода ----
 async def handle_promo(request):
     code = (request.query.get("code") or "").strip().upper()
     uid = request.query.get("user_id")
@@ -300,7 +300,7 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
-# ---- проверка админа по подписи Telegram ----
+# ---- проверка админа ----
 def validate_tg(init_data):
     try:
         pairs = dict(parse_qsl(init_data, strict_parsing=True))
@@ -340,13 +340,22 @@ async def handle_admin(request):
         return json_resp({"error": "forbidden"}, 403)
     path = request.path
 
-    # ---- список игроков + баны ----
     if path == "/admin/players":
         players = await db.select("players", "?order=last_seen.desc")
         bans = await db.select("bans")
         return json_resp({"players": players, "bans": bans})
 
-    # ---- детали игрока ----
+    if path == "/admin/player_inventory":
+        uid = int(data.get("user_id", 0))
+        if not uid:
+            return json_resp({"error": "no user_id"})
+        players = await db.select("players", f"?user_id=eq.{uid}")
+        if not players:
+            return json_resp({"error": "player not found"})
+        stats = players[0].get("stats") or {}
+        inventory = stats.get("inventory", {})
+        return json_resp({"inventory": inventory})
+
     if path == "/admin/player_details":
         uid = int(data.get("user_id", 0))
         if not uid:
@@ -362,12 +371,10 @@ async def handle_admin(request):
             "banned": len(bans) > 0
         })
 
-    # ---- статистика ----
     if path == "/admin/stats":
         players_count = await db.count("players")
         promos_count = await db.count("promos")
         grants_count = await db.count("grants")
-        # Сумма звёзд из payments
         payments = await db.select("payments", "?select=stars")
         total_stars = sum(p.get("stars", 0) for p in payments) if payments else 0
         return json_resp({
@@ -377,7 +384,6 @@ async def handle_admin(request):
             "promos": promos_count
         })
 
-    # ---- выдача одному (поддержка отрицательных значений) ----
     if path == "/admin/grant":
         uid = int(data["user_id"])
         gtype = data.get("type", "coins")
@@ -385,8 +391,6 @@ async def handle_admin(request):
         item_id = data.get("item_id")
         reason = data.get("reason") or None
         
-        # Для типа coins с отрицательным amount — это списание
-        # Для типа item — amount не используется
         await db.insert("grants", [{
             "user_id": uid,
             "type": gtype,
@@ -396,7 +400,6 @@ async def handle_admin(request):
         }])
         return json_resp({"ok": True})
 
-    # ---- аннулировать всё ----
     if path == "/admin/annihilate":
         uid = int(data.get("user_id", 0))
         gtype = data.get("type", "coins")
@@ -404,7 +407,6 @@ async def handle_admin(request):
             return json_resp({"error": "no user_id"})
         
         if gtype == "coins":
-            # Обнуление баланса
             await db.insert("grants", [{
                 "user_id": uid,
                 "type": "clear_coins",
@@ -412,7 +414,6 @@ async def handle_admin(request):
                 "reason": "Аннуляция администратором"
             }])
         else:
-            # Очистка инвентаря
             await db.insert("grants", [{
                 "user_id": uid,
                 "type": "clear_items",
@@ -421,18 +422,15 @@ async def handle_admin(request):
             }])
         return json_resp({"ok": True})
 
-    # ---- сброс прогресса ----
     if path == "/admin/reset":
         uid = int(data.get("user_id", 0))
         if not uid:
             return json_resp({"error": "no user_id"})
         
-        # Сбрасываем stats игрока к дефолтным
         await db.update("players", f"?user_id=eq.{uid}", {
-            "stats": {"casesOpened": 0, "coinsSpent": 0}
+            "stats": {"casesOpened": 0, "coinsSpent": 0, "balance": 2000, "inventory": {}}
         })
         
-        # Добавляем запись о сбросе в очередь выдач
         await db.insert("grants", [{
             "user_id": uid,
             "type": "reset",
@@ -441,7 +439,6 @@ async def handle_admin(request):
         }])
         return json_resp({"ok": True})
 
-    # ---- массовая выдача всем ----
     if path == "/admin/grant_all":
         players = await db.select("players", "?select=user_id")
         rows = [{
@@ -454,7 +451,6 @@ async def handle_admin(request):
             await db.insert("grants", rows)
         return json_resp({"ok": True, "count": len(rows)})
 
-    # ---- бан ----
     if path == "/admin/ban":
         await db.upsert("bans", [{
             "user_id": int(data["user_id"]),
@@ -462,17 +458,14 @@ async def handle_admin(request):
         }])
         return json_resp({"ok": True})
 
-    # ---- разбан ----
     if path == "/admin/unban":
         await db.delete("bans", f"?user_id=eq.{int(data['user_id'])}")
         return json_resp({"ok": True})
 
-    # ---- лента платежей ----
     if path == "/admin/payments":
         pays = await db.select("payments", "?order=created_at.desc&limit=100")
         return json_resp({"payments": pays})
 
-    # ---- личное сообщение ----
     if path == "/admin/send":
         try:
             await bot.send_message(int(data["user_id"]), data.get("text", ""))
@@ -480,7 +473,6 @@ async def handle_admin(request):
         except Exception as e:
             return json_resp({"ok": False, "error": str(e)})
 
-    # ---- рассылка всем ----
     if path == "/admin/broadcast":
         players = await db.select("players", "?select=user_id")
         ok = 0
@@ -492,7 +484,6 @@ async def handle_admin(request):
                 pass
         return json_resp({"ok": True, "sent": ok})
 
-    # ---- создать промо ----
     if path == "/admin/promo_create":
         await db.upsert("promos", [{
             "code": (data.get("code") or "").strip().upper(),
@@ -503,17 +494,14 @@ async def handle_admin(request):
         }])
         return json_resp({"ok": True})
 
-    # ---- список промо ----
     if path == "/admin/promo_list":
         promos = await db.select("promos", "?order=created_at.desc")
         return json_resp({"promos": promos})
 
-    # ---- удалить промо ----
     if path == "/admin/promo_delete":
         await db.delete("promos", f"?code=eq.{(data.get('code') or '').upper()}")
         return json_resp({"ok": True})
 
-    # ---- баланс бота ----
     if path == "/admin/bot_balance":
         rows = await db.select("meta", "?key=eq.bot_stars")
         stars = 0
@@ -524,7 +512,6 @@ async def handle_admin(request):
                 stars = 0
         return json_resp({"bot_stars": stars})
 
-    # ---- пополнение баланса бота ----
     if path == "/admin/topup_bot":
         stars = int(data.get("stars", 0))
         if stars <= 0:
@@ -540,7 +527,6 @@ async def handle_admin(request):
         except Exception as e:
             return json_resp({"error": str(e)})
 
-    # ---- список доступных подарков ----
     if path == "/admin/available_gifts":
         try:
             gifts = await bot.get_available_gifts()
@@ -564,7 +550,6 @@ async def handle_admin(request):
         except Exception as e:
             return json_resp({"gifts": [], "error": str(e)})
 
-    # ---- отправка подарка ----
     if path == "/admin/send_gift":
         user_id = int(data.get("user_id", 0))
         gift_id = data.get("gift_id")
@@ -616,15 +601,13 @@ async def handle_dbtest(request):
 async def start_web_server():
     app = web.Application(middlewares=[cors_middleware])
     
-    # Публичные эндпоинты
     app.router.add_get("/create_invoice", handle_create_invoice)
     app.router.add_get("/dbtest", handle_dbtest)
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/promo", handle_promo)
     
-    # Админ-эндпоинты
     admin_paths = [
-        "/admin/players", "/admin/player_details", "/admin/stats",
+        "/admin/players", "/admin/player_inventory", "/admin/player_details", "/admin/stats",
         "/admin/grant", "/admin/grant_all", "/admin/annihilate", "/admin/reset",
         "/admin/ban", "/admin/unban", "/admin/payments",
         "/admin/send", "/admin/broadcast",
