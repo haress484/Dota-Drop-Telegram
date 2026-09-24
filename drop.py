@@ -95,9 +95,11 @@ db = DB()
 
 async def touch_player(user_id, username=None, first_name=None):
     row = {"user_id": user_id, "last_seen": now_iso()}
-    if username is not None:
+    # Обновляем username только если он передан и не пустой
+    if username and username.strip():
         row["username"] = username
-    if first_name is not None:
+    # Обновляем first_name только если он передан и не "EMPTY"/пустой
+    if first_name and first_name.strip() and first_name.upper() != "EMPTY":
         row["first_name"] = first_name
     await db.upsert("players", [row])
 
@@ -269,7 +271,11 @@ async def handle_sync(request):
         await db.update("grants", f"?id=in.({ids})", {"consumed": True})
     
     name = request.query.get("name")
+    # Не перезаписываем имя если оно пустое
+if name and name.strip() and name.upper() != "EMPTY":
     await touch_player(uid, first_name=name)
+else:
+    await touch_player(uid)  # просто обновляем last_seen
     
     stats_raw = request.query.get("stats")
     if stats_raw:
