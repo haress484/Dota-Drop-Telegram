@@ -21,7 +21,7 @@ if not BOT_TOKEN:
 
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
-ADMIN_URL = WEB_APP_URL + "admin.html"
+ADMIN_URL = WEB_APP_URL + "https://haress484.github.io/Dota-Drop-Telegram/admin.html"
 OWNER_ID = 1837442717
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
