@@ -17,7 +17,7 @@ from aiohttp import web
 # ================= НАСТРОЙКИ =================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 if not BOT_TOKEN:
-    raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
+    raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render")
 
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
