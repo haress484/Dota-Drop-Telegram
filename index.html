@@ -182,6 +182,17 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ach-notify .an-label{font-size:10px;color:var(--grn);letter-spacing:1px;text-transform:uppercase;font-weight:700}
 .ach-notify .an-title{font-size:16px;font-weight:800;margin:2px 0}
 .ach-notify .an-desc{font-size:12px;color:var(--mut)}
+
+/* ═══ МАГАЗИН ═══ */
+.shop-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:400px;width:100%}
+.shop-row{display:flex;align-items:center;gap:12px;background:#0d1a12;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;cursor:pointer;transition:transform .1s}
+.shop-row:active{transform:scale(.98)}
+.shop-row .si{width:44px;height:44px;object-fit:contain}
+.shop-row .sn{flex:1;font-size:15px;font-weight:800}
+.shop-row .sp{color:var(--gold);font-size:15px;font-weight:900;white-space:nowrap}
+.nocoins-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center}
+.nocoins-emoji{font-size:48px;margin-bottom:8px}
+.nocoins-title{font-size:18px;font-weight:900;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -267,6 +278,26 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <button class="btn pur big" id="cvOpen">ОТКРЫТЬ</button>
     <h3 class="cv-sub">Содержимое кейса</h3>
     <div class="picker-list" id="cvList"></div>
+  </div>
+</div>
+
+<!-- ═══ МАГАЗИН: ВЫБОР ТАРИФА ═══ -->
+<div class="overlay" id="shopOverlay" hidden>
+  <div class="shop-box">
+    <div class="case-top"><span>💎 Купить осколки</span><button class="x" id="shopClose">✕</button></div>
+    <div class="hint" style="margin:0 0 6px">Оплата через Telegram Stars</div>
+    <div id="shopList"></div>
+  </div>
+</div>
+
+<!-- ═══ НЕ ХВАТАЕТ ОСКОЛКОВ ═══ -->
+<div class="overlay" id="noCoinsOverlay" hidden>
+  <div class="nocoins-box">
+    <div class="nocoins-emoji">😔</div>
+    <div class="nocoins-title">Не хватает осколков</div>
+    <div class="hint" id="noCoinsHint" style="margin:0 0 4px"></div>
+    <button class="btn pur big" id="noCoinsTopup">ПОПОЛНИТЬ</button>
+    <button class="btn outline big" id="noCoinsClose" style="margin-top:8px">Закрыть</button>
   </div>
 </div>
 
@@ -432,10 +463,15 @@ const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
 
 /* ═══ ОПЛАТА (Telegram Stars) ═══ */
 const API_URL = "https://dota-drop-telegram.onrender.com";
-const STAR_PRICES = { recruit:5, guardian:10, knight:15, immortal:20 };
+const PACKS = [
+  { stars:1, coins:100 },
+  { stars:10, coins:1000 },
+  { stars:20, coins:2000 },
+  { stars:30, coins:5000 }
+];
 const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
 
-function buyInvoice(stars, onPaid){
+function buyInvoice(stars, coins){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
   toast("Создаю счёт...");
@@ -444,7 +480,10 @@ function buyInvoice(stars, onPaid){
     .then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){ onPaid(); }
+        if(status === "paid"){
+          S.coins += coins; save(); balance(); renderChests(); slotDraw();
+          toast(`+${coins} осколков за ${stars} ⭐!`);
+        }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
@@ -452,12 +491,25 @@ function buyInvoice(stars, onPaid){
     .catch(()=> toast("Нет связи с сервером (Render спит, подожди минуту)"));
 }
 
-$("#btnPlus").onclick = () => {
-  buyInvoice(15, () => {
-    S.coins += 1000; save(); balance(); renderChests(); slotDraw();
-    toast("+1000 осколков за 15 ⭐!");
-  });
-};
+function openShop(){
+  $("#shopList").innerHTML = PACKS.map(p => `
+    <div class="shop-row" onclick="buyPack(${p.stars},${p.coins})">
+      <img class="si" src="${SHARD_URL}" alt="">
+      <span class="sn">+${p.coins} осколков</span>
+      <span class="sp">${p.stars} ⭐</span>
+    </div>`).join("");
+  $("#shopOverlay").hidden = false;
+}
+window.buyPack = (stars, coins) => { $("#shopOverlay").hidden = true; buyInvoice(stars, coins); };
+$("#btnPlus").onclick = () => openShop();
+$("#shopClose").onclick = () => { $("#shopOverlay").hidden = true; };
+
+function showNoCoins(need){
+  $("#noCoinsHint").textContent = need ? `Для этого нужно ${need} осколков` : "";
+  $("#noCoinsOverlay").hidden = false;
+}
+$("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openShop(); };
+$("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 /* ═══ ДОСТИЖЕНИЯ ═══ */
 const ACHIEVEMENTS = [
@@ -581,12 +633,9 @@ function renderChests(){
   $("#chestGrid").innerHTML = CHESTS.map(ch => {
     const pool = chestPool(ch);
     const free = ch.id === "recruit" && isRecruitFree();
-    const starMode = S.coins <= 0;
     const priceHtml = free
       ? `<div class="price-row free">БЕСПЛАТНО</div>`
-      : starMode
-        ? `<div class="price-row">${STAR_PRICES[ch.id]} ⭐</div>`
-        : `<div class="price-row">${ch.price} ${SHARD}</div>`;
+      : `<div class="price-row">${ch.price} ${SHARD}</div>`;
     const badge = free ? `<div class="free-badge">БЕСПЛАТНО</div>` : "";
     return `<div class="chest-card" onclick="openCaseView('${ch.id}')">
       ${badge}
@@ -602,8 +651,7 @@ window.openCaseView = function(id){
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
   const free = ch.id === "recruit" && isRecruitFree();
-  const starMode = !free && S.coins <= 0;
-  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : starMode ? `<span style="color:var(--pur);font-weight:900">${STAR_PRICES[ch.id]} ⭐</span>` : `${ch.price} ${SHARD}`;
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${SHARD}`;
   $("#cvRisk").innerHTML = riskHtml(ch);
   const pool = chestPool(ch);
   const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
@@ -611,7 +659,7 @@ window.openCaseView = function(id){
     const p = w[pool.indexOf(it)]/wsum*100; const ps = p>=1 ? p.toFixed(1) : p.toFixed(2);
     return `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${ps}% · ${it.cost}</span></div>`; }).join("");
   $("#cvOpen").style.display = "";
-  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : starMode ? `ОТКРЫТЬ ЗА ${STAR_PRICES[ch.id]} ⭐` : "ОТКРЫТЬ";
+  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
   $("#caseView").hidden = false;
 };
@@ -654,26 +702,15 @@ function rollMulticast(){
   return 4;
 }
 
-async function startSpin(paidByStars=false){
+async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
   const freeOpen = ch.id === "recruit" && isRecruitFree();
-  const starMode = !freeOpen && S.coins <= 0;
-  if (starMode && !paidByStars){
-    $("#cvOpen").disabled = true;
-    buyInvoice(STAR_PRICES[ch.id], () => {
-      $("#cvOpen").disabled = false;
-      startSpin(true);
-    });
-    return;
-  }
-  if (!paidByStars){
-    if (!freeOpen && S.coins < ch.price) return toast("Недостаточно осколков");
-    if (freeOpen){
-      S.freeRecruitDate = today();
-    } else {
-      S.coins -= ch.price;
-      S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
-    }
+  if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
+  if (freeOpen){
+    S.freeRecruitDate = today();
+  } else {
+    S.coins -= ch.price;
+    S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
   }
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
   save(); balance();
@@ -786,11 +823,10 @@ window.resultAgain = () => startSpin();
 function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
   const free = curChest.id === "recruit" && isRecruitFree();
-  const starMode = !free && S.coins <= 0;
   $("#cvOpen").style.display = "";
-  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : starMode ? `ОТКРЫТЬ ЗА ${STAR_PRICES[curChest.id]} ⭐` : "ОТКРЫТЬ";
+  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
-  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : starMode ? `<span style="color:var(--pur);font-weight:900">${STAR_PRICES[curChest.id]} ⭐</span>` : `${curChest.price} ${SHARD}`;
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${curChest.price} ${SHARD}`;
 }
 $("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
 
