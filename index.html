@@ -136,13 +136,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .pick-row img{width:52px;height:40px;object-fit:contain}
 .pick-row .pn{flex:1;font-size:13px;font-weight:600}
 .pick-row .pc{color:var(--mut);font-size:11px}
-#devCircle{position:fixed;right:14px;bottom:96px;z-index:30;width:52px;height:52px;border-radius:50%;background:linear-gradient(180deg,var(--pur),var(--pur2));color:#241a00;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;box-shadow:0 4px 16px rgba(0,0,0,.5);touch-action:none;user-select:none;cursor:pointer}
-#devCircle[hidden]{display:none}
-.dev-panel{position:fixed;right:12px;bottom:158px;z-index:30;width:min(320px,92vw);max-height:60vh;overflow-y:auto}
-.dev-panel[hidden]{display:none}
-.dev-panel h3{display:flex;justify-content:space-between;align-items:center}
-.dev-panel .row{display:flex;gap:8px;margin:8px 0}
-#devItemList{max-height:180px}
 #toasts{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px;animation:tin .25s}
 @keyframes tin{from{opacity:0;transform:translateY(8px)}}
@@ -183,7 +176,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ach-notify .an-title{font-size:16px;font-weight:800;margin:2px 0}
 .ach-notify .an-desc{font-size:12px;color:var(--mut)}
 
-/* ═══ МАГАЗИН ═══ */
+/* ══ МАГАЗИН ═══ */
 .shop-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:400px;width:100%}
 .shop-row{display:flex;align-items:center;gap:12px;background:#0d1a12;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;cursor:pointer;transition:transform .1s}
 .shop-row:active{transform:scale(.98)}
@@ -193,6 +186,21 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .nocoins-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center}
 .nocoins-emoji{font-size:48px;margin-bottom:8px}
 .nocoins-title{font-size:18px;font-weight:900;margin-bottom:6px}
+
+/* ═══ ЭКРАН БАНА ═══ */
+.ban-box{background:var(--panel);border:2px solid var(--red);border-radius:16px;padding:30px 20px;max-width:380px;width:100%;text-align:center}
+.ban-emoji{font-size:64px;margin-bottom:12px}
+.ban-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:8px}
+.ban-reason{color:var(--mut);font-size:14px;margin-bottom:16px}
+
+/* ═══ ОКОШКО ВЫДАЧ ═══ */
+.grants-box{background:var(--panel);border:2px solid var(--grn);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center}
+.grants-emoji{font-size:56px;margin-bottom:10px}
+.grants-title{font-size:20px;font-weight:900;color:var(--grn);margin-bottom:12px}
+.grant-item{background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;text-align:left}
+.grant-item .gi-type{font-size:12px;color:var(--mut);margin-bottom:4px}
+.grant-item .gi-amount{font-size:18px;font-weight:900;color:var(--gold)}
+.grant-item .gi-reason{font-size:13px;color:var(--txt);margin-top:6px;font-style:italic}
 </style>
 </head>
 <body>
@@ -207,7 +215,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <button class="btn pur big" id="loadBtn" disabled>ВОЙТИ</button>
 </div>
 
-<!-- ═══ ПАНЕЛЬКА ДОСТИЖЕНИЯ СВЕРХУ ═══ -->
+<!-- ══ ПАНЕЛЬКА ДОСТИЖЕНИЯ СВЕРХУ ═══ -->
 <div id="achieveNotif" class="ach-notify">
   <img class="an-img" src="">
   <div class="an-body">
@@ -290,7 +298,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ НЕ ХВАТАЕТ ОСКОЛКОВ ═══ -->
+<!-- ══ НЕ ХВАТАЕТ ОСКОЛКОВ ═══ -->
 <div class="overlay" id="noCoinsOverlay" hidden>
   <div class="nocoins-box">
     <div class="nocoins-emoji">😔</div>
@@ -301,7 +309,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<!-- ═══ ПРОФИЛЬ ═══ -->
+<!-- ═══ ПРОФИЛЬ ══ -->
 <div class="overlay" id="profileOverlay" hidden>
   <div class="profile-box">
     <div class="case-top"><span>Профиль</span><button class="x" id="profileClose">✕</button></div>
@@ -325,6 +333,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
+<!-- ═══ ПИКЕР ══ -->
 <div class="overlay" id="picker" hidden>
   <div class="picker-box">
     <div class="case-top"><span id="pickerTitle">Выбор</span><button class="x" id="pickerClose">✕</button></div>
@@ -332,14 +341,27 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <div class="picker-list" id="pickerList"></div>
   </div>
 </div>
-<div id="devCircle" hidden>DEV</div>
-<div class="card dev-panel" id="devPanel" hidden>
-  <h3>Dev-меню <button class="x" id="devClose">✕</button></h3>
-  <div class="row"><input id="devCoins" type="number" placeholder="Сумма осколков"><button class="btn pur" id="devGiveCoins">Выдать</button></div>
-  <input id="devItemSearch" placeholder="Найти предмет...">
-  <div class="picker-list" id="devItemList"></div>
-  <button class="btn danger" id="devReset">Сбросить прогресс</button>
+
+<!-- ═══ ЭКРАН БАНА ═══ -->
+<div class="overlay" id="banOverlay" hidden>
+  <div class="ban-box">
+    <div class="ban-emoji">🚫</div>
+    <div class="ban-title">Вы заблокированы</div>
+    <div class="ban-reason" id="banReason"></div>
+    <div class="hint">Обратитесь к администратору</div>
+  </div>
 </div>
+
+<!-- ═══ ОКОШКО ВЫДАЧ ═══ -->
+<div class="overlay" id="grantsOverlay" hidden>
+  <div class="grants-box">
+    <div class="grants-emoji"></div>
+    <div class="grants-title">Тебе начислено!</div>
+    <div id="grantsList"></div>
+    <button class="btn pur big" id="grantsClose">ЗАБРАТЬ</button>
+  </div>
+</div>
+
 <div id="toasts"></div>
 <script>
 window.addEventListener("error", e => {
@@ -357,9 +379,8 @@ const $ = s => document.querySelector(s);
 const CONFIG = {
   startCoins:2000, upgradeCoeff:70, upgradeMin:2, upgradeMax:85, burnOnLoss:true,
   dailyBase:300, dailyStreakStep:50, dailyMax:700,
-  promos:{ "sattarov":2000, "aleksekus":3000, "kubick":5000 },
-  devPromo:"hareses",
-  multicast: { x1:70, x2:15, x3:9, x4:6 }
+  devPromo:"society",
+  multicast: { x1:70, x2:8, x3:2.5, x4:0.5 }
 };
 
 const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
@@ -551,9 +572,8 @@ function playSell(){ if(sellAudio){ sellAudio.currentTime=0; sellAudio.play().ca
 function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play().catch(()=>{}); } }
 function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
 
-/* ══ СОХРАНЕНИЯ (расширенный state) ══ */
-let devMode = false;
-const LKEY = "dotaDrop_save";
+/* ══ СОХРАНЕНИЯ (версия 2 — все стартуют заново) ══ */
+const LKEY = "dotaDrop_save_v2";
 function defaultState(){ return {
   coins:CONFIG.startCoins, inv:{}, promos:[],
   daily:{last:"",streak:0}, drops:[], ts:0,
@@ -573,6 +593,8 @@ function loadLocal(){
     if(!S.avatar) S.avatar = "";
     if(!S.freeRecruitDate) S.freeRecruitDate = "";
   }catch(e){}
+  // Удаляем старый сейв v1
+  localStorage.removeItem("dotaDrop_save");
 }
 function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringify(S)); }catch(e){} }
 
@@ -830,7 +852,7 @@ function backToIdle(){
 }
 $("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
 
-/* ══ АПГРЕЙД (с тиками с замедлением) ══ */
+/* ══ АПГРЕЙД ═ */
 let upOwn=null, upTarget=null;
 (function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180;
   h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; }
@@ -916,7 +938,7 @@ $("#pickerList").onclick = e => { const r=e.target.closest(".pick-row"); if(!r) 
 $("#pickerClose").onclick = () => $("#picker").hidden=true;
 $("#pickerSearch").oninput = e => { const q=e.target.value.toLowerCase(); drawPicker(window._pl.filter(i=>i.n.toLowerCase().includes(q)||i.id.includes(q))); };
 
-/* ══ ЗАДАНИЯ ══ */
+/* ══ ЗАДАНИЯ ═ */
 function renderTasks(){
   const can = S.daily.last !== today();
   const reward = Math.min(CONFIG.dailyBase + S.daily.streak*CONFIG.dailyStreakStep, CONFIG.dailyMax);
@@ -930,19 +952,29 @@ window.claimDaily = () => { S.daily.streak = (S.daily.last===yesterday())? S.dai
 $("#btnPromo").onclick = () => {
   const code=$("#promoInput").value.trim(); $("#promoInput").value="";
   if(!code) return;
-  if(code===CONFIG.devPromo){
-    devMode=true;
-    if(!S.promos.includes(code)){ S.promos.push(code); save(); }
-    $("#devCircle").hidden=false; $("#devPanel").hidden=false;
-    toast("Dev-меню разблокировано");
-    checkAchievements();
-    return;
-  }
-  if(S.promos.includes(code)) return toast("Промо уже использован");
-  if(CONFIG.promos[code]){ S.promos.push(code); S.coins+=CONFIG.promos[code]; save(); balance(); return toast(`+${CONFIG.promos[code]} осколков по промокоду`); }
-  toast("Неверный промокод"); };
+  const uid = tgUserId();
+  if(!uid){ toast("Открой игру через Telegram!"); return; }
+  toast("Проверяю промокод...");
+  fetch(`${API_URL}/promo?code=${encodeURIComponent(code)}&user_id=${uid}`)
+    .then(r => r.json())
+    .then(j => {
+      if(j.ok){
+        if(j.secret){
+          if(!S.promos.includes(code)){ S.promos.push(code); save(); }
+          checkAchievements();
+          toast("Секретный промокод активирован!");
+        } else {
+          S.coins += j.amount; save(); balance();
+          toast(`+${j.amount} осколков по промокоду!`);
+        }
+      } else {
+        toast(j.error || "Неверный промокод");
+      }
+    })
+    .catch(()=> toast("Нет связи с сервером"));
+};
 
-/* ══ ИНВЕНТАРЬ ══ */
+/* ══ ИНВЕНТАРЬ ═ */
 function renderInv(){
   const ids=Object.keys(S.inv);
   $("#invCount").textContent = ids.length?`(${ids.length})`:"";
@@ -958,7 +990,7 @@ function renderInv(){
 window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); toast(`+${p}`); } };
 window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
 
-/* ═══ ПРОФИЛЬ ═══ */
+/* ══ ПРОФИЛЬ ═══ */
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar");
@@ -1008,32 +1040,58 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
-/* ══ DEV ══ */
-const dc=$("#devCircle"); let drag=null;
-dc.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,moved:0}; dc.setPointerCapture(e.pointerId); });
-dc.addEventListener("pointermove",e=>{ if(!drag)return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.moved+=Math.abs(dx)+Math.abs(dy);
-  const r=dc.getBoundingClientRect();
-  dc.style.left=Math.max(4,Math.min(innerWidth-56,r.left+dx))+"px"; dc.style.top=Math.max(4,Math.min(innerHeight-56,r.top+dy))+"px";
-  dc.style.right="auto"; dc.style.bottom="auto"; drag.x=e.clientX; drag.y=e.clientY; });
-dc.addEventListener("pointerup",()=>{ if(drag&&drag.moved<6) $("#devPanel").hidden=!$("#devPanel").hidden; drag=null; });
-$("#devClose").onclick = () => $("#devPanel").hidden=true;
-$("#devGiveCoins").onclick = () => { const v=parseInt($("#devCoins").value||"0"); if(!v)return; S.coins+=v; save(); balance(); toast(`Dev: +${v}`); };
-$("#devReset").onclick = () => { localStorage.removeItem(LKEY); location.reload(); };
-function drawDevItems(q=""){ $("#devItemList").innerHTML = ITEMS.filter(i=>i.n.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.cost-b.cost)
-  .map(it=>`<div class="pick-row" onclick="devGive('${it.id}')">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">+1</span></div>`).join(""); }
-window.devGive = id => { addInv(id); renderInv(); toast(`Dev: выдан ${itemById(id).n}`); checkAchievements(); };
-$("#devItemSearch").oninput = e => drawDevItems(e.target.value);
+/* ══ СИНХРОНИЗАЦИЯ С СЕРВЕРОМ ══ */
+async function syncWithServer(){
+  const uid = tgUserId();
+  if(!uid) return;
+  const name = S.name || "";
+  const stats = JSON.stringify({casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent});
+  try {
+    const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(name)}&stats=${encodeURIComponent(stats)}`);
+    const j = await r.json();
+    if(j.banned){
+      $("#banReason").textContent = j.reason || "Без причины";
+      $("#banOverlay").hidden = false;
+      return;
+    }
+    if(j.grants && j.grants.length){
+      showGrants(j.grants);
+    }
+  } catch(e){
+    console.log("Sync error:", e);
+  }
+}
+
+function showGrants(grants){
+  const list = $("#grantsList");
+  list.innerHTML = grants.map(g => {
+    let html = "";
+    if(g.type === "coins"){
+      html = `<div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>`;
+      if(g.reason) html += `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>`;
+      S.coins += g.amount;
+    } else if(g.type === "item"){
+      const it = itemById(g.item_id);
+      html = `<div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>`;
+      if(g.reason) html += `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>`;
+      if(it) addInv(it.id);
+    }
+    return `<div class="grant-item">${html}</div>`;
+  }).join("");
+  save();
+  balance();
+  renderInv();
+  $("#grantsOverlay").hidden = false;
+}
+$("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
 
 /* ══ СТАРТ ══ */
-function refreshAll(){ balance(); renderChests(); renderTasks(); renderInv(); slotDraw(); drawDevItems(); drawMusicBtn();
+function refreshAll(){ balance(); renderChests(); renderTasks(); renderInv(); slotDraw(); drawMusicBtn();
   const wf=$("#wheelFrame");
   if (WHEEL_FRAME_URL){ wf.src=WHEEL_FRAME_URL; wf.style.display=""; } else { wf.style.display="none"; }
-  $("#devCircle").hidden = !devMode; $("#devPanel").hidden = true; }
+}
 function boot(){
   loadLocal(); refreshAll();
-  if (S.promos.includes(CONFIG.devPromo) && !S.achievements.includes("fuck_society")){
-    S.achievements.push("fuck_society"); save();
-  }
   ACHIEVEMENTS.forEach(a => {
     if (!S.achievements.includes(a.id) && a.check(S)){
       S.achievements.push(a.id);
@@ -1108,11 +1166,13 @@ boot();
 
   btn.onclick = () => {
     if (btn.disabled) return;
-    music.play().then(() => {
-      musicOn = true;
-      localStorage.setItem("dotaDrop_music","1");
-      drawMusicBtn();
-    }).catch(()=>{});
+    // Музыка включается только если была включена
+    if (musicOn) {
+      music.play().then(() => {
+        localStorage.setItem("dotaDrop_music","1");
+        drawMusicBtn();
+      }).catch(()=>{});
+    }
 
     orbit.classList.add("dying");
     const rect = pr.getBoundingClientRect();
@@ -1132,6 +1192,8 @@ boot();
     setTimeout(() => {
       pr.classList.add("done");
       setTimeout(() => { pr.classList.add("gone"); pr.remove(); }, 500);
+      // Синхронизация с сервером после входа
+      syncWithServer();
     }, 1000);
   };
 })();
