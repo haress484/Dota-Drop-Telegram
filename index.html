@@ -1013,7 +1013,12 @@ async function syncWithServer(){
   const uid = tgUserId();
   if(!uid) return;
   const name = S.name || "";
-  const stats = JSON.stringify({casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent});
+  const stats = JSON.stringify({
+    casesOpened: S.stats.casesOpened, 
+    coinsSpent: S.stats.coinsSpent,
+    balance: S.coins,
+    inventory: S.inv
+  });
   try {
     const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
@@ -1039,7 +1044,6 @@ function showGrants(grants){
   let html = "";
   
   grants.forEach(g => {
-    // Обработка обычных выдач
     if(g.type === "coins" && g.amount > 0){
       hasNormalGrants = true;
       html += `<div class="grant-item">
@@ -1049,11 +1053,10 @@ function showGrants(grants){
       </div>`;
       S.coins += g.amount;
     }
-    // Списание осколков (отрицательное значение)
     else if(g.type === "coins" && g.amount < 0){
       hasNormalGrants = true;
       const absAmount = Math.abs(g.amount);
-      const actualDeduction = Math.min(S.coins, absAmount); // Не уходим ниже 0
+      const actualDeduction = Math.min(S.coins, absAmount);
       S.coins = Math.max(0, S.coins - absAmount);
       html += `<div class="grant-item">
         <div class="gi-type" style="color:var(--red)">Списание осколков</div>
@@ -1061,7 +1064,6 @@ function showGrants(grants){
         ${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}
       </div>`;
     }
-    // Выдача предмета
     else if(g.type === "item"){
       hasNormalGrants = true;
       const it = itemById(g.item_id);
@@ -1072,7 +1074,6 @@ function showGrants(grants){
       </div>`;
       if(it) addInv(it.id);
     }
-    // Обнуление баланса
     else if(g.type === "clear_coins"){
       const oldCoins = S.coins;
       S.coins = 0;
@@ -1082,7 +1083,6 @@ function showGrants(grants){
         ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
       </div>`;
     }
-    // Очистка инвентаря
     else if(g.type === "clear_items"){
       const itemCount = Object.keys(S.inv).length;
       S.inv = {};
@@ -1092,7 +1092,6 @@ function showGrants(grants){
         ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
       </div>`;
     }
-    // Сброс прогресса
     else if(g.type === "reset"){
       S.coins = CONFIG.startCoins;
       S.inv = {};
@@ -1107,12 +1106,11 @@ function showGrants(grants){
   });
   
   if(!hasNormalGrants){
-    // Если были только служебные grant (clear/reset), показываем их
     if(html){
       title.textContent = "Административные действия";
       emoji.textContent = "⚠️";
     } else {
-      return; // Нечего показывать
+      return;
     }
   } else {
     title.textContent = "Тебе начислено!";
