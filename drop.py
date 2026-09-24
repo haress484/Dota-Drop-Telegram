@@ -18,6 +18,7 @@ from aiohttp import web
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 if not BOT_TOKEN:
     raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
+
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
 ADMIN_URL = WEB_APP_URL + "admin.html"
@@ -36,10 +37,12 @@ def now_iso():
 class DB:
     def __init__(self):
         self.base = SUPABASE_URL + "/rest/v1"
-        self.h = {"apikey": SUPABASE_KEY,
-                  "Authorization": "Bearer " + SUPABASE_KEY,
-                  "Content-Type": "application/json",
-                  "Prefer": "return=representation"}
+        self.h = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
 
     async def _req(self, method, path, data=None):
         async with aiohttp.ClientSession() as s:
@@ -119,6 +122,8 @@ LAST_MSG = {}
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     uid = message.from_user.id
+    
+    # Читаем ID последнего сообщения
     old_mid = LAST_MSG.get(uid)
     if old_mid is None:
         try:
@@ -126,20 +131,27 @@ async def cmd_start(message: Message):
             old_mid = ((rows[0].get("stats") or {}) if rows else {}).get("last_msg_id")
         except Exception as e:
             print("start: ошибка чтения stats:", e)
+    
+    # Удаляем старое сообщение бота
     if old_mid:
         try:
             await bot.delete_message(message.chat.id, old_mid)
         except Exception as e:
             print("start: не удалось удалить старое:", e)
+    
+    # Удаляем сообщение /start от пользователя
     try:
         await message.delete()
     except Exception:
         pass
+    
+    # Обновляем игрока в базе
     try:
         await touch_player(uid, message.from_user.username, message.from_user.first_name)
     except Exception as e:
         print("start: touch_player ошибка:", e)
 
+    # Отправляем приветствие
     if not await check_sub(uid):
         sent = await message.answer(
             "👋 Привет! Чтобы получить доступ к боту, подпишись на канал:\n\n"
@@ -149,6 +161,8 @@ async def cmd_start(message: Message):
         sent = await message.answer(
             "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
             reply_markup=play_kb(uid))
+    
+    # Сохраняем ID нового сообщения
     LAST_MSG[uid] = sent.message_id
     try:
         await merge_player_stats(uid, {"last_msg_id": sent.message_id})
@@ -175,14 +189,36 @@ async def pre_checkout(q: PreCheckoutQuery):
 async def on_payment(message: Message):
     p = message.successful_payment
     stars = p.total_amount
+    payload = p.invoice_payload or ""
+
+    # Пополнение баланса бота
+    if payload.startswith("bot_topup_"):
+        try:
+            add = int(payload.split("_", 2)[2])
+        except Exception:
+            add = stars
+        rows = await db.select("meta", "?key=eq.bot_stars")
+        cur = 0
+        if rows:
+            try:
+                cur = int(rows[0].get("value"))
+            except Exception:
+                pass
+        await db.upsert("meta", [{"key": "bot_stars", "value": cur + add}])
+        await message.answer(f"✅ Пополнено {add} ⭐ на баланс бота!")
+        return
+
+    # Обычное пополнение игрока
     coins = {1: 100, 10: 1000, 20: 2000, 30: 5000}.get(stars, stars * 100)
     await db.insert("payments", [{"user_id": message.from_user.id, "stars": stars, "coins": coins}])
     await message.answer(f"✅ Оплата {stars} ⭐ прошла! Осколки уже в игре.")
 
 # ================= ВЕБ-СЕРВЕР =================
-CORS_HEADERS = {"Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type"}
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+}
 
 @web.middleware
 async def cors_middleware(request, handler):
@@ -195,6 +231,7 @@ async def cors_middleware(request, handler):
 def json_resp(data, status=200):
     return web.json_response(data, status=status)
 
+# ---- создание счёта на звёзды ----
 async def handle_create_invoice(request):
     uid = request.query.get("user_id")
     stars = int(request.query.get("stars", 10))
@@ -212,6 +249,7 @@ async def handle_create_invoice(request):
     except Exception as e:
         return json_resp({"error": str(e)}, 500)
 
+# ---- синхронизация страницы: бан, выдачи, статистика ----
 async def handle_sync(request):
     uid = request.query.get("user_id")
     if not uid:
@@ -234,6 +272,7 @@ async def handle_sync(request):
             pass
     return json_resp({"banned": False, "grants": grants})
 
+# ---- проверка промокода (серверная) ----
 async def handle_promo(request):
     code = (request.query.get("code") or "").strip().upper()
     uid = request.query.get("user_id")
@@ -253,6 +292,7 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
+# ---- проверка админа по подписи Telegram ----
 def validate_tg(init_data):
     try:
         pairs = dict(parse_qsl(init_data, strict_parsing=True))
@@ -285,6 +325,7 @@ async def admin_auth(request):
         return None, data
     return user, data
 
+# ---- админ-эндпоинты ----
 async def handle_admin(request):
     user, data = await admin_auth(request)
     if not user:
@@ -302,21 +343,27 @@ async def handle_admin(request):
             "type": data.get("type", "coins"),
             "amount": int(data.get("amount", 0)),
             "item_id": data.get("item_id"),
-            "reason": data.get("reason") or None}])
+            "reason": data.get("reason") or None
+        }])
         return json_resp({"ok": True})
 
     if path == "/admin/grant_all":
         players = await db.select("players", "?select=user_id")
-        rows = [{"user_id": p["user_id"], "type": "coins",
-                 "amount": int(data.get("amount", 0)),
-                 "reason": data.get("reason") or None} for p in players]
+        rows = [{
+            "user_id": p["user_id"],
+            "type": "coins",
+            "amount": int(data.get("amount", 0)),
+            "reason": data.get("reason") or None
+        } for p in players]
         if rows:
             await db.insert("grants", rows)
         return json_resp({"ok": True, "count": len(rows)})
 
     if path == "/admin/ban":
-        await db.upsert("bans", [{"user_id": int(data["user_id"]),
-                                  "reason": data.get("reason") or None}])
+        await db.upsert("bans", [{
+            "user_id": int(data["user_id"]),
+            "reason": data.get("reason") or None
+        }])
         return json_resp({"ok": True})
 
     if path == "/admin/unban":
@@ -351,7 +398,8 @@ async def handle_admin(request):
             "amount": int(data.get("amount", 0)),
             "max_uses": int(data.get("max_uses", 1)),
             "secret": bool(data.get("secret", False)),
-            "active": True}])
+            "active": True
+        }])
         return json_resp({"ok": True})
 
     if path == "/admin/promo_list":
@@ -362,8 +410,89 @@ async def handle_admin(request):
         await db.delete("promos", f"?code=eq.{(data.get('code') or '').upper()}")
         return json_resp({"ok": True})
 
+    # ---- баланс бота (в meta) ----
+    if path == "/admin/bot_balance":
+        rows = await db.select("meta", "?key=eq.bot_stars")
+        stars = 0
+        if rows:
+            try:
+                stars = int(rows[0].get("value"))
+            except Exception:
+                stars = 0
+        return json_resp({"bot_stars": stars})
+
+    # ---- пополнение баланса бота (invoice для админа) ----
+    if path == "/admin/topup_bot":
+        stars = int(data.get("stars", 0))
+        if stars <= 0:
+            return json_resp({"error": "bad stars"})
+        try:
+            link = await bot.create_invoice_link(
+                title="Пополнение баланса бота",
+                description=f"{stars} Stars на счёт Dota Drop Bot",
+                payload=f"bot_topup_{stars}",
+                currency="XTR",
+                prices=[LabeledPrice(label="Пополнение", amount=stars)])
+            return json_resp({"invoice_link": link})
+        except Exception as e:
+            return json_resp({"error": str(e)})
+
+    # ---- список доступных подарков ----
+    if path == "/admin/available_gifts":
+        try:
+            gifts = await bot.get_available_gifts()
+            items = []
+            for g in gifts.gifts:
+                items.append({
+                    "id": g.id,
+                    "star_count": g.star_count,
+                    "remaining_count": g.remaining_count,
+                    "total_count": g.total_count,
+                    "image": g.image.url if getattr(g, "image", None) else ""
+                })
+            return json_resp({"gifts": items})
+        except Exception as e:
+            return json_resp({"gifts": [], "error": str(e)})
+
+    # ---- отправка подарка ----
+    if path == "/admin/send_gift":
+        user_id = int(data.get("user_id", 0))
+        gift_id = data.get("gift_id")
+        if not user_id or not gift_id:
+            return json_resp({"ok": False, "error": "bad request"})
+        
+        # Проверка баланса
+        rows = await db.select("meta", "?key=eq.bot_stars")
+        cur = 0
+        if rows:
+            try:
+                cur = int(rows[0].get("value"))
+            except Exception:
+                pass
+        
+        # Узнаём цену подарка
+        try:
+            gifts = await bot.get_available_gifts()
+            price = next((g.star_count for g in gifts.gifts if g.id == gift_id), None)
+        except Exception:
+            price = None
+        
+        if price is None:
+            return json_resp({"ok": False, "error": "подарок не найден"})
+        if cur < price:
+            return json_resp({"ok": False, "error": f"На балансе бота {cur} ⭐, нужно {price}"})
+        
+        try:
+            await bot.send_gift(user_id, gift_id)
+        except Exception as e:
+            return json_resp({"ok": False, "error": str(e)})
+        
+        await db.upsert("meta", [{"key": "bot_stars", "value": cur - price}])
+        return json_resp({"ok": True, "new_balance": cur - price})
+
     return json_resp({"error": "unknown path"}, 404)
 
+# ---- тестовый эндпоинт для проверки базы ----
 async def handle_dbtest(request):
     sel = await db.select("players", "?limit=1")
     up = await db.upsert("meta", [{"key": "dbtest", "value": {"t": now_iso()}}])
@@ -373,18 +502,29 @@ async def handle_dbtest(request):
         "key_set": bool(SUPABASE_KEY),
         "select_players": sel,
         "upsert_meta": up,
-        "read_back": back})
+        "read_back": back
+    })
 
 async def start_web_server():
     app = web.Application(middlewares=[cors_middleware])
+    
+    # Публичные эндпоинты
     app.router.add_get("/create_invoice", handle_create_invoice)
     app.router.add_get("/dbtest", handle_dbtest)
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/promo", handle_promo)
-    for p in ["/admin/players", "/admin/grant", "/admin/grant_all", "/admin/ban",
-              "/admin/unban", "/admin/payments", "/admin/send", "/admin/broadcast",
-              "/admin/promo_create", "/admin/promo_list", "/admin/promo_delete"]:
+    
+    # Админ-эндпоинты
+    admin_paths = [
+        "/admin/players", "/admin/grant", "/admin/grant_all", "/admin/ban",
+        "/admin/unban", "/admin/payments", "/admin/send", "/admin/broadcast",
+        "/admin/promo_create", "/admin/promo_list", "/admin/promo_delete",
+        "/admin/bot_balance", "/admin/topup_bot", "/admin/available_gifts",
+        "/admin/send_gift"
+    ]
+    for p in admin_paths:
         app.router.add_route("*", p, handle_admin)
+    
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.environ.get("PORT", 8080))
