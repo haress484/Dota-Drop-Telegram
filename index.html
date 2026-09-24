@@ -360,7 +360,7 @@ const CONFIG = {
   startCoins:2000, upgradeCoeff:70, upgradeMin:2, upgradeMax:85, burnOnLoss:true,
   dailyBase:300, dailyStreakStep:50, dailyMax:700,
   devPromo:"society",
-  multicast: { x1:70, x2:8, x3:2.5, x4:0.5 }
+  multicast: { x1:94, x2:4, x3:1.8, x4:0.2 }
 };
 
 const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
@@ -687,7 +687,10 @@ function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
   });
 }
 
-function rollMulticast(){
+function rollMulticast(chestId){
+  // Для Иммортала мультикаста нет вообще
+  if(chestId === "immortal") return 1;
+  
   const r = Math.random()*100;
   const m = CONFIG.multicast;
   let acc = 0;
@@ -710,7 +713,7 @@ async function startSpin(){
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
   save(); balance();
   const pool = chestPool(ch);
-  const multi = rollMulticast();
+  const multi = rollMulticast(ch.id);
   $("#cvOpen").style.display = "none";
 
   const winners = Array.from({length:multi}, ()=>weightedPick(pool, ch.decay));
