@@ -95,10 +95,8 @@ db = DB()
 
 async def touch_player(user_id, username=None, first_name=None):
     row = {"user_id": user_id, "last_seen": now_iso()}
-    # Обновляем username только если он передан и не пустой
     if username and username.strip():
         row["username"] = username
-    # Обновляем first_name только если он передан и не "EMPTY"/пустой
     if first_name and first_name.strip() and first_name.upper() != "EMPTY":
         row["first_name"] = first_name
     await db.upsert("players", [row])
@@ -184,7 +182,7 @@ async def cb_check_sub(cb: CallbackQuery):
             reply_markup=play_kb(uid))
         await cb.answer("Подписка подтверждена!")
     else:
-        await cb.answer("⚠️ Ты всё ещё не подписан!", show_alert=True)
+        await cb.answer("️ Ты всё ещё не подписан!", show_alert=True)
 
 # ================= ОПЛАТА =================
 @dp.pre_checkout_query()
@@ -215,7 +213,7 @@ async def on_payment(message: Message):
 
     coins = {1: 100, 10: 1000, 20: 2000, 30: 5000}.get(stars, stars * 100)
     await db.insert("payments", [{"user_id": message.from_user.id, "stars": stars, "coins": coins}])
-    await message.answer(f"✅ Оплата {stars} ⭐ прошла! Осколки уже в игре.")
+    await message.answer(f"✅ Оплата {stars}  прошла! Осколки уже в игре.")
 
 # ================= ВЕБ-СЕРВЕР =================
 CORS_HEADERS = {
@@ -271,11 +269,11 @@ async def handle_sync(request):
         await db.update("grants", f"?id=in.({ids})", {"consumed": True})
     
     name = request.query.get("name")
-    # Не перезаписываем имя если оно пустое
-if name and name.strip() and name.upper() != "EMPTY":
-    await touch_player(uid, first_name=name)
-else:
-    await touch_player(uid)  # просто обновляем last_seen
+    # Обновляем имя только если оно не пустое и не "EMPTY"
+    if name and name.strip() and name.upper() != "EMPTY":
+        await touch_player(uid, first_name=name)
+    else:
+        await touch_player(uid)  # просто обновляем last_seen
     
     stats_raw = request.query.get("stats")
     if stats_raw:
@@ -629,13 +627,13 @@ async def start_web_server():
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    print(f"🌐 Веб-сервер запущен на порту {port}")
+    print(f" Веб-сервер запущен на порту {port}")
 
 # ================= ЗАПУСК =================
 async def main():
     print("🚀 Запуск...")
     asyncio.create_task(start_web_server())
-    print(" Бот запущен и ожидает команды!")
+    print("🤖 Бот запущен и ожидает команды!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
