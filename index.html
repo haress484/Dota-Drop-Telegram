@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Dota Drop</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
 <style>
-/* ... ВЕСЬ ТВОЙ CSS ОСТАЁТСЯ БЕЗ ИЗМЕНЕНИЙ ... */
 :root{--bg1:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--pur:#ffd35c;--pur2:#e8a41c;--gold:#f7c948;--grn:#3ddc84;--yel:#f1c40f;--org:#e67e22;--red:#e74c3c}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);min-height:100vh;background:var(--bg1)}
@@ -39,13 +39,6 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradi
 .mbtn,.pbtn{background:var(--panel);border:1px solid var(--line);border-radius:50%;width:38px;height:38px;color:#cfe8cf;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .mbtn svg,.pbtn svg{width:20px;height:20px}
 .balance{display:flex;align-items:center;gap:6px;font-weight:800;color:var(--gold);background:var(--panel);padding:7px 14px;border-radius:22px;border:1px solid var(--line)}
-/* НОВЫЙ СТИЛЬ ДЛЯ КНОПКИ "+" */
-.btn-add-coins {
-    background: none; border: none; color: var(--grn); font-weight: 900; font-size: 20px; 
-    cursor: pointer; margin-left: 4px; padding: 0 4px; transition: transform 0.1s;
-}
-.btn-add-coins:active { transform: scale(0.9); }
-
 main{padding:16px 14px 96px;max-width:560px;margin:0 auto}
 .tab{display:none}.tab.active{display:block}
 .tab-title{margin:4px 0 14px;font-size:19px;font-weight:800}
@@ -57,8 +50,6 @@ main{padding:16px 14px 96px;max-width:560px;margin:0 auto}
 .range{display:inline-block;background:#0d1a12;border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:#cfe8cf;margin-bottom:6px}
 .price-row{display:flex;align-items:center;justify-content:center;gap:6px;font-size:21px;font-weight:900;color:var(--gold)}
 .price-row.free{color:var(--grn)}
-/* СТИЛЬ ДЛЯ ЦЕНЫ В ЗВЁЗДАХ */
-.price-row.stars { color: #ffd35c; font-size: 18px; }
 .free-badge{position:absolute;top:10px;left:-34px;transform:rotate(-45deg);background:var(--grn);color:#0c1410;font-size:10px;font-weight:900;padding:3px 40px;letter-spacing:1px;box-shadow:0 2px 6px rgba(0,0,0,.4);animation:freePulse 2s ease-in-out infinite}
 @keyframes freePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.2)}}
 .cname{font-size:14px;font-weight:700;margin:4px 0 10px}
@@ -155,6 +146,8 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 #toasts{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px;animation:tin .25s}
 @keyframes tin{from{opacity:0;transform:translateY(8px)}}
+
+/* ═══ ПРОФИЛЬ ═══ */
 .profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto}
 .profile-head{display:flex;gap:16px;align-items:center;margin-bottom:18px}
 .profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
@@ -176,6 +169,8 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ach-q{font-size:36px;font-weight:900;color:var(--mut);opacity:.5}
 .ach-card .ach-name{font-size:11px;font-weight:700;color:var(--txt);min-height:28px;display:flex;align-items:center;justify-content:center;padding:0 2px}
 .ach-card.locked .ach-name{color:var(--mut);font-style:italic}
+
+/* ═══ ПАНЕЛЬКА ДОСТИЖЕНИЯ (Steam-стиль) ═══ */
 .ach-notify{position:fixed;top:-120px;left:50%;transform:translateX(-50%);z-index:60;
   background:linear-gradient(180deg,#1d3324,#14251a);border:1px solid var(--grn);
   border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;
@@ -201,6 +196,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <button class="btn pur big" id="loadBtn" disabled>ВОЙТИ</button>
 </div>
 
+<!-- ═══ ПАНЕЛЬКА ДОСТИЖЕНИЯ СВЕРХУ ═══ -->
 <div id="achieveNotif" class="ach-notify">
   <img class="an-img" src="">
   <div class="an-body">
@@ -217,15 +213,9 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <button class="pbtn" id="btnProfile" title="Профиль">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
     </button>
-    <div class="balance">
-        <img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png" alt="">
-        <span id="balance">0</span>
-        <!-- НОВАЯ КНОПКА "+" -->
-        <button class="btn-add-coins" id="btnAddCoins" title="Пополнить баланс">+</button>
-    </div>
+    <div class="balance"><img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png" alt=""><span id="balance">0</span><button id="btnPlus" style="width:22px;height:22px;border-radius:50%;border:none;background:linear-gradient(180deg,#ffd35c,#e8a41c);color:#241a00;font-size:15px;font-weight:900;cursor:pointer;margin-left:5px;line-height:1">+</button></div>
   </div>
 </header>
-
 <main>
   <section id="tab-chests" class="tab active"><div class="chest-grid" id="chestGrid"><div class="hint">Загрузка…</div></div></section>
   <section id="tab-upgrade" class="tab">
@@ -260,7 +250,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <div class="inv-grid" id="invGrid"></div>
   </section>
 </main>
-
 <nav class="bottomnav">
   <button class="nav-btn active" data-tab="chests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>Кейсы</button>
   <button class="nav-btn" data-tab="upgrade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 13l6-6 6 6"/><path d="M6 19l6-6 6 6"/></svg>Апгрейд</button>
@@ -268,6 +257,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <button class="nav-btn" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Инвентарь</button>
 </nav>
 
+<!-- ЭКРАН КЕЙСА -->
 <div class="overlay view" id="caseView" hidden>
   <div class="cv-body">
     <div class="case-top"><span id="cvTitle"></span><button class="x" id="cvClose">✕</button></div>
@@ -280,6 +270,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
+<!-- ═══ ПРОФИЛЬ ═══ -->
 <div class="overlay" id="profileOverlay" hidden>
   <div class="profile-box">
     <div class="case-top"><span>Профиль</span><button class="x" id="profileClose">✕</button></div>
@@ -319,12 +310,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <button class="btn danger" id="devReset">Сбросить прогресс</button>
 </div>
 <div id="toasts"></div>
-
 <script>
-// ⚠️ ВАЖНО: Вставь сюда ссылку, которую выдаст Termux (например, https://xxxx.localhost.run)
-// Пока оставь как есть для тестов, но оплата не сработает без бэкенда.
-const API_URL = "https://dota-drop-telegram.onrender.com";
-
 window.addEventListener("error", e => {
   if (!e.message || e.message === "Script error.") return;
   let d = document.getElementById("jserr");
@@ -338,20 +324,11 @@ window.addEventListener("error", e => {
 const $ = s => document.querySelector(s);
 
 const CONFIG = {
-  startCoins: 0, // ИЗМЕНЕНО: начинаем с 0, чтобы проверить механику звёзд
-  upgradeCoeff:70, upgradeMin:2, upgradeMax:85, burnOnLoss:true,
+  startCoins:2000, upgradeCoeff:70, upgradeMin:2, upgradeMax:85, burnOnLoss:true,
   dailyBase:300, dailyStreakStep:50, dailyMax:700,
   promos:{ "sattarov":2000, "aleksekus":3000, "kubick":5000 },
   devPromo:"hareses",
   multicast: { x1:70, x2:15, x3:9, x4:6 }
-};
-
-// Цены в звёздах, если баланс монет = 0
-const STAR_PRICES = {
-  recruit: 5,
-  guardian: 10,
-  knight: 15,
-  immortal: 20
 };
 
 const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
@@ -361,7 +338,7 @@ const SOUND_SELL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/d
 const SOUND_MULTI_X2 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x2.mp3.mpeg";
 const SOUND_MULTI_X3 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x3.mp3.mpeg";
 const SOUND_MULTI_X4 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x4.mp3.mpeg";
-const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/steam_achievement.mp3"; 
+const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/steam_achievement.mp3";
 const MUSIC_URL  = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/MUSIC.mp3";
 const BG_IMAGE_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/BG_IMAGE.jpg";
 const WHEEL_FRAME_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/WHEEL_FRAME.png";
@@ -453,6 +430,36 @@ const chestPool = ch => ITEMS.filter(i => i.cost > ch.min && i.cost <= ch.max).s
 const SHARD = `<img class="shard" src="${SHARD_URL}" alt="">`;
 const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
 
+/* ═══ ОПЛАТА (Telegram Stars) ═══ */
+const API_URL = "https://dota-drop-telegram.onrender.com";
+const STAR_PRICES = { recruit:5, guardian:10, knight:15, immortal:20 };
+const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
+
+function buyInvoice(stars, onPaid){
+  const uid = tgUserId();
+  if(!uid){ toast("Открой игру через Telegram!"); return; }
+  toast("Создаю счёт...");
+  fetch(`${API_URL}/create_invoice?user_id=${uid}&stars=${stars}`)
+    .then(r => r.json())
+    .then(j => {
+      if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
+      window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
+        if(status === "paid"){ onPaid(); }
+        else if(status === "cancelled"){ toast("Оплата отменена"); }
+        else if(status === "failed"){ toast("Ошибка оплаты"); }
+      });
+    })
+    .catch(()=> toast("Нет связи с сервером (Render спит, подожди минуту)"));
+}
+
+$("#btnPlus").onclick = () => {
+  buyInvoice(15, () => {
+    S.coins += 1000; save(); balance(); renderChests(); slotDraw();
+    toast("+1000 осколков за 15 ⭐!");
+  });
+};
+
+/* ═══ ДОСТИЖЕНИЯ ═══ */
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus",
     img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png",
@@ -465,6 +472,7 @@ const ACHIEVEMENTS = [
     check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
+/* ══ ЗВУК ══ */
 let musicOn = localStorage.getItem("dotaDrop_music") !== "0";
 const music = new Audio(); music.loop = true; music.volume = 0.25;
 if (MUSIC_URL) music.src = MUSIC_URL;
@@ -491,6 +499,7 @@ function playSell(){ if(sellAudio){ sellAudio.currentTime=0; sellAudio.play().ca
 function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play().catch(()=>{}); } }
 function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
 
+/* ══ СОХРАНЕНИЯ (расширенный state) ══ */
 let devMode = false;
 const LKEY = "dotaDrop_save";
 function defaultState(){ return {
@@ -529,6 +538,7 @@ function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i))
   for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
+/* ═══ ДОСТИЖЕНИЯ: проверка и уведомление ═══ */
 function checkAchievements(){
   ACHIEVEMENTS.forEach(a => {
     if (!S.achievements.includes(a.id) && a.check(S)){
@@ -557,6 +567,7 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
   b.classList.add("active"); $("#tab-"+b.dataset.tab).classList.add("active"); });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
+/* ══ КЕЙСЫ ══ */
 const RISK_COLORS = ["#2ecc71","#f1c40f","#e67e22","#e74c3c"], RISK_NAMES=["L","M","H","E"];
 function riskHtml(ch){
   const segs = RISK_NAMES.map((_,i)=>`<i style="background:${i<=ch.risk?RISK_COLORS[i]:"#2c4634"}">${i===ch.risk?'<span class="dot" style="left:50%"></span>':""}</i>`).join("");
@@ -566,26 +577,16 @@ function chestArt(ch, cls){
     : `<svg viewBox="0 0 24 24" width="56%" fill="none" stroke="${ch.color}" stroke-width="1.2" opacity=".85"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>`;
   return `<div class="${cls}" style="background:radial-gradient(circle at 35% 30%, ${ch.color}33, #102016 72%);border:5px solid ${ch.color}33">${inner}</div>`; }
 function isRecruitFree(){ return S.freeRecruitDate !== today(); }
-
-// === ИЗМЕНЕННАЯ ФУНКЦИЯ РЕНДЕРА КЕЙСОВ ===
 function renderChests(){
-  const hasCoins = S.coins > 0; // Проверяем, есть ли монеты
-  
   $("#chestGrid").innerHTML = CHESTS.map(ch => {
     const pool = chestPool(ch);
     const free = ch.id === "recruit" && isRecruitFree();
-    
-    let priceHtml;
-    if (free) {
-        priceHtml = `<div class="price-row free">БЕСПЛАТНО</div>`;
-    } else if (!hasCoins) {
-        // Если монет нет, показываем цену в звёздах
-        priceHtml = `<div class="price-row stars">${STAR_PRICES[ch.id]} ⭐</div>`;
-    } else {
-        // Иначе обычная цена в монетах
-        priceHtml = `<div class="price-row">${ch.price} ${SHARD}</div>`;
-    }
-    
+    const starMode = S.coins <= 0;
+    const priceHtml = free
+      ? `<div class="price-row free">БЕСПЛАТНО</div>`
+      : starMode
+        ? `<div class="price-row">${STAR_PRICES[ch.id]} ⭐</div>`
+        : `<div class="price-row">${ch.price} ${SHARD}</div>`;
     const badge = free ? `<div class="free-badge">БЕСПЛАТНО</div>` : "";
     return `<div class="chest-card" onclick="openCaseView('${ch.id}')">
       ${badge}
@@ -593,34 +594,16 @@ function renderChests(){
       <span class="range">+${pool[0].cost} – ${pool[pool.length-1].cost}</span>
       ${priceHtml}
       <div class="cname">${ch.name}</div>
-      ${riskHtml(ch)}</div>`; }).join(""); 
-}
+      ${riskHtml(ch)}</div>`; }).join(""); }
 
 let spinning = false; const CELL = 104; let curChest = null; let lastCell = -1;
-
-// === ИЗМЕНЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ КЕЙСА ===
 window.openCaseView = function(id){
   const ch = CHESTS.find(c=>c.id===id); curChest = ch;
-  
-  // Если монет 0 и это не бесплатный кейс, предлагаем купить за звёзды
-  if (S.coins === 0 && ch.id !== 'recruit') {
-      const tg = window.Telegram.WebApp;
-      tg.showPopup({
-          title: 'Недостаточно монет',
-          message: `Для открытия кейса "${ch.name}" нужно ${STAR_PRICES[ch.id]} ⭐. Пополнить баланс?`,
-          buttons: [{type: 'default', text: 'Пополнить'}, {type: 'cancel'}]
-      }, (btnId) => {
-          if (btnId === 'default') {
-              requestInvoiceAndPay(STAR_PRICES[ch.id]);
-          }
-      });
-      return; // Прерываем открытие кейса
-  }
-
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
   const free = ch.id === "recruit" && isRecruitFree();
-  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${SHARD}`;
+  const starMode = !free && S.coins <= 0;
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : starMode ? `<span style="color:var(--pur);font-weight:900">${STAR_PRICES[ch.id]} ⭐</span>` : `${ch.price} ${SHARD}`;
   $("#cvRisk").innerHTML = riskHtml(ch);
   const pool = chestPool(ch);
   const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
@@ -628,11 +611,10 @@ window.openCaseView = function(id){
     const p = w[pool.indexOf(it)]/wsum*100; const ps = p>=1 ? p.toFixed(1) : p.toFixed(2);
     return `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${ps}% · ${it.cost}</span></div>`; }).join("");
   $("#cvOpen").style.display = "";
-  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : starMode ? `ОТКРЫТЬ ЗА ${STAR_PRICES[ch.id]} ⭐` : "ОТКРЫТЬ";
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
   $("#caseView").hidden = false;
 };
-
 $("#cvOpen").onclick = () => startSpin();
 
 function tickLoop(state){ if(!state.running) return;
@@ -672,15 +654,26 @@ function rollMulticast(){
   return 4;
 }
 
-async function startSpin(){
+async function startSpin(paidByStars=false){
   const ch = curChest; if(!ch || spinning) return;
   const freeOpen = ch.id === "recruit" && isRecruitFree();
-  if (!freeOpen && S.coins < ch.price) return toast("Недостаточно осколков");
-  if (freeOpen){
-    S.freeRecruitDate = today();
-  } else {
-    S.coins -= ch.price;
-    S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
+  const starMode = !freeOpen && S.coins <= 0;
+  if (starMode && !paidByStars){
+    $("#cvOpen").disabled = true;
+    buyInvoice(STAR_PRICES[ch.id], () => {
+      $("#cvOpen").disabled = false;
+      startSpin(true);
+    });
+    return;
+  }
+  if (!paidByStars){
+    if (!freeOpen && S.coins < ch.price) return toast("Недостаточно осколков");
+    if (freeOpen){
+      S.freeRecruitDate = today();
+    } else {
+      S.coins -= ch.price;
+      S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
+    }
   }
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
   save(); balance();
@@ -725,8 +718,8 @@ async function startSpin(){
   S.drops = S.drops.slice(-2);
   save();
   renderInv();
-  renderChests(); 
-  checkAchievements(); 
+  renderChests();
+  checkAchievements();
 
   showMultiResult(results, totalCost, multi);
 }
@@ -793,13 +786,15 @@ window.resultAgain = () => startSpin();
 function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
   const free = curChest.id === "recruit" && isRecruitFree();
+  const starMode = !free && S.coins <= 0;
   $("#cvOpen").style.display = "";
-  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : starMode ? `ОТКРЫТЬ ЗА ${STAR_PRICES[curChest.id]} ⭐` : "ОТКРЫТЬ";
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
-  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${curChest.price} ${SHARD}`;
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : starMode ? `<span style="color:var(--pur);font-weight:900">${STAR_PRICES[curChest.id]} ⭐</span>` : `${curChest.price} ${SHARD}`;
 }
 $("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
 
+/* ══ АПГРЕЙД (с тиками с замедлением) ══ */
 let upOwn=null, upTarget=null;
 (function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180;
   h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; }
@@ -874,6 +869,7 @@ $("#btnSpin").onclick = () => {
   }));
 };
 
+/* ══ ПИКЕР ══ */
 let pickCb=null;
 function openPicker(title,list,cb){ pickCb=cb; $("#pickerTitle").textContent=title; $("#pickerSearch").value="";
   window._pl=list; drawPicker(list); $("#picker").hidden=false; }
@@ -884,6 +880,7 @@ $("#pickerList").onclick = e => { const r=e.target.closest(".pick-row"); if(!r) 
 $("#pickerClose").onclick = () => $("#picker").hidden=true;
 $("#pickerSearch").oninput = e => { const q=e.target.value.toLowerCase(); drawPicker(window._pl.filter(i=>i.n.toLowerCase().includes(q)||i.id.includes(q))); };
 
+/* ══ ЗАДАНИЯ ══ */
 function renderTasks(){
   const can = S.daily.last !== today();
   const reward = Math.min(CONFIG.dailyBase + S.daily.streak*CONFIG.dailyStreakStep, CONFIG.dailyMax);
@@ -902,13 +899,14 @@ $("#btnPromo").onclick = () => {
     if(!S.promos.includes(code)){ S.promos.push(code); save(); }
     $("#devCircle").hidden=false; $("#devPanel").hidden=false;
     toast("Dev-меню разблокировано");
-    checkAchievements(); 
+    checkAchievements();
     return;
   }
   if(S.promos.includes(code)) return toast("Промо уже использован");
   if(CONFIG.promos[code]){ S.promos.push(code); S.coins+=CONFIG.promos[code]; save(); balance(); return toast(`+${CONFIG.promos[code]} осколков по промокоду`); }
   toast("Неверный промокод"); };
 
+/* ══ ИНВЕНТАРЬ ══ */
 function renderInv(){
   const ids=Object.keys(S.inv);
   $("#invCount").textContent = ids.length?`(${ids.length})`:"";
@@ -924,6 +922,7 @@ function renderInv(){
 window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); toast(`+${p}`); } };
 window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
 
+/* ═══ ПРОФИЛЬ ═══ */
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar");
@@ -973,6 +972,7 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
+/* ══ DEV ══ */
 const dc=$("#devCircle"); let drag=null;
 dc.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,moved:0}; dc.setPointerCapture(e.pointerId); });
 dc.addEventListener("pointermove",e=>{ if(!drag)return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.moved+=Math.abs(dx)+Math.abs(dy);
@@ -988,85 +988,7 @@ function drawDevItems(q=""){ $("#devItemList").innerHTML = ITEMS.filter(i=>i.n.t
 window.devGive = id => { addInv(id); renderInv(); toast(`Dev: выдан ${itemById(id).n}`); checkAchievements(); };
 $("#devItemSearch").oninput = e => drawDevItems(e.target.value);
 
-// === НОВЫЕ ФУНКЦИИ ДЛЯ ОПЛАТЫ ЗВЁЗДАМИ ===
-async function requestInvoiceAndPay(starsAmount) {
-    const tg = window.Telegram.WebApp;
-    const userId = tg.initDataUnsafe?.user?.id;
-    
-    if (!userId) {
-        toast("Ошибка: не удалось получить ID пользователя");
-        return;
-    }
-
-    toast("Запрос ссылки на оплату...");
-    
-    try {
-        // Запрашиваем у Python-бота ссылку на инвойс
-        const response = await fetch(`${API_URL}/create_invoice?user_id=${userId}&stars=${starsAmount}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            toast("Ошибка: " + data.error);
-            return;
-        }
-        
-        if (!data.invoice_link) {
-            toast("Ошибка: бот не вернул ссылку");
-            return;
-        }
-
-        // Открываем окно оплаты Telegram
-        tg.openInvoice(data.invoice_link, async (status) => {
-            if (status === 'paid') {
-                toast("Оплата прошла успешно! Обновляем баланс...");
-                // Запрашиваем актуальный баланс с бэкенда
-                await fetchBalance();
-            } else if (status === 'cancelled') {
-                toast("Оплата отменена");
-            } else {
-                toast("Ошибка оплаты");
-            }
-        });
-    } catch (e) {
-        console.error(e);
-        // Fallback для тестов, если бэкенд недоступен (DEV режим)
-        if (devMode) {
-            toast("DEV: Бэкенд недоступен, начисляем локально (ТОЛЬКО ДЛЯ ТЕСТА)");
-            S.coins += 1000;
-            save();
-            balance();
-            renderChests();
-        } else {
-            toast("Ошибка связи с сервером. Запустите бота в Termux.");
-        }
-    }
-}
-
-async function fetchBalance() {
-    const tg = window.Telegram.WebApp;
-    const userId = tg.initDataUnsafe?.user?.id;
-    if (!userId) return;
-    
-    try {
-        const response = await fetch(`${API_URL}/balance?user_id=${userId}`);
-        const data = await response.json();
-        if (data.balance !== undefined) {
-            S.coins = data.balance;
-            save();
-            balance();
-            renderChests(); // Перерисовать цены (они могут смениться со звёзд на монеты)
-            toast("Баланс обновлён!");
-        }
-    } catch (e) {
-        console.error("Не удалось обновить баланс", e);
-    }
-}
-
-// Привязываем кнопку "+" к функции оплаты
-$("#btnAddCoins").onclick = () => {
-    requestInvoiceAndPay(15); // По умолчанию предлагаем пополнение на 15 звёзд
-};
-
+/* ══ СТАРТ ══ */
 function refreshAll(){ balance(); renderChests(); renderTasks(); renderInv(); slotDraw(); drawDevItems(); drawMusicBtn();
   const wf=$("#wheelFrame");
   if (WHEEL_FRAME_URL){ wf.src=WHEEL_FRAME_URL; wf.style.display=""; } else { wf.style.display="none"; }
@@ -1085,6 +1007,7 @@ function boot(){
 }
 boot();
 
+/* ══ ПРЕДЗАГРУЗКА ══ */
 (function preloader(){
   const pr = $("#preloader");
   const orbit = $("#orbit");
