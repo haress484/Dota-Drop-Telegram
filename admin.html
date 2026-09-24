@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dota Drop · Админ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--gold:#f7c948;--grn:#3ddc84;--red:#e74c3c;--pur:#ffd35c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);background:var(--bg);min-height:100vh;padding:12px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+.top h1{font-size:17px}
+.badge{background:var(--pur);color:#241a00;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:800}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.tab{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--mut)}
+.tab.active{background:var(--panel2);color:var(--gold);border-color:var(--gold)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin-bottom:10px;color:var(--gold)}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.row > *{flex:1}
+input,select,textarea{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px;font-size:14px;width:100%;font-family:inherit}
+.btn{border:none;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;font-size:14px}
+.btn.pur{background:linear-gradient(180deg,var(--pur),#e8a41c);color:#241a00}
+.btn.grn{background:linear-gradient(180deg,#4ae89a,#2ecc71);color:#0c1410}
+.btn.red{background:var(--red);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:#cfe8cf}
+.btn.sm{padding:6px 10px;font-size:11px}
+.btn:disabled{opacity:.4;cursor:default}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.tr-actions{display:flex;gap:4px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--mut);padding:20px}
+.hint{color:var(--mut);font-size:12px;margin-top:6px}
+#toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px}
+.gift-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.gift-card img{width:60px;height:60px;object-fit:contain}
+.gift-card .info{flex:1}
+.gift-card .name{font-weight:700;margin-bottom:2px}
+.gift-card .price{color:var(--gold);font-size:12px}
+.balance-big{font-size:28px;font-weight:900;color:var(--gold);text-align:center;padding:10px 0}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🛠 Dota Drop · Админ</h1>
+  <span class="badge" id="ownerBadge">—</span>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="players">👥 Игроки</div>
+  <div class="tab" data-tab="grants">💎 Выдачи</div>
+  <div class="tab" data-tab="gifts">🎁 Подарки</div>
+  <div class="tab" data-tab="promos">🎫 Промо</div>
+  <div class="tab" data-tab="payments">💳 Платежи</div>
+  <div class="tab" data-tab="messages">📢 Сообщения</div>
+</div>
+
+<!-- ═══════ ИГРОКИ ═══════ -->
+<div class="card tab-pane" data-pane="players">
+  <h2>Список игроков</h2>
+  <div id="playersBody"><div class="empty">Загрузка…</div></div>
+</div>
+
+<!-- ═══════ ВЫДАЧИ ═══════ -->
+<div class="card tab-pane" data-pane="grants" style="display:none">
+  <h2>Выдать игроку</h2>
+  <div class="row">
+    <input id="gUid" type="number" placeholder="ID игрока">
+    <select id="gType">
+      <option value="coins">Осколки</option>
+      <option value="item">Предмет</option>
+    </select>
+  </div>
+  <div class="row">
+    <input id="gAmount" type="number" placeholder="Сумма осколков">
+    <input id="gItem" placeholder="item_id (если предмет)" style="display:none">
+  </div>
+  <input id="gReason" placeholder="Причина (необязательно, для окошка игроку)">
+  <div class="row" style="margin-top:8px">
+    <button class="btn pur" onclick="grantOne()">ВЫДАТЬ</button>
+  </div>
+  <hr style="margin:16px 0;border-color:var(--line)">
+  <h2>Массовая выдача всем</h2>
+  <div class="row">
+    <input id="gaAmount" type="number" placeholder="Сумма осколков">
+    <input id="gaReason" placeholder="Причина (для всех)">
+  </div>
+  <button class="btn red" onclick="grantAll()">РАЗДАТЬ ВСЕМ ИГРОКАМ</button>
+</div>
+
+<!-- ═══════ ПОДАРКИ ═══════ -->
+<div class="card tab-pane" data-pane="gifts" style="display:none">
+  <h2>Баланс бота</h2>
+  <div class="balance-big"><span id="botStars">0</span> ⭐</div>
+  <div class="row">
+    <input id="topupStars" type="number" placeholder="Сколько звёзд внести">
+    <button class="btn grn" onclick="topupBot()">ПОПОЛНИТЬ</button>
+  </div>
+  <div class="hint">При нажатии "Пополнить" откроется окно оплаты Telegram. Звёзды спишутся с твоего аккаунта и зачислятся на баланс бота.</div>
+  <hr style="margin:16px 0;border-color:var(--line)">
+  <h2>Отправить подарок</h2>
+  <input id="giftUid" type="number" placeholder="ID получателя">
+  <div id="giftsList" style="margin-top:10px"><div class="empty">Загрузка подарков…</div></div>
+</div>
+
+<!-- ═══════ ПРОМО ═══════ -->
+<div class="card tab-pane" data-pane="promos" style="display:none">
+  <h2>Создать промокод</h2>
+  <div class="row">
+    <input id="pCode" placeholder="Код (напр. NEWYEAR)">
+    <input id="pAmount" type="number" placeholder="Сумма осколков">
+  </div>
+  <div class="row">
+    <input id="pMax" type="number" placeholder="Макс. активаций (1 = разовый)">
+    <label style="display:flex;align-items:center;gap:6px;color:var(--mut);font-size:13px">
+      <input id="pSecret" type="checkbox" style="width:auto"> секретный (ачивка)
+    </label>
+  </div>
+  <button class="btn pur" onclick="promoCreate()">СОЗДАТЬ</button>
+  <hr style="margin:16px 0;border-color:var(--line)">
+  <h2>Существующие</h2>
+  <div id="promosBody"><div class="empty">Загрузка…</div></div>
+</div>
+
+<!-- ═══════ ПЛАТЕЖИ ═══════ -->
+<div class="card tab-pane" data-pane="payments" style="display:none">
+  <h2>Лента донатов</h2>
+  <div id="paymentsBody"><div class="empty">Загрузка…</div></div>
+</div>
+
+<!-- ═══════ СООБЩЕНИЯ ═══════ -->
+<div class="card tab-pane" data-pane="messages" style="display:none">
+  <h2>Личное сообщение</h2>
+  <input id="mUid" type="number" placeholder="ID игрока">
+  <textarea id="mText" rows="3" placeholder="Текст сообщения"></textarea>
+  <button class="btn pur" onclick="sendOne()" style="margin-top:8px">ОТПРАВИТЬ</button>
+  <hr style="margin:16px 0;border-color:var(--line)">
+  <h2>Рассылка всем</h2>
+  <textarea id="bText" rows="3" placeholder="Текст для всех игроков"></textarea>
+  <button class="btn red" onclick="broadcast()" style="margin-top:8px">РАЗослать ВСЕМ</button>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+const API = location.origin === "file:" ? "https://dota-drop-telegram.onrender.com" : location.origin.replace(/\/$/,"");
+const tg = window.Telegram?.WebApp;
+const initData = tg?.initData || "";
+
+if (!initData) {
+  document.body.innerHTML = '<div class="card"><h2>⛔ Открыть можно только из Telegram</h2></div>';
+}
+
+function toast(m){
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = m;
+  document.getElementById("toasts").appendChild(t);
+  setTimeout(()=>t.remove(), 2600);
+}
+
+async function api(path, body){
+  const r = await fetch(API + path, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({initData, ...(body||{})})
+  });
+  const j = await r.json();
+  if (j.error === "forbidden") {
+    document.body.innerHTML = '<div class="card"><h2>⛔ Доступ только для администратора</h2><p class="hint">Твой TG ID не совпадает с OWNER_ID в коде бота.</p></div>';
+    throw new Error("forbidden");
+  }
+  return j;
+}
+
+// табы
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    document.querySelectorAll(".tab-pane").forEach(p=>p.style.display="none");
+    document.querySelector(`[data-pane="${t.dataset.tab}"]`).style.display = "";
+  };
+});
+
+// тип выдачи
+document.getElementById("gType").onchange = e => {
+  const isItem = e.target.value === "item";
+  document.getElementById("gAmount").style.display = isItem ? "none" : "";
+  document.getElementById("gItem").style.display = isItem ? "" : "none";
+};
+
+// ═══ ИГРОКИ ═══
+async function loadPlayers(){
+  const j = await api("/admin/players");
+  const {players, bans} = j;
+  const banSet = new Set(bans.map(b=>String(b.user_id)));
+  const body = document.getElementById("playersBody");
+  if (!players.length){ body.innerHTML = '<div class="empty">Пока никто не заходил</div>'; return; }
+  body.innerHTML = `<table>
+    <tr><th>ID</th><th>Имя</th><th>Заходил</th><th>Действия</th></tr>
+    ${players.map(p => {
+      const banned = banSet.has(String(p.user_id));
+      const name = (p.first_name||"") + (p.username ? " (@"+p.username+")" : "");
+      const seen = p.last_seen ? new Date(p.last_seen).toLocaleString("ru") : "—";
+      return `<tr>
+        <td>${p.user_id}</td>
+        <td>${name}${banned?'<br><span style="color:var(--red);font-size:11px">🚫 ЗАБАНЕН</span>':""}</td>
+        <td>${seen}</td>
+        <td class="tr-actions">
+          ${banned
+            ? `<button class="btn sm grn" onclick="unban(${p.user_id})">Разбан</button>`
+            : `<button class="btn sm red" onclick="ban(${p.user_id})">Бан</button>`}
+          <button class="btn sm ghost" onclick="quickGrant(${p.user_id})">+оск</button>
+          <button class="btn sm ghost" onclick="quickSend(${p.user_id})">💬</button>
+          <button class="btn sm ghost" onclick="quickGift(${p.user_id})">🎁</button>
+        </td>
+      </tr>`;
+    }).join("")}
+  </table>`;
+}
+window.quickGrant = uid => {
+  document.querySelector('[data-tab="grants"]').click();
+  document.getElementById("gUid").value = uid;
+};
+window.quickSend = uid => {
+  document.querySelector('[data-tab="messages"]').click();
+  document.getElementById("mUid").value = uid;
+};
+window.quickGift = uid => {
+  document.querySelector('[data-tab="gifts"]').click();
+  document.getElementById("giftUid").value = uid;
+};
+window.ban = async uid => {
+  const reason = prompt("Причина бана (можно пусто):");
+  if (reason === null) return;
+  await api("/admin/ban", {user_id: uid, reason});
+  toast("Забанен"); loadPlayers();
+};
+window.unban = async uid => {
+  await api("/admin/unban", {user_id: uid});
+  toast("Разбанен"); loadPlayers();
+};
+
+// ═══ ВЫДАЧИ ═══
+window.grantOne = async () => {
+  const user_id = +document.getElementById("gUid").value;
+  const type = document.getElementById("gType").value;
+  const amount = +document.getElementById("gAmount").value || 0;
+  const item_id = document.getElementById("gItem").value.trim() || null;
+  const reason = document.getElementById("gReason").value.trim() || null;
+  if (!user_id) return toast("Укажи ID");
+  if (type === "coins" && amount <= 0) return toast("Укажи сумму");
+  if (type === "item" && !item_id) return toast("Укажи item_id");
+  await api("/admin/grant", {user_id, type, amount, item_id, reason});
+  toast("Выдача добавлена в очередь");
+  document.getElementById("gUid").value = "";
+  document.getElementById("gAmount").value = "";
+  document.getElementById("gItem").value = "";
+  document.getElementById("gReason").value = "";
+};
+window.grantAll = async () => {
+  const amount = +document.getElementById("gaAmount").value;
+  const reason = document.getElementById("gaReason").value.trim() || null;
+  if (amount <= 0) return toast("Укажи сумму");
+  if (!confirm(`Раздать ${amount} осколков ВСЕМ игрокам?`)) return;
+  const j = await api("/admin/grant_all", {amount, reason});
+  toast(`Раздано: ${j.count} игрокам`);
+};
+
+// ═══ ПОДАРКИ ═══
+async function loadBotBalance(){
+  const j = await fetch(API + "/admin/bot_balance", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({initData})
+  }).then(r=>r.json());
+  if (j.bot_stars !== undefined) document.getElementById("botStars").textContent = j.bot_stars;
+}
+window.topupBot = async () => {
+  const stars = +document.getElementById("topupStars").value;
+  if (stars <= 0) return toast("Укажи количество звёзд");
+  const j = await api("/admin/topup_bot", {stars});
+  if (!j.invoice_link) return toast("Ошибка: " + (j.error||""));
+  tg.openInvoice(j.invoice_link, status => {
+    if (status === "paid") { toast("Баланс пополнен!"); loadBotBalance(); }
+    else if (status === "cancelled") toast("Отменено");
+    else if (status === "failed") toast("Ошибка оплаты");
+  });
+};
+async function loadGifts(){
+  const j = await api("/admin/available_gifts");
+  const list = j.gifts || [];
+  const body = document.getElementById("giftsList");
+  if (!list.length){ body.innerHTML = '<div class="empty">Подарков нет в продаже</div>'; return; }
+  body.innerHTML = list.map(g => `
+    <div class="gift-card">
+      <img src="${g.image}" alt="">
+      <div class="info">
+        <div class="name">${g.id}</div>
+        <div class="price">${g.star_count} ⭐ · осталось ${g.remaining_count>=0 ? g.remaining_count : "∞"}</div>
+      </div>
+      <button class="btn sm pur" onclick="sendGift('${g.id}', ${g.star_count})">Отправить</button>
+    </div>
+  `).join("");
+}
+window.sendGift = async (gift_id, cost) => {
+  const user_id = +document.getElementById("giftUid").value;
+  if (!user_id) return toast("Укажи ID получателя");
+  const balance = +document.getElementById("botStars").textContent;
+  if (balance < cost) return toast(`На балансе бота только ${balance} ⭐, нужно ${cost}`);
+  if (!confirm(`Отправить подарок ${gift_id} (${cost} ⭐) игроку ${user_id}?`)) return;
+  const j = await api("/admin/send_gift", {user_id, gift_id});
+  if (j.ok) { toast("Подарок отправлен!"); loadBotBalance(); }
+  else toast("Ошибка: " + (j.error||""));
+};
+
+// ═══ ПРОМО ═══
+window.promoCreate = async () => {
+  const code = document.getElementById("pCode").value.trim().toUpperCase();
+  const amount = +document.getElementById("pAmount").value;
+  const max_uses = +document.getElementById("pMax").value || 1;
+  const secret = document.getElementById("pSecret").checked;
+  if (!code) return toast("Укажи код");
+  if (amount < 0) return toast("Укажи сумму");
+  await api("/admin/promo_create", {code, amount, max_uses, secret});
+  toast("Промо создан");
+  document.getElementById("pCode").value = "";
+  document.getElementById("pAmount").value = "";
+  document.getElementById("pMax").value = "";
+  loadPromos();
+};
+async function loadPromos(){
+  const j = await api("/admin/promo_list");
+  const body = document.getElementById("promosBody");
+  if (!j.promos.length){ body.innerHTML = '<div class="empty">Промокодов пока нет</div>'; return; }
+  body.innerHTML = `<table>
+    <tr><th>Код</th><th>Сумма</th><th>Исп/Макс</th><th></th></tr>
+    ${j.promos.map(p=>`
+      <tr>
+        <td>${p.code}${p.secret?' 🏆':''}</td>
+        <td>${p.amount}</td>
+        <td>${p.uses}/${p.max_uses}</td>
+        <td><button class="btn sm red" onclick="promoDelete('${p.code}')">×</button></td>
+      </tr>
+    `).join("")}
+  </table>`;
+}
+window.promoDelete = async code => {
+  if (!confirm(`Удалить промо ${code}?`)) return;
+  await api("/admin/promo_delete", {code});
+  toast("Удалён"); loadPromos();
+};
+
+// ═══ ПЛАТЕЖИ ═══
+async function loadPayments(){
+  const j = await api("/admin/payments");
+  const body = document.getElementById("paymentsBody");
+  if (!j.payments.length){ body.innerHTML = '<div class="empty">Платежей пока нет</div>'; return; }
+  body.innerHTML = `<table>
+    <tr><th>Время</th><th>ID</th><th>Звёзд</th><th>Осколки</th></tr>
+    ${j.payments.map(p=>`
+      <tr>
+        <td>${new Date(p.created_at).toLocaleString("ru")}</td>
+        <td>${p.user_id}</td>
+        <td>${p.stars} ⭐</td>
+        <td>${p.coins}</td>
+      </tr>
+    `).join("")}
+  </table>`;
+}
+
+// ═══ СООБЩЕНИЯ ═══
+window.sendOne = async () => {
+  const user_id = +document.getElementById("mUid").value;
+  const text = document.getElementById("mText").value.trim();
+  if (!user_id || !text) return toast("Заполни ID и текст");
+  const j = await api("/admin/send", {user_id, text});
+  if (j.ok) { toast("Отправлено"); document.getElementById("mText").value=""; }
+  else toast("Ошибка: " + (j.error||""));
+};
+window.broadcast = async () => {
+  const text = document.getElementById("bText").value.trim();
+  if (!text) return toast("Введи текст");
+  if (!confirm("Разослать ВСЕМ игрокам?")) return;
+  const j = await api("/admin/broadcast", {text});
+  toast(`Отправлено: ${j.sent}`);
+};
+
+// ═══ СТАРТ ═══
+(async () => {
+  document.getElementById("ownerBadge").textContent = "OWNER";
+  await loadPlayers();
+  loadPromos();
+  loadPayments();
+  loadBotBalance();
+  loadGifts();
+})();
+</script>
+</body>
+</html>
