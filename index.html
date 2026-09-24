@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Dota Drop</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ... ВЕСЬ ТВОЙ CSS ОСТАЁТСЯ БЕЗ ИЗМЕНЕНИЙ ... */
+:root{--bg1:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--pur:#ffd35c;--pur2:#e8a41c;--gold:#f7c948;--grn:#3ddc84;--yel:#f1c40f;--org:#e67e22;--red:#e74c3c}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);min-height:100vh;background:var(--bg1)}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background-image:var(--bg,none);background-size:cover;background-position:center}
+body::after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,14,10,.78),rgba(8,14,10,.55) 45%,rgba(8,14,10,.93))}
+.shard{width:18px;height:18px;vertical-align:-4px;object-fit:contain;filter:drop-shadow(0 0 3px rgba(247,201,72,.45))}
+.shard.sm{width:14px;height:14px;vertical-align:-2px}
+#preloader{position:fixed;inset:0;z-index:100;background:#0c1410;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s}
+#preloader.done{pointer-events:none;opacity:0}
+#preloader.gone{display:none !important}
+.loader-stage{position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center}
+.loader-chest{width:120px;height:120px;object-fit:contain;z-index:2;filter:drop-shadow(0 6px 18px rgba(0,0,0,.6));animation:chestBob 1.8s ease-in-out infinite}
+.loader-chest.glow{animation:chestGlow .6s ease-out forwards}
+@keyframes chestBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes chestGlow{0%{filter:drop-shadow(0 6px 18px rgba(0,0,0,.6)) brightness(1)}60%{filter:drop-shadow(0 0 40px var(--gold)) brightness(1.6)}100%{filter:drop-shadow(0 0 60px var(--gold)) brightness(2)}}
+.orbit{position:absolute;inset:0;animation:orbitSpin 2.2s linear infinite}
+.orbit.dying{animation:none}
+.shard-orb{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;transform-origin:50% 50%;object-fit:contain;filter:drop-shadow(0 0 8px rgba(247,201,72,.8))}
+@keyframes orbitSpin{to{transform:rotate(360deg)}}
+.shard-orb.fly{transition:transform .7s cubic-bezier(.4,.1,.5,1),opacity .7s ease-in;opacity:0 !important}
+#loadTxt{color:var(--mut);font-size:14px;min-height:18px}
+#loadBtn{min-width:220px}
+.multicast-badge{font-family:'Cinzel',serif;font-weight:900;letter-spacing:3px;text-transform:uppercase;text-align:center;font-size:28px;margin:2px 0 10px;line-height:1;
+ background:linear-gradient(180deg,#ffe95c 0%,#f7c948 45%,#c8860a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+ filter:drop-shadow(0 0 8px rgba(247,201,72,.7)) drop-shadow(0 2px 3px rgba(0,0,0,.9));animation:badgePop .5s ease-out}
+@keyframes badgePop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.topbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(10,18,12,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:19px}.logo i{font-style:italic;color:#ff9d2e;font-family:Georgia,serif;font-weight:700}
+.tb-right{display:flex;gap:8px;align-items:center}
+.mbtn,.pbtn{background:var(--panel);border:1px solid var(--line);border-radius:50%;width:38px;height:38px;color:#cfe8cf;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mbtn svg,.pbtn svg{width:20px;height:20px}
+.balance{display:flex;align-items:center;gap:6px;font-weight:800;color:var(--gold);background:var(--panel);padding:7px 14px;border-radius:22px;border:1px solid var(--line)}
+/* НОВЫЙ СТИЛЬ ДЛЯ КНОПКИ "+" */
+.btn-add-coins {
+    background: none; border: none; color: var(--grn); font-weight: 900; font-size: 20px; 
+    cursor: pointer; margin-left: 4px; padding: 0 4px; transition: transform 0.1s;
+}
+.btn-add-coins:active { transform: scale(0.9); }
+
+main{padding:16px 14px 96px;max-width:560px;margin:0 auto}
+.tab{display:none}.tab.active{display:block}
+.tab-title{margin:4px 0 14px;font-size:19px;font-weight:800}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.chest-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chest-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;position:relative;overflow:hidden}
+.case-art{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px}
+.case-art img{width:100%;height:100%;object-fit:cover}
+.range{display:inline-block;background:#0d1a12;border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;color:#cfe8cf;margin-bottom:6px}
+.price-row{display:flex;align-items:center;justify-content:center;gap:6px;font-size:21px;font-weight:900;color:var(--gold)}
+.price-row.free{color:var(--grn)}
+/* СТИЛЬ ДЛЯ ЦЕНЫ В ЗВЁЗДАХ */
+.price-row.stars { color: #ffd35c; font-size: 18px; }
+.free-badge{position:absolute;top:10px;left:-34px;transform:rotate(-45deg);background:var(--grn);color:#0c1410;font-size:10px;font-weight:900;padding:3px 40px;letter-spacing:1px;box-shadow:0 2px 6px rgba(0,0,0,.4);animation:freePulse 2s ease-in-out infinite}
+@keyframes freePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.2)}}
+.cname{font-size:14px;font-weight:700;margin:4px 0 10px}
+.risk{display:flex;gap:5px;align-items:center;margin-bottom:10px;position:relative}
+.risk i{flex:1;height:3px;border-radius:2px;background:#2c4634;position:relative}
+.risk .dot{position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;top:-2px}
+.risk-labels{display:flex;gap:5px;margin:-8px 0 14px}
+.risk-labels span{flex:1;text-align:center;font-size:9px;color:var(--mut)}
+.btn{border:none;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer;color:#e8f3e8;background:#2c4634;font-size:14px}
+.btn.pur{background:linear-gradient(180deg,var(--pur),var(--pur2));color:#241a00}
+.btn.grn{background:linear-gradient(180deg,#4ae89a,#2ecc71);color:#0c1410}
+.btn.outline{background:transparent;border:1px solid var(--line);color:#cfe8cf}
+.btn.danger{background:#8e2b2b;color:#fff;width:100%;margin-top:10px}
+.btn.big{width:100%;padding:15px;font-size:16px;margin-top:14px}
+.btn:disabled{opacity:.35;cursor:default}
+.hint{color:var(--mut);text-align:center;margin-top:10px;font-size:13px}
+.overlay.view{justify-content:flex-start;overflow-y:auto}
+.cv-body{width:100%;max-width:560px;margin:0 auto}
+.cv-art{width:230px;height:230px;margin:6px auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cv-art img{width:100%;height:100%;object-fit:cover}
+#cvArtSlot{min-height:120px}
+#cvArtSlot .case-result{margin-top:6px}
+#cvArtSlot .strip-wrap{margin:6px 0 8px}
+.multi-wrap{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+.cv-sub{margin:20px 0 10px;font-size:16px;font-weight:800}
+#cvList .pick-row{cursor:default}
+.wheel-box{position:relative;width:280px;margin:6px auto 22px}
+.wheel-frame{position:absolute;left:50%;top:50%;width:var(--frame,135%);height:var(--frame,135%);transform:translate(-50%,-50%);object-fit:contain;pointer-events:none;z-index:0;filter:drop-shadow(0 0 12px rgba(0,0,0,.65))}
+#wheelSvg{position:relative;z-index:1;width:280px;display:block}
+#needleG{transform-origin:150px 150px}
+.chance-line{text-align:center;font-size:16px;font-weight:900;color:var(--grn);margin:12px 0 14px}
+.up-slots{display:flex;gap:12px}
+.upslot{flex:1;height:130px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);position:relative;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px}
+.upslot .sil{position:absolute;inset:0;margin:auto;width:120%;opacity:.07;object-fit:contain;pointer-events:none}
+.upslot .st{font-size:12px;color:#cfe8cf;font-weight:600;position:relative}
+.upslot.filled .st{display:none}
+.upslot .fi{position:relative;width:74px;height:56px;object-fit:contain}
+.upslot .fn{position:relative;font-size:12px;font-weight:700;margin-top:4px}
+.upslot .fp{position:relative;font-size:11px;color:var(--gold);font-weight:700}
+input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:11px;font-size:15px;width:100%}
+.promo-card{display:flex;gap:8px}.promo-card input{flex:1}
+.task-btns{display:flex;gap:8px;margin-top:10px}.task-btns .btn{flex:1}
+.done{color:var(--grn);font-weight:700}
+.trow{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-top:6px}
+.top-drops .td{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.top-drops .td:last-child{border:none}
+.top-drops img{width:44px;height:34px;object-fit:contain}
+.top-drops .tn{flex:1;font-size:13px;font-weight:700}
+.top-drops .tc{color:var(--gold);font-size:12px;font-weight:800}
+.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inv-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center;position:relative}
+.inv-card img{width:72px;height:54px;object-fit:contain}
+.inv-name{font-size:12px;font-weight:700;margin:4px 0}
+.inv-cost{color:var(--mut);font-size:11px;margin-bottom:6px}
+.inv-card .btn{width:100%;padding:8px;font-size:11px;margin-top:4px}
+.cnt{position:absolute;top:6px;right:8px;background:var(--grn);color:#0c1410;border-radius:10px;font-size:11px;font-weight:800;padding:2px 7px}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:6;display:flex;background:rgba(10,18,12,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.nav-btn{flex:1;background:none;border:none;color:var(--mut);padding:9px 0 11px;font-size:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.nav-btn svg{width:22px;height:22px}.nav-btn.active{color:var(--gold)}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(6,12,8,.97);display:flex;flex-direction:column;justify-content:center;padding:16px}
+.overlay[hidden]{display:none}
+.case-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-weight:800}
+.x{background:none;border:none;color:var(--mut);font-size:22px;cursor:pointer;line-height:1}
+.strip-wrap{position:relative;overflow:hidden;border-radius:12px;border:1px solid var(--line);background:#0d1a12}
+.marker{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--gold);z-index:3;box-shadow:0 0 12px var(--gold)}
+.marker::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--gold)}
+.strip{display:flex;gap:8px;padding:14px 0;width:max-content;will-change:transform}
+.cell{width:96px;height:86px;flex:0 0 auto;background:var(--panel2);border-radius:10px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cell img{width:62px;height:46px;object-fit:contain}
+.cell b{font-size:10px;color:var(--mut);font-weight:600;margin-top:3px}
+.case-result{margin-top:18px;text-align:center}
+.case-result img{width:120px;height:90px;object-fit:contain}
+.case-result .rname{font-size:18px;font-weight:800;margin:6px 0}
+.result-list{margin:10px 0;display:flex;flex-direction:column;gap:6px}
+.result-item{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:left}
+.result-item img{width:52px;height:40px;object-fit:contain}
+.result-item .rn{flex:1;font-size:13px;font-weight:700}
+.result-item .rc{color:var(--gold);font-size:12px;font-weight:800}
+.result-item .rsell{font-size:11px;padding:6px 10px}
+.case-result .rbtns{display:flex;gap:8px;margin-top:12px}.case-result .btn{flex:1}
+.picker-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;max-height:80vh;display:flex;flex-direction:column}
+.picker-list{overflow-y:auto;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.pick-row{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer}
+.pick-row img{width:52px;height:40px;object-fit:contain}
+.pick-row .pn{flex:1;font-size:13px;font-weight:600}
+.pick-row .pc{color:var(--mut);font-size:11px}
+#devCircle{position:fixed;right:14px;bottom:96px;z-index:30;width:52px;height:52px;border-radius:50%;background:linear-gradient(180deg,var(--pur),var(--pur2));color:#241a00;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;box-shadow:0 4px 16px rgba(0,0,0,.5);touch-action:none;user-select:none;cursor:pointer}
+#devCircle[hidden]{display:none}
+.dev-panel{position:fixed;right:12px;bottom:158px;z-index:30;width:min(320px,92vw);max-height:60vh;overflow-y:auto}
+.dev-panel[hidden]{display:none}
+.dev-panel h3{display:flex;justify-content:space-between;align-items:center}
+.dev-panel .row{display:flex;gap:8px;margin:8px 0}
+#devItemList{max-height:180px}
+#toasts{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center}
+.toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px;animation:tin .25s}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+.profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto}
+.profile-head{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+.profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-avatar .av-ph{color:var(--mut);font-size:12px;text-align:center;padding:4px}
+.profile-avatar::after{content:"📷";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
+.profile-name{flex:1;display:flex;flex-direction:column;gap:6px}
+.profile-name input{font-size:17px;font-weight:700}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.stat-card .sv{font-size:22px;font-weight:900;color:var(--gold);margin-bottom:2px}
+.stat-card .sl{font-size:11px;color:var(--mut)}
+.ach-title-h{font-size:15px;font-weight:800;margin:14px 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ach-card{text-align:center}
+.ach-frame{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px}
+.ach-card.unlocked .ach-frame{border-color:var(--gold);box-shadow:0 0 12px rgba(247,201,72,.4)}
+.ach-frame img{width:100%;height:100%;object-fit:cover}
+.ach-q{font-size:36px;font-weight:900;color:var(--mut);opacity:.5}
+.ach-card .ach-name{font-size:11px;font-weight:700;color:var(--txt);min-height:28px;display:flex;align-items:center;justify-content:center;padding:0 2px}
+.ach-card.locked .ach-name{color:var(--mut);font-style:italic}
+.ach-notify{position:fixed;top:-120px;left:50%;transform:translateX(-50%);z-index:60;
+  background:linear-gradient(180deg,#1d3324,#14251a);border:1px solid var(--grn);
+  border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(61,220,132,.3);
+  transition:top .5s cubic-bezier(.2,.8,.2,1);
+  min-width:260px;max-width:380px}
+.ach-notify.show{top:16px}
+.ach-notify .an-img{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0}
+.ach-notify .an-label{font-size:10px;color:var(--grn);letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.ach-notify .an-title{font-size:16px;font-weight:800;margin:2px 0}
+.ach-notify .an-desc{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+
+<div id="preloader">
+  <div class="logo" style="font-size:26px"><i>Dota</i> DROP</div>
+  <div class="loader-stage">
+    <div class="orbit" id="orbit"></div>
+    <img class="loader-chest" id="loaderChest" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/ches.png" alt="">
+  </div>
+  <div id="loadTxt">Загрузка…</div>
+  <button class="btn pur big" id="loadBtn" disabled>ВОЙТИ</button>
+</div>
+
+<div id="achieveNotif" class="ach-notify">
+  <img class="an-img" src="">
+  <div class="an-body">
+    <div class="an-label">Достижение получено!</div>
+    <div class="an-title"></div>
+    <div class="an-desc"></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="logo"><i>Dota</i> DROP</div>
+  <div class="tb-right">
+    <button class="mbtn" id="btnMusic"></button>
+    <button class="pbtn" id="btnProfile" title="Профиль">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+    </button>
+    <div class="balance">
+        <img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png" alt="">
+        <span id="balance">0</span>
+        <!-- НОВАЯ КНОПКА "+" -->
+        <button class="btn-add-coins" id="btnAddCoins" title="Пополнить баланс">+</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="tab-chests" class="tab active"><div class="chest-grid" id="chestGrid"><div class="hint">Загрузка…</div></div></section>
+  <section id="tab-upgrade" class="tab">
+    <h2 class="tab-title">Апгрейд</h2>
+    <div class="wheel-box">
+      <img class="wheel-frame" id="wheelFrame" alt="" style="display:none">
+      <svg id="wheelSvg" viewBox="0 0 300 300">
+        <g id="ticks"></g>
+        <circle cx="150" cy="150" r="118" fill="#14251a"/>
+        <path id="winSector" d="" fill="none" stroke="#3ddc84" stroke-width="14" stroke-linecap="round"/>
+        <circle cx="150" cy="150" r="86" fill="#0f1d14"/>
+        <g id="needleG"><line x1="150" y1="150" x2="150" y2="48" stroke="#f7c948" stroke-width="4" stroke-linecap="round"/></g>
+        <circle cx="150" cy="150" r="10" fill="#f7c948"/>
+      </svg>
+    </div>
+    <div class="chance-line" id="chanceLine">Шанс успеха: —</div>
+    <div class="up-slots">
+      <div class="upslot" id="slotOwn"><img class="sil" src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/bfury.png"><span class="st">Выбери предмет для апгрейда</span></div>
+      <div class="upslot" id="slotTarget"><img class="sil" src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/heavens_halberd.png"><span class="st">Выбери предмет, который хочешь получить</span></div>
+    </div>
+    <button class="btn pur big" id="btnSpin" disabled>УЛУЧШИТЬ</button>
+    <p class="hint" id="upHint">Цель должна стоить дороже твоего предмета</p>
+  </section>
+  <section id="tab-tasks" class="tab">
+    <h2 class="tab-title">Задания</h2>
+    <div class="card promo-card"><input id="promoInput" placeholder="Промокод"><button class="btn pur" id="btnPromo">OK</button></div>
+    <div id="taskList"></div>
+  </section>
+  <section id="tab-inv" class="tab">
+    <h2 class="tab-title">Инвентарь <span id="invCount" style="color:var(--mut);font-size:14px"></span></h2>
+    <div class="card top-drops" id="topDrops"></div>
+    <div class="inv-grid" id="invGrid"></div>
+  </section>
+</main>
+
+<nav class="bottomnav">
+  <button class="nav-btn active" data-tab="chests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>Кейсы</button>
+  <button class="nav-btn" data-tab="upgrade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 13l6-6 6 6"/><path d="M6 19l6-6 6 6"/></svg>Апгрейд</button>
+  <button class="nav-btn" data-tab="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 10l2 2 4-4"/><path d="M8 16h8"/></svg>Задания</button>
+  <button class="nav-btn" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Инвентарь</button>
+</nav>
+
+<div class="overlay view" id="caseView" hidden>
+  <div class="cv-body">
+    <div class="case-top"><span id="cvTitle"></span><button class="x" id="cvClose">✕</button></div>
+    <div id="cvArtSlot"></div>
+    <div class="price-row" id="cvPrice"></div>
+    <div id="cvRisk"></div>
+    <button class="btn pur big" id="cvOpen">ОТКРЫТЬ</button>
+    <h3 class="cv-sub">Содержимое кейса</h3>
+    <div class="picker-list" id="cvList"></div>
+  </div>
+</div>
+
+<div class="overlay" id="profileOverlay" hidden>
+  <div class="profile-box">
+    <div class="case-top"><span>Профиль</span><button class="x" id="profileClose">✕</button></div>
+    <div class="profile-head">
+      <label class="profile-avatar" for="avatarInput">
+        <img id="profAvatar" src="" style="display:none">
+        <span class="av-ph" id="profAvatarPh">Нажми чтобы загрузить аватарку</span>
+      </label>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none">
+      <div class="profile-name">
+        <input id="profileName" placeholder="Твоё имя">
+        <div class="hint" style="text-align:left;margin:0;font-size:11px">Имя сохраняется автоматически</div>
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="stat-card"><div class="sv" id="statCases">0</div><div class="sl">Кейсов открыто</div></div>
+      <div class="stat-card"><div class="sv" id="statSpent">0</div><div class="sl">Осколков потрачено</div></div>
+    </div>
+    <div class="ach-title-h">Достижения</div>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="picker" hidden>
+  <div class="picker-box">
+    <div class="case-top"><span id="pickerTitle">Выбор</span><button class="x" id="pickerClose">✕</button></div>
+    <input id="pickerSearch" placeholder="Поиск...">
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+</div>
+<div id="devCircle" hidden>DEV</div>
+<div class="card dev-panel" id="devPanel" hidden>
+  <h3>Dev-меню <button class="x" id="devClose">✕</button></h3>
+  <div class="row"><input id="devCoins" type="number" placeholder="Сумма осколков"><button class="btn pur" id="devGiveCoins">Выдать</button></div>
+  <input id="devItemSearch" placeholder="Найти предмет...">
+  <div class="picker-list" id="devItemList"></div>
+  <button class="btn danger" id="devReset">Сбросить прогресс</button>
+</div>
+<div id="toasts"></div>
+
+<script>
+// ⚠️ ВАЖНО: Вставь сюда ссылку, которую выдаст Termux (например, https://xxxx.localhost.run)
+// Пока оставь как есть для тестов, но оплата не сработает без бэкенда.
+const API_URL = "https://твоя-ссылка-из-termux.localhost.run"; 
+
+window.addEventListener("error", e => {
+  if (!e.message || e.message === "Script error.") return;
+  let d = document.getElementById("jserr");
+  if (!d) { d = document.createElement("div"); d.id = "jserr";
+    d.style.cssText = "position:fixed;top:6px;left:6px;right:6px;z-index:999;background:#2a1016;color:#ff8080;padding:10px 14px;font:12px monospace;white-space:pre-wrap;border-radius:10px;border:1px solid #ff8080;max-height:40vh;overflow:auto";
+    const x = document.createElement("button"); x.textContent = "закрыть";
+    x.style.cssText = "display:block;margin-top:8px;background:none;border:1px solid #ff8080;color:#ff8080;border-radius:6px;padding:4px 12px";
+    x.onclick = () => d.remove(); d.appendChild(x); document.body.appendChild(d); }
+  d.insertAdjacentText("afterbegin", "JS ERROR: " + e.message + " (line " + e.lineno + ")\n");
+});
+const $ = s => document.querySelector(s);
+
+const CONFIG = {
+  startCoins: 0, // ИЗМЕНЕНО: начинаем с 0, чтобы проверить механику звёзд
+  upgradeCoeff:70, upgradeMin:2, upgradeMax:85, burnOnLoss:true,
+  dailyBase:300, dailyStreakStep:50, dailyMax:700,
+  promos:{ "sattarov":2000, "aleksekus":3000, "kubick":5000 },
+  devPromo:"hareses",
+  multicast: { x1:70, x2:15, x3:9, x4:6 }
+};
+
+// Цены в звёздах, если баланс монет = 0
+const STAR_PRICES = {
+  recruit: 5,
+  guardian: 10,
+  knight: 15,
+  immortal: 20
+};
+
+const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
+const CHEST_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/ches.png";
+const SOUND_CASE = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/SOUND_CASE.mp3";
+const SOUND_SELL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_2_gold.mp3";
+const SOUND_MULTI_X2 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x2.mp3.mpeg";
+const SOUND_MULTI_X3 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x3.mp3.mpeg";
+const SOUND_MULTI_X4 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x4.mp3.mpeg";
+const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/steam_achievement.mp3"; 
+const MUSIC_URL  = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/MUSIC.mp3";
+const BG_IMAGE_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/BG_IMAGE.jpg";
+const WHEEL_FRAME_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/WHEEL_FRAME.png";
+const CHEST_IMAGES = {
+  recruit:  "https://raw.githubusercontent.com/haress484/Dota-Drop/main/recruit.jpg",
+  guardian: "https://raw.githubusercontent.com/haress484/Dota-Drop/main/guardian.jpg",
+  knight:   "https://raw.githubusercontent.com/haress484/Dota-Drop/main/knight.jpg",
+  immortal: "https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg" };
+
+const CHESTS = [
+ { id:"recruit",  name:"Рекрут",   color:"#2ecc71", risk:0, min:0,    max:1000, price:500,  decay:.97 },
+ { id:"guardian", name:"Страж",    color:"#f1c40f", risk:1, min:1000, max:2500, price:1700, decay:.95 },
+ { id:"knight",   name:"Рыцарь",   color:"#e67e22", risk:2, min:2500, max:4500, price:3600, decay:.94 },
+ { id:"immortal", name:"Иммортал", color:"#e74c3c", risk:3, min:4500, max:1e9,  price:5000, decay:.93 } ];
+const ITEMS = [
+ {id:"royale_with_cheese",n:"Royale With Cheese",cost:2},{id:"tango_single",n:"Tango (Shared)",cost:30},{id:"blood_grenade",n:"Blood Grenade",cost:50},
+ {id:"courier",n:"Animal Courier",cost:50},{id:"smoke_of_deceit",n:"Smoke of Deceit",cost:50},{id:"ward_dispenser",n:"Observer & Sentry Wards",cost:50},
+ {id:"ward_sentry",n:"Sentry Ward",cost:50},{id:"branches",n:"Iron Branch",cost:55},{id:"clarity",n:"Clarity",cost:60},
+ {id:"enchanted_mango",n:"Enchanted Mango",cost:65},{id:"faerie_fire",n:"Faerie Fire",cost:65},{id:"tome_of_knowledge",n:"Tome of Knowledge",cost:75},
+ {id:"dust",n:"Dust of Appearance",cost:80},{id:"tango",n:"Tango",cost:90},{id:"flask",n:"Healing Salve",cost:100,alts:["flask.png","healing_salve.png"]},
+ {id:"flying_courier",n:"Flying Courier",cost:100},{id:"quelling_blade",n:"Quelling Blade",cost:100},{id:"stout_shield",n:"Stout Shield",cost:100},
+ {id:"tpscroll",n:"Town Portal Scroll",cost:100},{id:"gauntlets",n:"Gauntlets of Strength",cost:140},{id:"mantle",n:"Mantle of Intelligence",cost:140},
+ {id:"slippers",n:"Slippers of Agility",cost:140},{id:"circlet",n:"Circlet",cost:155},{id:"ring_of_protection",n:"Ring of Protection",cost:175},
+ {id:"ring_of_regen",n:"Ring of Regen",cost:175},{id:"sobi_mask",n:"Sage's Mask",cost:175},{id:"magic_stick",n:"Magic Stick",cost:200},
+ {id:"infused_raindrop",n:"Infused Raindrops",cost:225},{id:"wind_lace",n:"Wind Lace",cost:225},{id:"fluffy_hat",n:"Fluffy Hat",cost:250},
+ {id:"wizard_hat",n:"Wizard Hat",cost:250},{id:"blight_stone",n:"Orb of Blight",cost:300},{id:"orb_of_frost",n:"Orb of Frost",cost:300},
+ {id:"orb_of_venom",n:"Orb of Venom",cost:350},{id:"buckler",n:"Buckler",cost:425},{id:"headdress",n:"Headdress",cost:425},
+ {id:"ring_of_basilius",n:"Ring of Basilius",cost:425},{id:"belt_of_strength",n:"Belt of Strength",cost:450},{id:"blades_of_attack",n:"Blades of Attack",cost:450},
+ {id:"boots_of_elves",n:"Band of Elvenskin",cost:450},{id:"crown",n:"Crown",cost:450},{id:"gloves",n:"Gloves of Haste",cost:450},
+ {id:"robe",n:"Robe of the Magi",cost:450},{id:"shawl",n:"Sparkling Shawl",cost:450},{id:"magic_wand",n:"Magic Wand",cost:460},
+ {id:"boots",n:"Boots of Speed",cost:500},{id:"chainmail",n:"Chainmail",cost:500},{id:"bracer",n:"Bracer",cost:505},
+ {id:"null_talisman",n:"Null Talisman",cost:505},{id:"wraith_band",n:"Wraith Band",cost:505},{id:"voodoo_mask",n:"Voodoo Mask",cost:650},
+ {id:"bottle",n:"Bottle",cost:675},{id:"ring_of_health",n:"Ring of Health",cost:700},{id:"void_stone",n:"Void Stone",cost:700},
+ {id:"energy_booster",n:"Energy Booster",cost:800},{id:"soul_ring",n:"Soul Ring",cost:805},{id:"urn_of_shadows",n:"Urn of Shadows",cost:825},
+ {id:"quarterstaff",n:"Quarterstaff",cost:875},{id:"chasm_stone",n:"Chasm Stone",cost:900},{id:"cloak",n:"Cloak",cost:900},
+ {id:"gem",n:"Gem of True Sight",cost:900},{id:"javelin",n:"Javelin",cost:900},{id:"lifesteal",n:"Morbid Mask",cost:900},
+ {id:"shadow_amulet",n:"Shadow Amulet",cost:900},{id:"tranquil_boots",n:"Tranquil Boots",cost:900},{id:"splintmail",n:"Splintmail",cost:950},
+ {id:"helm_of_iron_will",n:"Helm of Iron Will",cost:975},{id:"blade_of_alacrity",n:"Blade of Alacrity",cost:1000},{id:"blitz_knuckles",n:"Blitz Knuckles",cost:1000},
+ {id:"broadsword",n:"Broadsword",cost:1000},{id:"cheese",n:"Cheese",cost:1000},{id:"diadem",n:"Diadem",cost:1000},
+ {id:"ogre_axe",n:"Ogre Axe",cost:1000},{id:"pocket_roshan",n:"Pocket Roshan",cost:1000},{id:"refresher_shard",n:"Refresher Shard",cost:1000},
+ {id:"staff_of_wizardry",n:"Staff of Wizardry",cost:1000},{id:"vitality_booster",n:"Vitality Booster",cost:1000},{id:"orb_of_corrosion",n:"Orb of Corrosion",cost:1050},
+ {id:"falcon_blade",n:"Falcon Blade",cost:1125},{id:"cornucopia",n:"Cornucopia",cost:1200},{id:"point_booster",n:"Point Booster",cost:1200},
+ {id:"talisman_of_evasion",n:"Talisman of Evasion",cost:1300},{id:"claymore",n:"Claymore",cost:1350},{id:"pavise",n:"Pavise",cost:1350},
+ {id:"aghanims_shard",n:"Aghanim's Shard",cost:1400},{id:"pers",n:"Perseverance",cost:1400},{id:"platemail",n:"Platemail",cost:1400},
+ {id:"power_treads",n:"Power Treads",cost:1400,alts:["power_treads.png","treads.png"]},{id:"phase_boots",n:"Phase Boots",cost:1450},{id:"arcane_boots",n:"Arcane Boots",cost:1500},
+ {id:"ghost",n:"Ghost Scepter",cost:1500},{id:"mithril_hammer",n:"Mithril Hammer",cost:1600},{id:"drum",n:"Drum of Endurance",cost:1625,alts:["drum.png","ancient_janggo.png"]},
+ {id:"oblivion_staff",n:"Oblivion Staff",cost:1625},{id:"ring_of_tarrasque",n:"Ring of Tarrasque",cost:1700},{id:"tiara_of_selemene",n:"Tiara of Selemene",cost:1700},
+ {id:"vanguard",n:"Vanguard",cost:1700},{id:"veil_of_discord",n:"Veil of Discord",cost:1700},{id:"essence_distiller",n:"Essence Distiller",cost:1775},
+ {id:"mekansm",n:"Mekansm",cost:1775},{id:"dragon_lance",n:"Dragon Lance",cost:1900},{id:"mask_of_madness",n:"Mask of Madness",cost:1900},
+ {id:"hyperstone",n:"Hyperstone",cost:2000},{id:"crystalys",n:"Crystalys",cost:2000,alts:["crystalys.png","lesser_crit.png"]},{id:"necronomicon",n:"Necronomicon",cost:2050},
+ {id:"kaya",n:"Kaya",cost:2100},{id:"sange",n:"Sange",cost:2100},{id:"yasha",n:"Yasha",cost:2100},
+ {id:"glimmer_cape",n:"Glimmer Cape",cost:2150},{id:"demon_edge",n:"Demon Edge",cost:2200},{id:"force_staff",n:"Force Staff",cost:2200},
+ {id:"hand_of_midas",n:"Hand of Midas",cost:2200},{id:"vladmir",n:"Vladmir's Offering",cost:2200},{id:"blink",n:"Blink Dagger",cost:2250},
+ {id:"holy_locket",n:"Holy Locket",cost:2250},{id:"rod_of_atos",n:"Rod of Atos",cost:2250},{id:"aether_lens",n:"Aether Lens",cost:2275},
+ {id:"blade_mail",n:"Blade Mail",cost:2400},{id:"armlet",n:"Armlet of Mordiggian",cost:2500},{id:"diffusal_blade",n:"Diffusal Blade",cost:2500},
+ {id:"travel_boots",n:"Boots of Travel",cost:2500},{id:"helm_of_the_dominator",n:"Helm of the Dominator",cost:2550},{id:"specialists_array",n:"Specialist's Array",cost:2550},
+ {id:"solar_crest",n:"Solar Crest",cost:2575},{id:"consecrated_wraps",n:"Consecrated Wraps",cost:2600},{id:"cyclone",n:"Eul's Scepter",cost:2600},
+ {id:"phylactery",n:"Phylactery",cost:2600},{id:"echo_sabre",n:"Echo Sabre",cost:2700},{id:"spirit_vessel",n:"Spirit Vessel",cost:2725},
+ {id:"witch_blade",n:"Witch Blade",cost:2775},{id:"eagle",n:"Eaglesong",cost:2800},{id:"mystic_staff",n:"Mystic Staff",cost:2800},
+ {id:"reaver",n:"Reaver",cost:2800},{id:"ultimate_orb",n:"Ultimate Orb",cost:2800},{id:"meteor_hammer",n:"Meteor Hammer",cost:2850},
+ {id:"basher",n:"Skull Basher",cost:2875},{id:"maelstrom",n:"Maelstrom",cost:2950},{id:"aeon_disk",n:"Aeon Disk",cost:3000},
+ {id:"dagon",n:"Dagon",cost:3000},{id:"soul_booster",n:"Soul Booster",cost:3000},{id:"mage_slayer",n:"Mage Slayer",cost:3100},
+ {id:"invis_sword",n:"Shadow Blade",cost:3250},{id:"orchid",n:"Orchid Malevolence",cost:3275},{id:"necronomicon_2",n:"Necronomicon 2",cost:3300},
+ {id:"revenants_brooch",n:"Revenant's Brooch",cost:3300},{id:"heavens_halberd",n:"Heaven's Halberd",cost:3400},{id:"relic",n:"Sacred Relic",cost:3400},
+ {id:"desolator",n:"Desolator",cost:3500},{id:"crimson_guard",n:"Crimson Guard",cost:3725},{id:"pipe",n:"Pipe of Insight",cost:3725},
+ {id:"wraith_pact",n:"Wraith Pact",cost:3800},{id:"lotus_orb",n:"Lotus Orb",cost:3850},{id:"bfury",n:"Battle Fury",cost:3900},
+ {id:"eternal_shroud",n:"Eternal Shroud",cost:3900},{id:"moon_shard",n:"Moon Shard",cost:4000},{id:"black_king_bar",n:"Black King Bar",cost:4050},
+ {id:"dagon_2",n:"Dagon 2",cost:4100},{id:"kaya_and_sange",n:"Kaya and Sange",cost:4200},{id:"sange_and_yasha",n:"Sange and Yasha",cost:4200},
+ {id:"ultimate_scepter",n:"Aghanim's Scepter",cost:4200,alts:["ultimate_scepter.png","aghanims_scepter.png"]},{id:"yasha_and_kaya",n:"Yasha and Kaya",cost:4200},{id:"boots_of_bearing",n:"Boots of Bearing",cost:4225},
+ {id:"nullifier",n:"Nullifier",cost:4350},{id:"guardian_greaves",n:"Guardian Greaves",cost:4450},{id:"hurricane_pike",n:"Hurricane Pike",cost:4450},
+ {id:"shivas",n:"Shiva's Guard",cost:4500},{id:"travel_boots_2",n:"Boots of Travel 2",cost:4500},{id:"necronomicon_3",n:"Necronomicon 3",cost:4550},
+ {id:"gungir",n:"Gleipnir",cost:4650},{id:"manta",n:"Manta Style",cost:4650},{id:"bloodstone",n:"Bloodstone",cost:4700},
+ {id:"harpoon",n:"Harpoon",cost:4700},{id:"radiance",n:"Radiance",cost:4700},{id:"crellas_crozier",n:"Crelia's Crozier",cost:4800},
+ {id:"sphere",n:"Linken's Sphere",cost:4800,alts:["sphere.png","linken.png"]},{id:"octarine_core",n:"Octarine Core",cost:4900},{id:"monkey_king_bar",n:"Monkey King Bar",cost:5000},
+ {id:"refresher",n:"Refresher Orb",cost:5000},{id:"satanic",n:"Satanic",cost:5050},{id:"daedalus",n:"Daedalus",cost:5100,alts:["daedalus.png","greater_crit.png"]},
+ {id:"assault",n:"Assault Cuirass",cost:5125},{id:"dagon_3",n:"Dagon 3",cost:5200},{id:"ethereal_blade",n:"Ethereal Blade",cost:5200},
+ {id:"heart",n:"Heart of Tarrasque",cost:5200},{id:"scythe_of_vyse",n:"Scythe of Vyse",cost:5200,alts:["scythe_of_vyse.png","sheepstick.png"]},{id:"butterfly",n:"Butterfly",cost:5450},
+ {id:"mjollnir",n:"Mjollnir",cost:5500},{id:"angels_demise",n:"Angel's Demise",cost:5600},{id:"casters_rapier",n:"Caster's Rapier",cost:5600},
+ {id:"rapier",n:"Divine Rapier",cost:5600},{id:"helm_of_the_overlord",n:"Helm of the Overlord",cost:5650},{id:"silver_edge",n:"Silver Edge",cost:5700},
+ {id:"ultimate_scepter_2",n:"Aghanim's Blessing",cost:5800},{id:"hydras_breath",n:"Hydra's Breath",cost:5900},{id:"skadi",n:"Eye of Skadi",cost:5900},
+ {id:"devastator",n:"Devastator",cost:5975},{id:"disperser",n:"Disperser",cost:6100},{id:"abyssal_blade",n:"Abyssal Blade",cost:6250},
+ {id:"dagon_4",n:"Dagon 4",cost:6300},{id:"trident",n:"Trident",cost:6301},{id:"bloodthorn",n:"Bloodthorn",cost:6400},
+ {id:"arcane_blink",n:"Arcane Blink",cost:6800},{id:"overwhelming_blink",n:"Overwhelming Blink",cost:6800},{id:"swift_blink",n:"Swift Blink",cost:6800},
+ {id:"wind_waker",n:"Wind Waker",cost:6800},{id:"dagon_5",n:"Dagon 5",cost:7400} ];
+const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
+const itemById = id => ITEMS.find(i => i.id === id);
+const sellPrice = it => it.cost;
+const chestPool = ch => ITEMS.filter(i => i.cost > ch.min && i.cost <= ch.max).sort((a,b)=>a.cost-b.cost);
+const SHARD = `<img class="shard" src="${SHARD_URL}" alt="">`;
+const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
+
+const ACHIEVEMENTS = [
+  { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus",
+    img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png",
+    check: S => (S.inv["daedalus"]||0) > 0 },
+  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод",
+    img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_2.png",
+    check: S => S.promos.includes(CONFIG.devPromo) },
+  { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков",
+    img:SHARD_URL,
+    check: S => (S.stats?.coinsSpent||0) >= 50000 }
+];
+
+let musicOn = localStorage.getItem("dotaDrop_music") !== "0";
+const music = new Audio(); music.loop = true; music.volume = 0.25;
+if (MUSIC_URL) music.src = MUSIC_URL;
+const tickAudio = SOUND_CASE ? new Audio(SOUND_CASE) : null;
+if (tickAudio) tickAudio.volume = 1.0;
+const sellAudio = SOUND_SELL ? new Audio(SOUND_SELL) : null;
+if (sellAudio) sellAudio.volume = 0.8;
+const multiAudios = {
+  2: SOUND_MULTI_X2 ? new Audio(SOUND_MULTI_X2) : null,
+  3: SOUND_MULTI_X3 ? new Audio(SOUND_MULTI_X3) : null,
+  4: SOUND_MULTI_X4 ? new Audio(SOUND_MULTI_X4) : null
+};
+Object.values(multiAudios).forEach(a => { if(a) a.volume = 1.0; });
+const achieveAudio = SOUND_ACHIEVEMENT ? new Audio(SOUND_ACHIEVEMENT) : null;
+if (achieveAudio) achieveAudio.volume = 0.9;
+const SPK_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>';
+const SPK_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function musicTry(){ if(musicOn && MUSIC_URL) music.play().catch(()=>{}); }
+function drawMusicBtn(){ const b=$("#btnMusic"); if(!MUSIC_URL){ b.style.display="none"; return; } b.innerHTML = musicOn ? SPK_ON : SPK_OFF; }
+$("#btnMusic").onclick = () => { musicOn = !musicOn; localStorage.setItem("dotaDrop_music", musicOn?"1":"0");
+  if(musicOn) musicTry(); else music.pause(); drawMusicBtn(); };
+function playTick(){ if(tickAudio){ tickAudio.currentTime=0; tickAudio.play().catch(()=>{}); } }
+function playSell(){ if(sellAudio){ sellAudio.currentTime=0; sellAudio.play().catch(()=>{}); } }
+function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play().catch(()=>{}); } }
+function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
+
+let devMode = false;
+const LKEY = "dotaDrop_save";
+function defaultState(){ return {
+  coins:CONFIG.startCoins, inv:{}, promos:[],
+  daily:{last:"",streak:0}, drops:[], ts:0,
+  name:"", avatar:"",
+  stats:{casesOpened:0, coinsSpent:0},
+  achievements:[],
+  freeRecruitDate:""
+}; }
+let S = defaultState();
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(LKEY);
+    if(raw) S = Object.assign(defaultState(), JSON.parse(raw));
+    if(!S.stats) S.stats = {casesOpened:0, coinsSpent:0};
+    if(!S.achievements) S.achievements = [];
+    if(!S.name) S.name = "";
+    if(!S.avatar) S.avatar = "";
+    if(!S.freeRecruitDate) S.freeRecruitDate = "";
+  }catch(e){}
+}
+function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringify(S)); }catch(e){} }
+
+const today = () => new Date().toISOString().slice(0,10);
+const yesterday = () => new Date(Date.now()-864e5).toISOString().slice(0,10);
+function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
+function balance(){ $("#balance").textContent = S.coins; }
+function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
+function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
+function imgTag(it, cls=""){ return `<img class="${cls}" src="${CDN}${it.id}.png" alt="" onerror="imgFix(this)" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`; }
+window.imgFix = el => { const a=JSON.parse(el.dataset.alts||"[]"); let i=+el.dataset.idx+1;
+  if(i<a.length){ el.dataset.idx=i; el.src=CDN+a[i]; } else el.style.visibility="hidden"; };
+function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i));
+  let r = Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
+if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
+
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a => {
+    if (!S.achievements.includes(a.id) && a.check(S)){
+      S.achievements.push(a.id);
+      save();
+      showAchievement(a);
+      renderProfile();
+    }
+  });
+}
+function showAchievement(a){
+  const n = $("#achieveNotif");
+  n.querySelector(".an-img").src = a.img;
+  n.querySelector(".an-title").textContent = a.title;
+  n.querySelector(".an-desc").textContent = a.desc;
+  n.classList.remove("show");
+  void n.offsetWidth;
+  n.classList.add("show");
+  playAchievement();
+  setTimeout(() => n.classList.remove("show"), 4500);
+}
+
+document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); $("#tab-"+b.dataset.tab).classList.add("active"); });
+const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
+
+const RISK_COLORS = ["#2ecc71","#f1c40f","#e67e22","#e74c3c"], RISK_NAMES=["L","M","H","E"];
+function riskHtml(ch){
+  const segs = RISK_NAMES.map((_,i)=>`<i style="background:${i<=ch.risk?RISK_COLORS[i]:"#2c4634"}">${i===ch.risk?'<span class="dot" style="left:50%"></span>':""}</i>`).join("");
+  return `<div class="risk">${segs}</div><div class="risk-labels">${RISK_NAMES.map(x=>`<span>${x}</span>`).join("")}</div>`; }
+function chestArt(ch, cls){
+  const inner = CHEST_IMAGES[ch.id] ? `<img src="${CHEST_IMAGES[ch.id]}">`
+    : `<svg viewBox="0 0 24 24" width="56%" fill="none" stroke="${ch.color}" stroke-width="1.2" opacity=".85"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>`;
+  return `<div class="${cls}" style="background:radial-gradient(circle at 35% 30%, ${ch.color}33, #102016 72%);border:5px solid ${ch.color}33">${inner}</div>`; }
+function isRecruitFree(){ return S.freeRecruitDate !== today(); }
+
+// === ИЗМЕНЕННАЯ ФУНКЦИЯ РЕНДЕРА КЕЙСОВ ===
+function renderChests(){
+  const hasCoins = S.coins > 0; // Проверяем, есть ли монеты
+  
+  $("#chestGrid").innerHTML = CHESTS.map(ch => {
+    const pool = chestPool(ch);
+    const free = ch.id === "recruit" && isRecruitFree();
+    
+    let priceHtml;
+    if (free) {
+        priceHtml = `<div class="price-row free">БЕСПЛАТНО</div>`;
+    } else if (!hasCoins) {
+        // Если монет нет, показываем цену в звёздах
+        priceHtml = `<div class="price-row stars">${STAR_PRICES[ch.id]} ⭐</div>`;
+    } else {
+        // Иначе обычная цена в монетах
+        priceHtml = `<div class="price-row">${ch.price} ${SHARD}</div>`;
+    }
+    
+    const badge = free ? `<div class="free-badge">БЕСПЛАТНО</div>` : "";
+    return `<div class="chest-card" onclick="openCaseView('${ch.id}')">
+      ${badge}
+      ${chestArt(ch,"case-art")}
+      <span class="range">+${pool[0].cost} – ${pool[pool.length-1].cost}</span>
+      ${priceHtml}
+      <div class="cname">${ch.name}</div>
+      ${riskHtml(ch)}</div>`; }).join(""); 
+}
+
+let spinning = false; const CELL = 104; let curChest = null; let lastCell = -1;
+
+// === ИЗМЕНЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ КЕЙСА ===
+window.openCaseView = function(id){
+  const ch = CHESTS.find(c=>c.id===id); curChest = ch;
+  
+  // Если монет 0 и это не бесплатный кейс, предлагаем купить за звёзды
+  if (S.coins === 0 && ch.id !== 'recruit') {
+      const tg = window.Telegram.WebApp;
+      tg.showPopup({
+          title: 'Недостаточно монет',
+          message: `Для открытия кейса "${ch.name}" нужно ${STAR_PRICES[ch.id]} ⭐. Пополнить баланс?`,
+          buttons: [{type: 'default', text: 'Пополнить'}, {type: 'cancel'}]
+      }, (btnId) => {
+          if (btnId === 'default') {
+              requestInvoiceAndPay(STAR_PRICES[ch.id]);
+          }
+      });
+      return; // Прерываем открытие кейса
+  }
+
+  $("#cvTitle").textContent = ch.name;
+  $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
+  const free = ch.id === "recruit" && isRecruitFree();
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${SHARD}`;
+  $("#cvRisk").innerHTML = riskHtml(ch);
+  const pool = chestPool(ch);
+  const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
+  $("#cvList").innerHTML = pool.slice().reverse().map(it=>{
+    const p = w[pool.indexOf(it)]/wsum*100; const ps = p>=1 ? p.toFixed(1) : p.toFixed(2);
+    return `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${ps}% · ${it.cost}</span></div>`; }).join("");
+  $("#cvOpen").style.display = "";
+  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+  $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
+  $("#caseView").hidden = false;
+};
+
+$("#cvOpen").onclick = () => startSpin();
+
+function tickLoop(state){ if(!state.running) return;
+  const st = state.stripEl; if(!st) return;
+  const tr = getComputedStyle(st).transform; let tx=0;
+  if (tr && tr!=="none"){ const m=tr.match(/matrix\(([^)]+)\)/); if(m) tx=parseFloat(m[1].split(",")[4])||0; }
+  const wrapW = state.wrapEl.clientWidth;
+  const i = Math.round((wrapW/2 - tx - CELL/2)/CELL);
+  if (i !== state.lastCell){ state.lastCell = i; playTick(); }
+  requestAnimationFrame(()=>tickLoop(state));
+}
+
+function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
+  return new Promise(resolve => {
+    const N = 64; const WIN = 56;
+    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : weightedPick(pool, ch.decay));
+    stripEl.style.transition="none"; stripEl.style.transform="translateX(0)";
+    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost}</b></div>`).join("");
+    const state = { running:true, stripEl, wrapEl, lastCell:-1 };
+    setTimeout(() => {
+      requestAnimationFrame(tickLoop.bind(null, state));
+      const off = WIN*CELL + CELL/2 - wrapEl.clientWidth/2 + (Math.random()*40-20);
+      stripEl.style.transition = `transform ${duration}s cubic-bezier(.12,.8,.18,1)`;
+      stripEl.style.transform = `translateX(${-off}px)`;
+      stripEl.ontransitionend = () => { state.running = false; resolve(winner); };
+    }, delay);
+  });
+}
+
+function rollMulticast(){
+  const r = Math.random()*100;
+  const m = CONFIG.multicast;
+  let acc = 0;
+  acc += m.x1; if (r < acc) return 1;
+  acc += m.x2; if (r < acc) return 2;
+  acc += m.x3; if (r < acc) return 3;
+  return 4;
+}
+
+async function startSpin(){
+  const ch = curChest; if(!ch || spinning) return;
+  const freeOpen = ch.id === "recruit" && isRecruitFree();
+  if (!freeOpen && S.coins < ch.price) return toast("Недостаточно осколков");
+  if (freeOpen){
+    S.freeRecruitDate = today();
+  } else {
+    S.coins -= ch.price;
+    S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
+  }
+  S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
+  save(); balance();
+  const pool = chestPool(ch);
+  const multi = rollMulticast();
+  $("#cvOpen").style.display = "none";
+
+  const winners = Array.from({length:multi}, ()=>weightedPick(pool, ch.decay));
+
+  let html = "";
+  if (multi > 1) html += `<div class="multicast-badge">MULTICAST x${multi}</div>`;
+  html += `<div class="multi-wrap">`;
+  for (let i=0; i<multi; i++){
+    html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`;
+  }
+  html += `</div>`;
+  $("#cvArtSlot").innerHTML = html;
+  $("#caseView").scrollTop = 0;
+
+  if (multi > 1) playMulti(multi);
+
+  spinning = true;
+
+  const promises = winners.map((winner, i) => {
+    const wrapEl = document.querySelectorAll(".multi-wrap .strip-wrap")[i];
+    const stripEl = $(`#strip_${i}`);
+    return spinOneStrip({
+      wrapEl, stripEl, winner, pool, ch,
+      duration: 6,
+      delay: i * 200
+    });
+  });
+
+  const results = await Promise.all(promises);
+  spinning = false;
+
+  const totalCost = results.reduce((s,it)=>s+it.cost,0);
+  results.forEach(it => {
+    addInv(it.id);
+    S.drops.push({n:it.n,c:it.cost,id:it.id});
+  });
+  S.drops = S.drops.slice(-2);
+  save();
+  renderInv();
+  renderChests(); 
+  checkAchievements(); 
+
+  showMultiResult(results, totalCost, multi);
+}
+
+function showMultiResult(items, totalCost, multi){
+  const isMulti = multi > 1;
+  const listHtml = items.map((it,i)=>`
+    <div class="result-item">
+      ${imgTag(it)}
+      <span class="rn">${i+1}. ${it.n}</span>
+      <span class="rc">${it.cost}</span>
+      <button class="btn outline rsell" onclick="resultSellOne('${it.id}',${i})">+${sellPrice(it)}</button>
+    </div>`).join("");
+  const btns = isMulti
+    ? `<div class="rbtns">
+         <button class="btn outline" onclick="resultSellAll()">ПРОДАТЬ ВСЁ (+${totalCost})</button>
+         <button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button>
+         <button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button>
+       </div>`
+    : `<div class="rbtns">
+         <button class="btn outline" onclick="resultSellOne('${items[0].id}')">ПРОДАТЬ +${sellPrice(items[0])}</button>
+         <button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button>
+         <button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button>
+       </div>`;
+  $("#cvArtSlot").innerHTML = `
+    <div class="case-result">
+      ${isMulti ? `<div class="multicast-badge">MULTICAST x${multi}</div>` : ''}
+      <div class="result-list">${listHtml}</div>
+      <div class="hint">Суммарно: ${totalCost} осколков</div>
+      ${btns}
+    </div>`;
+}
+
+window.resultSellOne = (id) => {
+  if(takeInv(id)){
+    const p = sellPrice(itemById(id));
+    S.coins += p; save(); balance(); renderInv();
+    playSell();
+    toast(`Продано: ${itemById(id).n} +${p}`);
+    backToIdle();
+  }
+};
+window.resultSellAll = () => {
+  if (!window._lastDropIds || !window._lastDropIds.length) return backToIdle();
+  let total = 0;
+  window._lastDropIds.forEach(id => {
+    if (takeInv(id)) total += sellPrice(itemById(id));
+  });
+  if (total){
+    S.coins += total; save(); balance(); renderInv();
+    playSell();
+    toast(`Продано всё: +${total}`);
+  }
+  backToIdle();
+};
+const _origShowMultiResult = showMultiResult;
+showMultiResult = function(items, totalCost, multi){
+  window._lastDropIds = items.map(it=>it.id);
+  _origShowMultiResult(items, totalCost, multi);
+};
+
+window.resultKeep = () => backToIdle();
+window.resultAgain = () => startSpin();
+function backToIdle(){
+  $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
+  const free = curChest.id === "recruit" && isRecruitFree();
+  $("#cvOpen").style.display = "";
+  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+  $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${curChest.price} ${SHARD}`;
+}
+$("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
+
+let upOwn=null, upTarget=null;
+(function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180;
+  h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; }
+  $("#ticks").innerHTML=h; })();
+const upChance = () => (upOwn&&upTarget) ? Math.max(CONFIG.upgradeMin, Math.min(CONFIG.upgradeMax, Math.round(CONFIG.upgradeCoeff*itemById(upOwn).cost/itemById(upTarget).cost))) : null;
+function drawSector(pct){ const el=$("#winSector"); if(!pct){ el.setAttribute("d",""); return; }
+  const S_=pct*3.6*Math.PI/180, r=102;
+  el.setAttribute("d",`M150 ${150-r} A${r} ${r} 0 ${pct*3.6>180?1:0} 1 ${150+r*Math.sin(S_)} ${150-r*Math.cos(S_)}`); }
+function slotDraw(){
+  const so=$("#slotOwn"), st=$("#slotTarget");
+  so.classList.toggle("filled",!!upOwn); st.classList.toggle("filled",!!upTarget);
+  so.innerHTML = (upOwn? `${imgTag(itemById(upOwn),"fi")}<span class="fn">${itemById(upOwn).n}</span><span class="fp">${itemById(upOwn).cost}</span>`:"")
+    + so.querySelector(".sil").outerHTML + (upOwn?"":'<span class="st">Выбери предмет для апгрейда</span>');
+  st.innerHTML = (upTarget? `${imgTag(itemById(upTarget),"fi")}<span class="fn">${itemById(upTarget).n}</span><span class="fp">${itemById(upTarget).cost}</span>`:"")
+    + st.querySelector(".sil").outerHTML + (upTarget?"":'<span class="st">Выбери предмет, который хочешь получить</span>');
+  const ch = upChance();
+  $("#chanceLine").textContent = ch==null ? "Шанс успеха: —" : "Шанс успеха: "+ch+"%";
+  drawSector(ch||0);
+  $("#btnSpin").disabled = !(upOwn&&upTarget&&S.inv[upOwn]);
+  $("#upHint").textContent = (upOwn&&upTarget) ? (CONFIG.burnOnLoss?"При промахе предмет сгорает":"При промахе предмет возвращается") : "Цель должна стоить дороже твоего предмета"; }
+$("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById), it=>{ upOwn=it.id;
+  if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
+$("#slotTarget").onclick = () => { if(!upOwn) return toast("Сначала выбери свой предмет");
+  openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
+
+let upgradeLastTick = -1;
+function upgradeTickLoop(endTime){
+  if (Date.now() >= endTime) return;
+  const g = $("#needleG");
+  const tr = getComputedStyle(g).transform;
+  if (tr && tr !== "none"){
+    const m = tr.match(/matrix\(([^)]+)\)/);
+    if (m){
+      const a = parseFloat(m[1]); const b = parseFloat(m[2]);
+      let angle = Math.atan2(b, a) * 180 / Math.PI;
+      if (angle < 0) angle += 360;
+      const tickEvery = 8;
+      const tickIdx = Math.floor(angle / tickEvery);
+      if (tickIdx !== upgradeLastTick){
+        upgradeLastTick = tickIdx;
+        playTick();
+      }
+    }
+  }
+  requestAnimationFrame(() => upgradeTickLoop(endTime));
+}
+
+$("#btnSpin").onclick = () => {
+  if(!takeInv(upOwn)) return toast("Предмета нет в инвентаре");
+  renderInv();
+  const ch=upChance(), win=Math.random()*100<ch, Sdeg=ch*3.6;
+  let u = win ? Sdeg*0.2+Math.random()*Sdeg*0.6 : Sdeg+6+Math.random()*Math.max(1,354-Sdeg-6);
+  const g=$("#needleG");
+  g.style.transition="none"; g.style.transform="rotate(0deg)";
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    g.style.transition="transform 4.6s cubic-bezier(.15,.85,.25,1)";
+    g.style.transform=`rotate(${360*5+u}deg)`;
+    upgradeLastTick = -1;
+    const endTime = Date.now() + 4600;
+    requestAnimationFrame(() => upgradeTickLoop(endTime));
+    setTimeout(()=>{
+      if(win){
+        addInv(upTarget);
+        toast(`Успех! Получен: ${itemById(upTarget).n}`);
+        checkAchievements();
+      } else {
+        if(!CONFIG.burnOnLoss) addInv(upOwn);
+        toast(`Промах. ${CONFIG.burnOnLoss?itemById(upOwn).n+" сгорел":"Предмет возвращён"}`);
+      }
+      upOwn=null; slotDraw(); renderInv();
+    },4700);
+  }));
+};
+
+let pickCb=null;
+function openPicker(title,list,cb){ pickCb=cb; $("#pickerTitle").textContent=title; $("#pickerSearch").value="";
+  window._pl=list; drawPicker(list); $("#picker").hidden=false; }
+function drawPicker(list){ $("#pickerList").innerHTML = list.slice().sort((a,b)=>a.cost-b.cost).map(it=>{
+  const c=S.inv[it.id]?` x${S.inv[it.id]}`:"";
+  return `<div class="pick-row" data-id="${it.id}">${imgTag(it)}<span class="pn">${it.n}${c}</span><span class="pc">${it.cost}</span></div>`; }).join("") || '<div class="hint">Пусто</div>'; }
+$("#pickerList").onclick = e => { const r=e.target.closest(".pick-row"); if(!r) return; $("#picker").hidden=true; pickCb&&pickCb(itemById(r.dataset.id)); };
+$("#pickerClose").onclick = () => $("#picker").hidden=true;
+$("#pickerSearch").oninput = e => { const q=e.target.value.toLowerCase(); drawPicker(window._pl.filter(i=>i.n.toLowerCase().includes(q)||i.id.includes(q))); };
+
+function renderTasks(){
+  const can = S.daily.last !== today();
+  const reward = Math.min(CONFIG.dailyBase + S.daily.streak*CONFIG.dailyStreakStep, CONFIG.dailyMax);
+  $("#taskList").innerHTML = `
+   <div class="card"><b>Ежедневный заход</b>
+     <div class="trow"><span>Серия: ${S.daily.streak} дн.</span><span>Награда: ${reward} ${SHARD_SM}</span></div>
+     <div class="task-btns">${can?`<button class="btn pur" onclick="claimDaily()">ЗАБРАТЬ +${reward}</button>`:`<span class="done">Получено сегодня</span>`}</div></div>`; }
+window.claimDaily = () => { S.daily.streak = (S.daily.last===yesterday())? S.daily.streak+1 : 1;
+  const r=Math.min(CONFIG.dailyBase+(S.daily.streak-1)*CONFIG.dailyStreakStep, CONFIG.dailyMax);
+  S.daily.last=today(); S.coins+=r; save(); balance(); renderTasks(); toast(`+${r} осколков за дейлик`); };
+$("#btnPromo").onclick = () => {
+  const code=$("#promoInput").value.trim(); $("#promoInput").value="";
+  if(!code) return;
+  if(code===CONFIG.devPromo){
+    devMode=true;
+    if(!S.promos.includes(code)){ S.promos.push(code); save(); }
+    $("#devCircle").hidden=false; $("#devPanel").hidden=false;
+    toast("Dev-меню разблокировано");
+    checkAchievements(); 
+    return;
+  }
+  if(S.promos.includes(code)) return toast("Промо уже использован");
+  if(CONFIG.promos[code]){ S.promos.push(code); S.coins+=CONFIG.promos[code]; save(); balance(); return toast(`+${CONFIG.promos[code]} осколков по промокоду`); }
+  toast("Неверный промокод"); };
+
+function renderInv(){
+  const ids=Object.keys(S.inv);
+  $("#invCount").textContent = ids.length?`(${ids.length})`:"";
+  $("#topDrops").innerHTML = S.drops.length ? `<b style="font-size:13px">Последние дропы</b>` + S.drops.slice().reverse().map(d=>
+    `<div class="td">${imgTag(itemById(d.id))}<span class="tn">${d.n}</span><span class="tc">${d.c}</span></div>`).join("") : "";
+  $("#topDrops").style.display = S.drops.length?"":"none";
+  $("#invGrid").innerHTML = ids.map(itemById).sort((a,b)=>b.cost-a.cost).map(it=>`
+    <div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}
+      <div class="inv-name">${it.n}</div><div class="inv-cost">цена ${it.cost} ${SHARD_SM}</div>
+      <button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button>
+      <button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button></div>`).join("")
+    || '<div class="hint">Пусто — открой кейс</div>'; }
+window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); toast(`+${p}`); } };
+window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
+
+function renderProfile(){
+  $("#profileName").value = S.name || "";
+  const av = $("#profAvatar");
+  const ph = $("#profAvatarPh");
+  if (S.avatar){ av.src = S.avatar; av.style.display = ""; ph.style.display = "none"; }
+  else { av.style.display = "none"; ph.style.display = ""; }
+  $("#statCases").textContent = S.stats.casesOpened || 0;
+  $("#statSpent").textContent = S.stats.coinsSpent || 0;
+  $("#achGrid").innerHTML = ACHIEVEMENTS.map(a => {
+    const got = S.achievements.includes(a.id);
+    if (got){
+      return `<div class="ach-card unlocked">
+        <div class="ach-frame"><img src="${a.img}"></div>
+        <div class="ach-name">${a.title}</div>
+      </div>`;
+    } else {
+      return `<div class="ach-card locked">
+        <div class="ach-frame"><span class="ach-q">?</span></div>
+        <div class="ach-name">неизвестно</div>
+      </div>`;
+    }
+  }).join("");
+}
+$("#btnProfile").onclick = () => { renderProfile(); $("#profileOverlay").hidden = false; };
+$("#profileClose").onclick = () => { $("#profileOverlay").hidden = true; };
+$("#profileName").oninput = e => { S.name = e.target.value.trim(); save(); };
+$("#avatarInput").onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 180;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > max) { h = h*max/w; w = max; } }
+      else { if (h > max) { w = w*max/h; h = max; } }
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      S.avatar = cv.toDataURL("image/jpeg", 0.85);
+      save();
+      renderProfile();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+const dc=$("#devCircle"); let drag=null;
+dc.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,moved:0}; dc.setPointerCapture(e.pointerId); });
+dc.addEventListener("pointermove",e=>{ if(!drag)return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.moved+=Math.abs(dx)+Math.abs(dy);
+  const r=dc.getBoundingClientRect();
+  dc.style.left=Math.max(4,Math.min(innerWidth-56,r.left+dx))+"px"; dc.style.top=Math.max(4,Math.min(innerHeight-56,r.top+dy))+"px";
+  dc.style.right="auto"; dc.style.bottom="auto"; drag.x=e.clientX; drag.y=e.clientY; });
+dc.addEventListener("pointerup",()=>{ if(drag&&drag.moved<6) $("#devPanel").hidden=!$("#devPanel").hidden; drag=null; });
+$("#devClose").onclick = () => $("#devPanel").hidden=true;
+$("#devGiveCoins").onclick = () => { const v=parseInt($("#devCoins").value||"0"); if(!v)return; S.coins+=v; save(); balance(); toast(`Dev: +${v}`); };
+$("#devReset").onclick = () => { localStorage.removeItem(LKEY); location.reload(); };
+function drawDevItems(q=""){ $("#devItemList").innerHTML = ITEMS.filter(i=>i.n.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.cost-b.cost)
+  .map(it=>`<div class="pick-row" onclick="devGive('${it.id}')">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">+1</span></div>`).join(""); }
+window.devGive = id => { addInv(id); renderInv(); toast(`Dev: выдан ${itemById(id).n}`); checkAchievements(); };
+$("#devItemSearch").oninput = e => drawDevItems(e.target.value);
+
+// === НОВЫЕ ФУНКЦИИ ДЛЯ ОПЛАТЫ ЗВЁЗДАМИ ===
+async function requestInvoiceAndPay(starsAmount) {
+    const tg = window.Telegram.WebApp;
+    const userId = tg.initDataUnsafe?.user?.id;
+    
+    if (!userId) {
+        toast("Ошибка: не удалось получить ID пользователя");
+        return;
+    }
+
+    toast("Запрос ссылки на оплату...");
+    
+    try {
+        // Запрашиваем у Python-бота ссылку на инвойс
+        const response = await fetch(`${API_URL}/create_invoice?user_id=${userId}&stars=${starsAmount}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            toast("Ошибка: " + data.error);
+            return;
+        }
+        
+        if (!data.invoice_link) {
+            toast("Ошибка: бот не вернул ссылку");
+            return;
+        }
+
+        // Открываем окно оплаты Telegram
+        tg.openInvoice(data.invoice_link, async (status) => {
+            if (status === 'paid') {
+                toast("Оплата прошла успешно! Обновляем баланс...");
+                // Запрашиваем актуальный баланс с бэкенда
+                await fetchBalance();
+            } else if (status === 'cancelled') {
+                toast("Оплата отменена");
+            } else {
+                toast("Ошибка оплаты");
+            }
+        });
+    } catch (e) {
+        console.error(e);
+        // Fallback для тестов, если бэкенд недоступен (DEV режим)
+        if (devMode) {
+            toast("DEV: Бэкенд недоступен, начисляем локально (ТОЛЬКО ДЛЯ ТЕСТА)");
+            S.coins += 1000;
+            save();
+            balance();
+            renderChests();
+        } else {
+            toast("Ошибка связи с сервером. Запустите бота в Termux.");
+        }
+    }
+}
+
+async function fetchBalance() {
+    const tg = window.Telegram.WebApp;
+    const userId = tg.initDataUnsafe?.user?.id;
+    if (!userId) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/balance?user_id=${userId}`);
+        const data = await response.json();
+        if (data.balance !== undefined) {
+            S.coins = data.balance;
+            save();
+            balance();
+            renderChests(); // Перерисовать цены (они могут смениться со звёзд на монеты)
+            toast("Баланс обновлён!");
+        }
+    } catch (e) {
+        console.error("Не удалось обновить баланс", e);
+    }
+}
+
+// Привязываем кнопку "+" к функции оплаты
+$("#btnAddCoins").onclick = () => {
+    requestInvoiceAndPay(15); // По умолчанию предлагаем пополнение на 15 звёзд
+};
+
+function refreshAll(){ balance(); renderChests(); renderTasks(); renderInv(); slotDraw(); drawDevItems(); drawMusicBtn();
+  const wf=$("#wheelFrame");
+  if (WHEEL_FRAME_URL){ wf.src=WHEEL_FRAME_URL; wf.style.display=""; } else { wf.style.display="none"; }
+  $("#devCircle").hidden = !devMode; $("#devPanel").hidden = true; }
+function boot(){
+  loadLocal(); refreshAll();
+  if (S.promos.includes(CONFIG.devPromo) && !S.achievements.includes("fuck_society")){
+    S.achievements.push("fuck_society"); save();
+  }
+  ACHIEVEMENTS.forEach(a => {
+    if (!S.achievements.includes(a.id) && a.check(S)){
+      S.achievements.push(a.id);
+    }
+  });
+  save();
+}
+boot();
+
+(function preloader(){
+  const pr = $("#preloader");
+  const orbit = $("#orbit");
+  const chest = $("#loaderChest");
+  const btn = $("#loadBtn");
+  const N = 8;
+  const shards = [];
+  for (let i=0;i<N;i++){
+    const img = document.createElement("img");
+    img.className = "shard-orb";
+    img.src = SHARD_URL;
+    const angle = (360/N)*i;
+    img.style.transform = `rotate(${angle}deg) translateY(-82px) rotate(${-angle}deg)`;
+    orbit.appendChild(img);
+    shards.push(img);
+  }
+
+  const allImgs = [BG_IMAGE_URL, CHEST_IMAGES.recruit, CHEST_IMAGES.guardian, CHEST_IMAGES.knight, CHEST_IMAGES.immortal, WHEEL_FRAME_URL, CHEST_URL];
+  ITEMS.forEach(it => allImgs.push(CDN + it.id + ".png"));
+  ITEMS.forEach(it => { if(it.alts) it.alts.forEach(a => allImgs.push(CDN + a)); });
+  ACHIEVEMENTS.forEach(a => { if(a.img && a.img !== SHARD_URL) allImgs.push(a.img); });
+
+  const auds = [];
+  if (MUSIC_URL) auds.push(music);
+  if (SOUND_CASE) auds.push(tickAudio);
+  if (SOUND_SELL) auds.push(sellAudio);
+  Object.values(multiAudios).forEach(a => { if(a) auds.push(a); });
+  if (achieveAudio) auds.push(achieveAudio);
+
+  const total = allImgs.length + auds.length;
+  let loaded = 0;
+  let ready = false;
+
+  function bump(){
+    loaded++;
+    $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total}`;
+    if (loaded >= total && !ready){
+      ready = true;
+      btn.disabled = false;
+      btn.textContent = "ВОЙТИ";
+    }
+  }
+
+  allImgs.forEach(u => {
+    const im = new Image();
+    im.onload = bump;
+    im.onerror = bump;
+    im.src = u;
+  });
+  auds.forEach(a => {
+    let d=false;
+    const fin=()=>{ if(d)return; d=true; bump(); };
+    a.preload="auto";
+    a.oncanplaythrough=fin;
+    a.onerror=fin;
+    try{ a.load(); }catch(e){ fin(); }
+  });
+
+  setTimeout(() => {
+    if (!ready){ $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; }
+  }, 15000);
+
+  btn.onclick = () => {
+    if (btn.disabled) return;
+    music.play().then(() => {
+      musicOn = true;
+      localStorage.setItem("dotaDrop_music","1");
+      drawMusicBtn();
+    }).catch(()=>{});
+
+    orbit.classList.add("dying");
+    const rect = pr.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    shards.forEach((s, i) => {
+      const sr = s.getBoundingClientRect();
+      const sx = sr.left + sr.width/2;
+      const sy = sr.top + sr.height/2;
+      const dx = cx - sx;
+      const dy = cy - sy;
+      s.style.transform = `translate(${dx}px, ${dy}px) scale(0.2)`;
+      s.classList.add("fly");
+    });
+    chest.classList.add("glow");
+
+    setTimeout(() => {
+      pr.classList.add("done");
+      setTimeout(() => { pr.classList.add("gone"); pr.remove(); }, 500);
+    }, 1000);
+  };
+})();
+</script>
+</body>
+</html>
