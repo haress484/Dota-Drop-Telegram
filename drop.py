@@ -104,21 +104,46 @@ async def check_sub(user_id):
         return False
 
 # ================= КОМАНДЫ =================
+LAST_MSG = {}
+
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     uid = message.from_user.id
-    rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
-    old_mid = ((rows[0].get("stats") or {}) if rows else {}).get("last_msg_id")
+    old_mid = LAST_MSG.get(uid)
+    if old_mid is None:
+        try:
+            rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+            old_mid = ((rows[0].get("stats") or {}) if rows else {}).get("last_msg_id")
+        except Exception as e:
+            print("start: ошибка чтения stats:", e)
     if old_mid:
         try:
             await bot.delete_message(message.chat.id, old_mid)
-        except Exception:
-            pass
+        except Exception as e:
+            print("start: не удалось удалить старое:", e)
     try:
         await message.delete()
     except Exception:
         pass
-    await touch_player(uid, message.from_user.username, message.from_user.first_name)
+    try:
+        await touch_player(uid, message.from_user.username, message.from_user.first_name)
+    except Exception as e:
+        print("start: touch_player ошибка:", e)
+
+    if not await check_sub(uid):
+        sent = await message.answer(
+            "👋 Привет! Чтобы получить доступ к боту, подпишись на канал:\n\n"
+            "📢 @the_kubicki\n\nПосле подписки нажми кнопку ниже.",
+            reply_markup=SUB_KB)
+    else:
+        sent = await message.answer(
+            "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
+            reply_markup=play_kb(uid))
+    LAST_MSG[uid] = sent.message_id
+    try:
+        await merge_player_stats(uid, {"last_msg_id": sent.message_id})
+    except Exception as e:
+        print("start: ошибка сохранения stats:", e)
 
     if not await check_sub(uid):
         sent = await message.answer(
