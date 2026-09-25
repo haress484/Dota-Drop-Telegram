@@ -137,7 +137,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 #toasts{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px;animation:tin .25s}
 @keyframes tin{from{opacity:0;transform:translateY(8px)}}
-
 .profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto}
 .profile-head{display:flex;gap:16px;align-items:center;margin-bottom:18px}
 .profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
@@ -159,14 +158,12 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ach-q{font-size:36px;font-weight:900;color:var(--mut);opacity:.5}
 .ach-card .ach-name{font-size:11px;font-weight:700;color:var(--txt);min-height:28px;display:flex;align-items:center;justify-content:center;padding:0 2px}
 .ach-card.locked .ach-name{color:var(--mut);font-style:italic}
-
 .ach-notify{position:fixed;top:-120px;left:50%;transform:translateX(-50%);z-index:60;background:linear-gradient(180deg,#1d3324,#14251a);border:1px solid var(--grn);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(61,220,132,.3);transition:top .5s cubic-bezier(.2,.8,.2,1);min-width:260px;max-width:380px}
 .ach-notify.show{top:16px}
 .ach-notify .an-img{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0}
 .ach-notify .an-label{font-size:10px;color:var(--grn);letter-spacing:1px;text-transform:uppercase;font-weight:700}
 .ach-notify .an-title{font-size:16px;font-weight:800;margin:2px 0}
 .ach-notify .an-desc{font-size:12px;color:var(--mut)}
-
 .shop-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:400px;width:100%}
 .shop-row{display:flex;align-items:center;gap:12px;background:#0d1a12;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;cursor:pointer;transition:transform .1s}
 .shop-row:active{transform:scale(.98)}
@@ -176,12 +173,10 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .nocoins-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center}
 .nocoins-emoji{font-size:48px;margin-bottom:8px}
 .nocoins-title{font-size:18px;font-weight:900;margin-bottom:6px}
-
 .ban-box{background:var(--panel);border:2px solid var(--red);border-radius:16px;padding:30px 20px;max-width:380px;width:100%;text-align:center}
 .ban-emoji{font-size:64px;margin-bottom:12px}
 .ban-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:8px}
 .ban-reason{color:var(--mut);font-size:14px;margin-bottom:16px}
-
 .grants-box{background:var(--panel);border:2px solid var(--grn);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center}
 .grants-emoji{font-size:56px;margin-bottom:10px}
 .grants-title{font-size:20px;font-weight:900;color:var(--grn);margin-bottom:12px}
@@ -326,7 +321,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="banOverlay" hidden>
   <div class="ban-box">
-    <div class="ban-emoji"></div>
+    <div class="ban-emoji">🚫</div>
     <div class="ban-title">Вы заблокированы</div>
     <div class="ban-reason" id="banReason"></div>
     <div class="hint">Обратитесь к администратору</div>
@@ -335,7 +330,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="grantsOverlay" hidden>
   <div class="grants-box">
-    <div class="grants-emoji"></div>
+    <div class="grants-emoji">🎁</div>
     <div class="grants-title" id="grantsTitle">Тебе начислено!</div>
     <div id="grantsList"></div>
     <button class="btn pur big" id="grantsClose">ЗАБРАТЬ</button>
@@ -509,6 +504,11 @@ function buyGiftCase(){
           toast("🎁 Подарочный кейс добавлен в инвентарь!");
           addInv("gift_case");
           renderInv();
+          if(curChest && curChest.isGift && !$("#caseView").hidden){
+            $("#cvOpen").textContent = "ОТКРЫТЬ";
+            $("#cvOpen").className = "btn pur big";
+            $("#cvOpen").disabled = false;
+          }
         }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
@@ -571,6 +571,7 @@ function balance(){ $("#balance").textContent = S.coins; }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
 function imgTag(it, cls=""){ 
+  if(!it) return "";
   const isGift = GIFT_ITEMS.includes(it.id) || it.id === "gift_case";
   const src = isGift ? `${GIFT_CDN}${it.id}.png` : `${CDN}${it.id}.png`;
   return `<img class="${cls}" src="${src}" alt="" onerror="this.style.visibility='hidden'" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`; 
@@ -619,8 +620,13 @@ function renderChests(){
 }
 
 let spinning = false; const CELL = 104; let curChest = null; let lastCell = -1;
+
+// ИСПРАВЛЕНИЕ: gift_case маппится на chest id "gift" + защита от undefined
 window.openCaseView = function(id){
-  const ch = CHESTS.find(c=>c.id===id); curChest = ch;
+  if(id === "gift_case") id = "gift";
+  const ch = CHESTS.find(c=>c.id===id);
+  if(!ch){ toast("Кейс не найден"); return; }
+  curChest = ch;
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
   const free = ch.id === "recruit" && isRecruitFree();
@@ -629,6 +635,11 @@ window.openCaseView = function(id){
   
   if(ch.isGift) {
     $("#cvList").innerHTML = Object.entries(GIFT_NAMES).filter(([k])=>k!=="gift_case").map(([k,v]) => `<div class="pick-row">${imgTag({id:k})}<span class="pn">${v}</span></div>`).join("");
+    const hasCase = (S.inv["gift_case"]||0) > 0;
+    $("#cvOpen").style.display = "";
+    $("#cvOpen").disabled = false;
+    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ⭐";
+    $("#cvOpen").className = hasCase ? "btn pur big" : "btn grn big";
   } else {
     const pool = chestPool(ch);
     const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
@@ -636,10 +647,11 @@ window.openCaseView = function(id){
       const p = w[pool.indexOf(it)]/wsum*100; const ps = p>=1 ? p.toFixed(1) : p.toFixed(2);
       return `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${ps}% · ${it.cost}</span></div>`; 
     }).join("");
+    $("#cvOpen").style.display = "";
+    $("#cvOpen").disabled = false;
+    $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+    $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
   }
-  $("#cvOpen").style.display = "";
-  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
-  $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
   $("#caseView").hidden = false;
 };
 
@@ -659,9 +671,9 @@ function tickLoop(state){
 function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
   return new Promise(resolve => {
     const N = 64; const WIN = 56;
-    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : (ch.isGift ? weightedPick(Object.keys(GIFT_NAMES).filter(k=>k!=="gift_case").map(k=>({id:k,n:GIFT_NAMES[k],cost:0})), 0.9) : weightedPick(pool, ch.decay)));
+    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : weightedPick(pool, ch.decay));
     stripEl.style.transition="none"; stripEl.style.transform="translateX(0)";
-    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost || '⭐'}</b></div>`).join("");
+    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost}</b></div>`).join("");
     const state = { running:true, stripEl, wrapEl, lastCell:-1 };
     setTimeout(() => {
       requestAnimationFrame(tickLoop.bind(null, state));
@@ -686,25 +698,26 @@ async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
   
   if(ch.isGift) {
-    if(S.inv["gift_case"] && S.inv["gift_case"] > 0) {
+    if((S.inv["gift_case"]||0) > 0) {
       if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
+      renderInv();
       $("#cvOpen").disabled = true;
-      $("#cvOpen").textContent = "Отправка запроса...";
+      $("#cvOpen").textContent = "Открываю...";
       try {
         const r = await fetch(`${API_URL}/open_gift_case_inv?user_id=${tgUserId()}`);
         const j = await r.json();
-        if(j.error) { addInv("gift_case"); toast(j.error); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ"; return; }
+        if(j.error) { addInv("gift_case"); renderInv(); toast(j.error); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ"; return; }
+        addInv(j.drop);
+        renderInv();
         const winner = {id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: 0};
         runGiftAnimation(winner);
       } catch(e) {
-        addInv("gift_case"); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
+        addInv("gift_case"); renderInv(); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
       }
     } else {
       $("#cvOpen").disabled = true;
       $("#cvOpen").textContent = "Создаю оплату...";
       buyGiftCase();
-      $("#cvOpen").disabled = false;
-      $("#cvOpen").textContent = "ОТКРЫТЬ";
     }
     return;
   }
@@ -721,9 +734,7 @@ async function startSpin(){
   $("#cvOpen").style.display = "none";
 
   const winners = Array.from({length:multi}, ()=>weightedPick(pool, ch.decay));
-  let html = "";
-  if (multi > 1) html += `<div class="multicast-badge">MULTICAST x${multi}</div>`;
-  html += `<div class="multi-wrap">`;
+  let html = `<div class="multi-wrap">`;
   for (let i=0; i<multi; i++){ html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`; }
   html += `</div>`;
   $("#cvArtSlot").innerHTML = html;
@@ -742,12 +753,13 @@ async function startSpin(){
 
   const totalCost = results.reduce((s,it)=>s+it.cost,0);
   results.forEach(it => { addInv(it.id); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
-  S.drops = S.drops.slice(-2);
+  S.drops = S.drops.slice(-5);
   save(); renderInv(); renderChests(); checkAchievements();
   showMultiResult(results, totalCost, multi);
 }
 
 function runGiftAnimation(winner) {
+  $("#cvOpen").style.display = "none";
   $("#cvArtSlot").innerHTML = `
     <div class="case-result">
       <div class="multicast-badge">ПОДАРОК!</div>
@@ -772,7 +784,7 @@ function showMultiResult(items, totalCost, multi){
       ${imgTag(it)}
       <span class="rn">${i+1}. ${it.n}</span>
       <span class="rc">${it.cost}</span>
-      <button class="btn outline rsell" onclick="resultSellOne('${it.id}',${i})">+${sellPrice(it)}</button>
+      <button class="btn outline rsell" onclick="resultSellOne('${it.id}')">+${sellPrice(it)}</button>
     </div>`).join("");
   const btns = isMulti
     ? `<div class="rbtns"><button class="btn outline" onclick="resultSellAll()">ПРОДАТЬ ВСЁ (+${totalCost})</button><button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button><button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button></div>`
@@ -781,7 +793,7 @@ function showMultiResult(items, totalCost, multi){
 }
 
 window.resultSellOne = (id) => {
-  if(takeInv(id)){ const p = sellPrice(itemById(id)); S.coins += p; save(); balance(); renderInv(); playSell(); toast(`Продано: ${itemById(id).n} +${p}`); backToIdle(); }
+  if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins += p; save(); balance(); renderInv(); playSell(); toast(`Продано: ${itemById(id).n} +${p}`); backToIdle(); }
 };
 window.resultSellAll = () => {
   if (!window._lastDropIds || !window._lastDropIds.length) return backToIdle();
@@ -798,9 +810,15 @@ function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
   const free = curChest.id === "recruit" && isRecruitFree();
   $("#cvOpen").style.display = "";
-  $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
-  $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
   $("#cvOpen").disabled = false;
+  if(curChest.isGift){
+    const hasCase = (S.inv["gift_case"]||0) > 0;
+    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ⭐";
+    $("#cvOpen").className = hasCase ? "btn pur big" : "btn grn big";
+  } else {
+    $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+    $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
+  }
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${curChest.price} ${curChest.isGift ? '⭐' : SHARD}`;
 }
 $("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
@@ -820,7 +838,8 @@ function slotDraw(){
   $("#btnSpin").disabled = !(upOwn&&upTarget&&S.inv[upOwn]);
   $("#upHint").textContent = (upOwn&&upTarget) ? (CONFIG.burnOnLoss?"При промахе предмет сгорает":"При промахе предмет возвращается") : "Цель должна стоить дороже твоего предмета"; 
 }
-$("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById), it=>{ upOwn=it.id; if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
+// ИСПРАВЛЕНИЕ: filter(Boolean) убирает undefined (подарки не попадают в апгрейд)
+$("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById).filter(Boolean), it=>{ upOwn=it.id; if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
 $("#slotTarget").onclick = () => { if(!upOwn) return toast("Сначала выбери свой предмет"); openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
 
 let upgradeLastTick = -1;
@@ -890,7 +909,11 @@ $("#btnPromo").onclick = () => {
 function renderInv(){
   const ids=Object.keys(S.inv);
   $("#invCount").textContent = ids.length?`(${ids.length})`:"";
-  $("#topDrops").innerHTML = S.drops.length ? `<b style="font-size:13px">Последние дропы</b>` + S.drops.slice().reverse().map(d=>`<div class="td">${imgTag(itemById(d.id))}<span class="tn">${d.n}</span><span class="tc">${d.c}</span></div>`).join("") : "";
+  // ИСПРАВЛЕНИЕ: защита от undefined в последних дропах
+  $("#topDrops").innerHTML = S.drops.length ? `<b style="font-size:13px">Последние дропы</b>` + S.drops.slice().reverse().map(d=>{
+    const it = itemById(d.id); if(!it) return "";
+    return `<div class="td">${imgTag(it)}<span class="tn">${it.n}</span><span class="tc">${it.cost}</span></div>`;
+  }).join("") : "";
   $("#topDrops").style.display = S.drops.length?"":"none";
   $("#invGrid").innerHTML = ids.map(id => {
     const isGift = GIFT_ITEMS.includes(id);
@@ -898,7 +921,7 @@ function renderInv(){
     const it = isGift ? {id, n:GIFT_NAMES[id], cost:0} : (isCase ? {id, n:"Подарочный кейс", cost:0} : itemById(id));
     if(!it) return "";
     let btns = "";
-    if(isCase) { btns = `<button class="btn pur" onclick="openCaseView('gift_case'); document.getElementById('caseView').hidden=false;">ОТКРЫТЬ</button>`; } 
+    if(isCase) { btns = `<button class="btn pur" onclick="openCaseView('gift')">ОТКРЫТЬ</button>`; } 
     else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')">🎁 ПОЛУЧИТЬ</button>`; } 
     else { btns = `<button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button><button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button>`; }
     return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
@@ -983,12 +1006,10 @@ function showGrants(grants){
     }
     else if(g.type === "item"){
       hasNormalGrants = true;
-      // ИСПРАВЛЕНИЕ: Проверяем, является ли предмет подарком или кейсом
       const isGiftItem = GIFT_ITEMS.includes(g.item_id) || g.item_id === "gift_case";
       const it = isGiftItem ? { id: g.item_id, n: GIFT_NAMES[g.item_id] || "Подарочный кейс" } : itemById(g.item_id);
-      
       html += `<div class="grant-item"><div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`;
-      if(it) addInv(it.id); // Теперь это корректно добавит gift_case или gift_heart в инвентарь!
+      if(it) addInv(it.id);
     }
     else if(g.type === "clear_coins"){ 
       const oldCoins = S.coins; S.coins = 0; 
