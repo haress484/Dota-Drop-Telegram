@@ -415,7 +415,7 @@ document.querySelectorAll(".tab").forEach(t => {
   };
 });
 
-// НОВОЕ: кнопка обновления всех данных без перезагрузки страницы
+// Кнопка обновления всех данных без перезагрузки страницы
 window.refreshAllData = async () => {
   const btn = document.getElementById("refreshBtn");
   const oldHtml = btn.innerHTML;
@@ -770,7 +770,7 @@ window.quickGift = uid => {
   document.getElementById("giftUid").value = uid;
 };
 
-// Бан/разбан/сброс
+// Бан/разбан/сброс (С ИСПРАВЛЕНИЕМ: честная проверка ответа сервера)
 window.ban = async uid => {
   const reason = prompt("Причина бана (можно пусто):");
   if (reason === null) return;
@@ -780,10 +780,11 @@ window.ban = async uid => {
   else toast("❌ Ошибка: " + (j.error || "не удалось сохранить бан"));
   loadPlayers();
 };
-  
 window.unban = async uid => {
-  await api("/admin/unban", {user_id: uid});
-  toast("Разбанен"); loadPlayers();
+  const j = await api("/admin/unban", {user_id: uid});
+  if (j.ok) toast("✅ Разбанен");
+  else toast("❌ Ошибка: " + (j.error || "не удалось снять бан"));
+  loadPlayers();
 };
 
 window.resetPlayer = async uid => {
