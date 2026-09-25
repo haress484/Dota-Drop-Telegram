@@ -326,7 +326,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="banOverlay" hidden>
   <div class="ban-box">
-    <div class="ban-emoji">🚫</div>
+    <div class="ban-emoji"></div>
     <div class="ban-title">Вы заблокированы</div>
     <div class="ban-reason" id="banReason"></div>
     <div class="hint">Обратитесь к администратору</div>
@@ -392,7 +392,7 @@ const CHESTS = [
 
 const GIFT_ITEMS = ["gift_heart", "gift_teddy", "gift_box", "gift_rose", "gift_cake", "gift_bouquet"];
 const GIFT_NAMES = {
-  "gift_heart": "💝 Сердечко", "gift_teddy": "🧸 Мишка", "gift_box": "🎁 Подарок",
+  "gift_heart": "💝 Сердечко", "gift_teddy": " Мишка", "gift_box": "🎁 Подарок",
   "gift_rose": "🌹 Роза", "gift_cake": "🎂 Торт", "gift_bouquet": "💐 Букет", "gift_case": "🎁 Подарочный кейс"
 };
 
@@ -496,6 +496,27 @@ function buyInvoice(stars, coins){
       });
     }).catch(()=> toast("Нет связи с сервером"));
 }
+
+// Покупка подарочного кейса за звёзды
+function buyGiftCase(){
+  const uid = tgUserId();
+  if(!uid){ toast("Открой игру через Telegram!"); return; }
+  toast("Создаю счёт на подарочный кейс...");
+  fetch(`${API_URL}/create_invoice?user_id=${uid}&stars=25&gift_case=1`)
+    .then(r => r.json()).then(j => {
+      if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
+      window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
+        if(status === "paid"){ 
+          toast(" Подарочный кейс добавлен в инвентарь!");
+          addInv("gift_case");
+          renderInv();
+        }
+        else if(status === "cancelled"){ toast("Оплата отменена"); }
+        else if(status === "failed"){ toast("Ошибка оплаты"); }
+      });
+    }).catch(()=> toast("Нет связи с сервером"));
+}
+
 function openShop(){
   $("#shopList").innerHTML = PACKS.map(p => `<div class="shop-row" onclick="buyPack(${p.stars},${p.coins})"><img class="si" src="${SHARD_URL}" alt=""><span class="sn">+${p.coins} осколков</span><span class="sp">${p.stars} ⭐</span></div>`).join("");
   $("#shopOverlay").hidden = false;
@@ -551,7 +572,8 @@ function balance(){ $("#balance").textContent = S.coins; }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
 function imgTag(it, cls=""){ 
-  const src = (GIFT_ITEMS.includes(it.id) || it.id === "gift_case") ? `${GIFT_CDN}${it.id}.png` : `${CDN}${it.id}.png`;
+  const isGift = GIFT_ITEMS.includes(it.id) || it.id === "gift_case";
+  const src = isGift ? `${GIFT_CDN}${it.id}.png` : `${CDN}${it.id}.png`;
   return `<img class="${cls}" src="${src}" alt="" onerror="this.style.visibility='hidden'" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`; 
 }
 window.imgFix = el => { const a=JSON.parse(el.dataset.alts||"[]"); let i=+el.dataset.idx+1; if(i<a.length){ el.dataset.idx=i; el.src=CDN+a[i]; } else el.style.visibility="hidden"; };
@@ -607,7 +629,7 @@ window.openCaseView = function(id){
   $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
   
   if(ch.isGift) {
-    $("#cvList").innerHTML = Object.entries(GIFT_NAMES).map(([k,v]) => `<div class="pick-row">${imgTag({id:k})}<span class="pn">${v}</span></div>`).join("");
+    $("#cvList").innerHTML = Object.entries(GIFT_NAMES).filter(([k])=>k!=="gift_case").map(([k,v]) => `<div class="pick-row">${imgTag({id:k})}<span class="pn">${v}</span></div>`).join("");
   } else {
     const pool = chestPool(ch);
     const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
@@ -621,6 +643,7 @@ window.openCaseView = function(id){
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
   $("#caseView").hidden = false;
 };
+
 $("#cvOpen").onclick = () => startSpin();
 
 function tickLoop(state){ 
@@ -637,7 +660,7 @@ function tickLoop(state){
 function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
   return new Promise(resolve => {
     const N = 64; const WIN = 56;
-    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : (ch.isGift ? weightedPick(Object.keys(GIFT_NAMES).map(k=>({id:k,n:GIFT_NAMES[k],cost:0})), 0.9) : weightedPick(pool, ch.decay)));
+    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : (ch.isGift ? weightedPick(Object.keys(GIFT_NAMES).filter(k=>k!=="gift_case").map(k=>({id:k,n:GIFT_NAMES[k],cost:0})), 0.9) : weightedPick(pool, ch.decay)));
     stripEl.style.transition="none"; stripEl.style.transform="translateX(0)";
     stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost || '⭐'}</b></div>`).join("");
     const state = { running:true, stripEl, wrapEl, lastCell:-1 };
@@ -663,19 +686,30 @@ function rollMulticast(chestId){
 async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
   
-  // Логика для подарочного кейса из инвентаря
+  // Логика для подарочного кейса
   if(ch.isGift) {
-    if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
-    $("#cvOpen").disabled = true;
-    $("#cvOpen").textContent = "Отправка запроса...";
-    try {
-      const r = await fetch(`${API_URL}/open_gift_case_inv?user_id=${tgUserId()}`);
-      const j = await r.json();
-      if(j.error) { addInv("gift_case"); toast(j.error); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ"; return; }
-      const winner = {id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: 0};
-      runGiftAnimation(winner);
-    } catch(e) {
-      addInv("gift_case"); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
+    // Проверяем есть ли кейс в инвентаре
+    if(S.inv["gift_case"] && S.inv["gift_case"] > 0) {
+      // Открываем из инвентаря (бесплатно)
+      if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
+      $("#cvOpen").disabled = true;
+      $("#cvOpen").textContent = "Отправка запроса...";
+      try {
+        const r = await fetch(`${API_URL}/open_gift_case_inv?user_id=${tgUserId()}`);
+        const j = await r.json();
+        if(j.error) { addInv("gift_case"); toast(j.error); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ"; return; }
+        const winner = {id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: 0};
+        runGiftAnimation(winner);
+      } catch(e) {
+        addInv("gift_case"); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
+      }
+    } else {
+      // Кейса нет в инвентаре - создаём оплату
+      $("#cvOpen").disabled = true;
+      $("#cvOpen").textContent = "Создаю оплату...";
+      buyGiftCase();
+      $("#cvOpen").disabled = false;
+      $("#cvOpen").textContent = "ОТКРЫТЬ";
     }
     return;
   }
@@ -930,7 +964,7 @@ async function syncWithServer(){
     const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(S.name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
     if(j.banned){
-      if(j.ban_price > 0) alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}\nЦена разбана: ${j.ban_price} ⭐\n(Напишите в поддержку)`);
+      if(j.ban_price > 0) alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}\nЦена разбана: ${j.ban_price} \n(Напишите в поддержку)`);
       else alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}`);
       return;
     }
@@ -945,7 +979,7 @@ function showGrants(grants){
     if(g.type === "coins" && g.amount > 0){ hasNormalGrants = true; html += `<div class="grant-item"><div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; S.coins += g.amount; }
     else if(g.type === "coins" && g.amount < 0){ hasNormalGrants = true; const absAmount = Math.abs(g.amount), actualDeduction = Math.min(S.coins, absAmount); S.coins = Math.max(0, S.coins - absAmount); html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">Списание осколков</div><div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`; }
     else if(g.type === "item"){ hasNormalGrants = true; const it = itemById(g.item_id); html += `<div class="grant-item"><div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; if(it) addInv(it.id); }
-    else if(g.type === "clear_coins"){ const oldCoins = S.coins; S.coins = 0; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
+    else if(g.type === "clear_coins"){ const oldCoins = S.coins; S.coins = 0; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
     else if(g.type === "clear_items"){ const itemCount = Object.keys(S.inv).length; S.inv = {}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div><div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
     else if(g.type === "reset"){ S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
   });
