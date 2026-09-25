@@ -998,8 +998,8 @@ async function syncWithServer(){
     const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(S.name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
     if(j.banned){
-      if(j.ban_price > 0) alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}\nЦена разбана: ${j.ban_price} ⭐\n(Напишите в поддержку)`);
-      else alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}`);
+      $("#banReason").textContent = (j.reason || "Не указана") + (j.ban_price > 0 ? ` · Цена разбана: ${j.ban_price} ⭐` : "");
+      $("#banOverlay").hidden = false;
       return;
     }
     if(j.grants && j.grants.length) showGrants(j.grants);
@@ -1099,7 +1099,7 @@ boot();
       s.style.transform = `translate(${cx - sx}px, ${cy - sy}px) scale(0.2)`; s.classList.add("fly");
     });
     chest.classList.add("glow");
-    setTimeout(() => { pr.classList.add("done"); setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); }, 500); }, 1000);
+    setTimeout(() => { pr.classList.add("done"); setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); setInterval(syncWithServer, 60000); }, 500); }, 1000);
   };
 })();
 </script>
