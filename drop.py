@@ -503,8 +503,8 @@ async def handle_open_gift_case_inv(request):
     if ginv["gift_case"] <= 0:
         del ginv["gift_case"]
     opened = stats.get("gift_cases_opened", 0)
-    cycle = opened % 5
-    if cycle in (0, 1, 3):
+    cycle = opened % 6
+    if cycle in (0, 1, 3, 4):
         drop = random.choice(["gift_heart", "gift_teddy"])
     elif cycle == 2:
         drop = random.choice(["gift_box", "gift_rose"])
