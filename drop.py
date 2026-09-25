@@ -339,11 +339,21 @@ async def on_payment(message: Message):
         await message.answer(f"✅ Баланс бота пополнен на {add} ⭐")
         return
 
-    # 2. Платный разбан
+    # 2. Платный разбан (с проверкой цены)
     if payload.startswith("unban_"):
         try:
-            target_uid = int(payload.split("_")[1])
+            parts = payload.split("_")
+            target_uid = int(parts[1])
+            price = int(parts[2])
+            if price != stars:
+                await message.answer("⚠️ Ошибка оплаты разбана. Обратитесь в поддержку.")
+                return
+            bans = await db.select("bans", f"?user_id=eq.{target_uid}")
+            if not bans or int(bans[0].get("ban_price", 0)) != price:
+                await message.answer("⚠️ Ошибка оплаты разбана. Обратитесь в поддержку.")
+                return
             await db.delete("bans", f"?user_id=eq.{target_uid}")
+            await db.insert("payments", [{"user_id": target_uid, "stars": stars, "coins": 0}])
             await message.answer("✅ Вы успешно разбанены! Добро пожаловать обратно.")
         except Exception as e:
             print(f"Unban error: {e}")
@@ -426,6 +436,28 @@ async def handle_create_invoice(request):
                 payload=f"topup_{uid}_{stars}",
                 currency="XTR",
                 prices=[LabeledPrice(label="Пополнение", amount=stars)])
+        return json_resp({"invoice_link": link})
+    except Exception as e:
+        return json_resp({"error": str(e)}, 500)
+
+# ---- счёт на платный разбан ----
+async def handle_create_unban_invoice(request):
+    uid = int(request.query.get("user_id", 0))
+    if not uid:
+        return json_resp({"error": "No user_id"}, 400)
+    bans = await db.select("bans", f"?user_id=eq.{uid}")
+    if not bans:
+        return json_resp({"error": "not banned"}, 400)
+    price = int(bans[0].get("ban_price", 0))
+    if price <= 0:
+        return json_resp({"error": "no price"}, 400)
+    try:
+        link = await bot.create_invoice_link(
+            title="Разблокировка Dota Drop",
+            description=f"Снятие блокировки за {price} Stars",
+            payload=f"unban_{uid}_{price}",
+            currency="XTR",
+            prices=[LabeledPrice(label="Разбан", amount=price)])
         return json_resp({"invoice_link": link})
     except Exception as e:
         return json_resp({"error": str(e)}, 500)
@@ -811,6 +843,7 @@ async def handle_admin(request):
 async def start_web_server():
     app = web.Application(middlewares=[cors_middleware])
     app.router.add_get("/create_invoice", handle_create_invoice)
+    app.router.add_get("/create_unban_invoice", handle_create_unban_invoice)
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/push_stats", handle_push_stats)
     app.router.add_route("*", "/promo", handle_promo)
