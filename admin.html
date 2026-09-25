@@ -775,9 +775,12 @@ window.ban = async uid => {
   const reason = prompt("Причина бана (можно пусто):");
   if (reason === null) return;
   const price = prompt("Цена разбана в звёздах (оставь пустым для обычного бана):") || "0";
-  await api("/admin/ban", {user_id: uid, reason, ban_price: parseInt(price)||0});
-  toast("Забанен"); loadPlayers();
+  const j = await api("/admin/ban", {user_id: uid, reason, ban_price: parseInt(price)||0});
+  if (j.ok) toast("🚫 Забанен");
+  else toast("❌ Ошибка: " + (j.error || "не удалось сохранить бан"));
+  loadPlayers();
 };
+  
 window.unban = async uid => {
   await api("/admin/unban", {user_id: uid});
   toast("Разбанен"); loadPlayers();
