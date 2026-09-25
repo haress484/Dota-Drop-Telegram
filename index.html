@@ -479,8 +479,7 @@ const PACKS = [
 ];
 const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
 
-// ЗАЩИТА: оплата больше НИЧЕГО не начисляет локально.
-// Начисление делает только сервер через гранты, мы лишь запрашиваем синхронизацию.
+// ЗАЩИТА: оплата ничего не начисляет локально, начисляет только сервер через гранты
 function buyInvoice(stars, coins){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -574,7 +573,7 @@ function balance(){ $("#balance").textContent = S.coins; }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
 
-// ФИКС БАГА 2: gift_case рисуется из gift_chest.png
+// gift_case рисуется из gift_chest.png
 function imgTag(it, cls=""){
   if(!it) return "";
   let src;
@@ -587,7 +586,7 @@ window.imgFix = el => { const a=JSON.parse(el.dataset.alts||"[]"); let i=+el.dat
 function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
-// ФИКС БАГА 1: мгновенная отправка статов на сервер (без потребления грантов)
+// Мгновенная отправка статов на сервер (не трогает гранты)
 function pushStats(){
   const uid = tgUserId(); if(!uid) return;
   const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv });
@@ -710,6 +709,7 @@ function rollMulticast(chestId){
 async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
   
+  // ПОДАРОЧНЫЙ КЕЙС: рулетка как у обычных
   if(ch.isGift) {
     if((S.inv["gift_case"]||0) > 0) {
       if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
@@ -742,6 +742,7 @@ async function startSpin(){
     return;
   }
 
+  // ОБЫЧНЫЕ КЕЙСЫ
   const freeOpen = ch.id === "recruit" && isRecruitFree();
   if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
   if (freeOpen){ S.freeRecruitDate = today(); } 
