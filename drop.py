@@ -685,11 +685,16 @@ async def handle_admin(request):
         return json_resp({"ok": True, "count": len(rows)})
 
     if path == "/admin/ban":
-        await db.upsert("bans", [{
-            "user_id": int(data["user_id"]),
+      uid_b = int(data["user_id"])
+        await db.delete("bans", f"?user_id=eq.{uid_b}")
+        res = await db.insert("bans", [{
+            "user_id": uid_b,
             "reason": data.get("reason") or None,
             "ban_price": int(data.get("ban_price", 0))
         }])
+        if not isinstance(res, list):
+            print(f"🚨 BAN DB ERROR: {res}")
+            return json_resp({"ok": False, "error": str(res)})
         return json_resp({"ok": True})
 
     if path == "/admin/unban":
