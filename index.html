@@ -197,7 +197,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <div class="logo" style="font-size:26px"><i>Dota</i> DROP</div>
   <div class="loader-stage">
     <div class="orbit" id="orbit"></div>
-    <img class="loader-chest" id="loaderChest" src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/ches.png" alt="">
+    <img class="loader-chest" id="loaderChest" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/ches.png" alt="">
   </div>
   <div id="loadTxt">Загрузка…</div>
   <button class="btn pur big" id="loadBtn" disabled>ВОЙТИ</button>
@@ -219,7 +219,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <button class="pbtn" id="btnProfile" title="Профиль">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
     </button>
-    <div class="balance"><img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/dota_gold.png" alt=""><span id="balance">0</span><button id="btnPlus" style="width:22px;height:22px;border-radius:50%;border:none;background:linear-gradient(180deg,#ffd35c,#e8a41c);color:#241a00;font-size:15px;font-weight:900;cursor:pointer;margin-left:5px;line-height:1">+</button></div>
+    <div class="balance"><img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png" alt=""><span id="balance">0</span><button id="btnPlus" style="width:22px;height:22px;border-radius:50%;border:none;background:linear-gradient(180deg,#ffd35c,#e8a41c);color:#241a00;font-size:15px;font-weight:900;cursor:pointer;margin-left:5px;line-height:1">+</button></div>
   </div>
 </header>
 <main>
@@ -363,22 +363,22 @@ const CONFIG = {
   multicast: { x1:97, x2:2.4, x3:0.48, x4:0.12 }
 };
 
-const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/dota_gold.png";
-const CHEST_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/ches.png";
-const SOUND_CASE = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/SOUND_CASE.mp3";
-const SOUND_SELL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/dota_2_gold.mp3";
-const SOUND_MULTI_X2 = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/Multicast_x2.mp3.mpeg";
-const SOUND_MULTI_X3 = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/Multicast_x3.mp3.mpeg";
-const SOUND_MULTI_X4 = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/Multicast_x4.mp3.mpeg";
-const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/steam_achievement.mp3";
-const MUSIC_URL  = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/MUSIC.mp3";
-const BG_IMAGE_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/BG_IMAGE.jpg";
-const WHEEL_FRAME_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/WHEEL_FRAME.png";
+const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
+const CHEST_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/ches.png";
+const SOUND_CASE = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/SOUND_CASE.mp3";
+const SOUND_SELL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_2_gold.mp3";
+const SOUND_MULTI_X2 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x2.mp3.mpeg";
+const SOUND_MULTI_X3 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x3.mp3.mpeg";
+const SOUND_MULTI_X4 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x4.mp3.mpeg";
+const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/steam_achievement.mp3";
+const MUSIC_URL  = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/MUSIC.mp3";
+const BG_IMAGE_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/BG_IMAGE.jpg";
+const WHEEL_FRAME_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/WHEEL_FRAME.png";
 const CHEST_IMAGES = {
-  recruit:  "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/recruit.jpg",
-  guardian: "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/guardian.jpg",
-  knight:   "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/knight.jpg",
-  immortal: "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/immortal.jpg",
+  recruit:  "https://raw.githubusercontent.com/haress484/Dota-Drop/main/recruit.jpg",
+  guardian: "https://raw.githubusercontent.com/haress484/Dota-Drop/main/guardian.jpg",
+  knight:   "https://raw.githubusercontent.com/haress484/Dota-Drop/main/knight.jpg",
+  immortal: "https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg",
   gift:     "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_chest.png"
 };
 
@@ -490,14 +490,13 @@ function buyInvoice(stars, coins){
     .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){ S.coins += coins; save(); balance(); renderChests(); slotDraw(); toast(`+${coins} осколков за ${stars} ⭐!`); }
+        if(status === "paid"){ S.coins += coins; save(); balance(); renderChests(); slotDraw(); toast(`+${coins} осколков за ${stars} !`); }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
     }).catch(()=> toast("Нет связи с сервером"));
 }
 
-// Покупка подарочного кейса за звёзды
 function buyGiftCase(){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -507,7 +506,7 @@ function buyGiftCase(){
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
         if(status === "paid"){ 
-          toast(" Подарочный кейс добавлен в инвентарь!");
+          toast("🎁 Подарочный кейс добавлен в инвентарь!");
           addInv("gift_case");
           renderInv();
         }
@@ -529,8 +528,8 @@ $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openSho
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 const ACHIEVEMENTS = [
-  { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод", img:"https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/achievement_2.png", check: S => S.promos.includes(CONFIG.devPromo) },
+  { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
+  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_2.png", check: S => S.promos.includes(CONFIG.devPromo) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -686,11 +685,8 @@ function rollMulticast(chestId){
 async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
   
-  // Логика для подарочного кейса
   if(ch.isGift) {
-    // Проверяем есть ли кейс в инвентаре
     if(S.inv["gift_case"] && S.inv["gift_case"] > 0) {
-      // Открываем из инвентаря (бесплатно)
       if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
       $("#cvOpen").disabled = true;
       $("#cvOpen").textContent = "Отправка запроса...";
@@ -704,7 +700,6 @@ async function startSpin(){
         addInv("gift_case"); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
       }
     } else {
-      // Кейса нет в инвентаре - создаём оплату
       $("#cvOpen").disabled = true;
       $("#cvOpen").textContent = "Создаю оплату...";
       buyGiftCase();
@@ -714,7 +709,6 @@ async function startSpin(){
     return;
   }
 
-  // Обычная покупка за осколки
   const freeOpen = ch.id === "recruit" && isRecruitFree();
   if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
   if (freeOpen){ S.freeRecruitDate = today(); } 
@@ -905,7 +899,7 @@ function renderInv(){
     if(!it) return "";
     let btns = "";
     if(isCase) { btns = `<button class="btn pur" onclick="openCaseView('gift_case'); document.getElementById('caseView').hidden=false;">ОТКРЫТЬ</button>`; } 
-    else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')">🎁 ПОЛУЧИТЬ</button>`; } 
+    else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')"> ПОЛУЧИТЬ</button>`; } 
     else { btns = `<button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button><button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button>`; }
     return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
   }).join("") || '<div class="hint">Пусто — открой кейс</div>'; 
@@ -964,7 +958,7 @@ async function syncWithServer(){
     const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(S.name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
     if(j.banned){
-      if(j.ban_price > 0) alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}\nЦена разбана: ${j.ban_price} \n(Напишите в поддержку)`);
+      if(j.ban_price > 0) alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}\nЦена разбана: ${j.ban_price} ⭐\n(Напишите в поддержку)`);
       else alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}`);
       return;
     }
@@ -979,7 +973,7 @@ function showGrants(grants){
     if(g.type === "coins" && g.amount > 0){ hasNormalGrants = true; html += `<div class="grant-item"><div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; S.coins += g.amount; }
     else if(g.type === "coins" && g.amount < 0){ hasNormalGrants = true; const absAmount = Math.abs(g.amount), actualDeduction = Math.min(S.coins, absAmount); S.coins = Math.max(0, S.coins - absAmount); html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">Списание осколков</div><div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`; }
     else if(g.type === "item"){ hasNormalGrants = true; const it = itemById(g.item_id); html += `<div class="grant-item"><div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; if(it) addInv(it.id); }
-    else if(g.type === "clear_coins"){ const oldCoins = S.coins; S.coins = 0; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
+    else if(g.type === "clear_coins"){ const oldCoins = S.coins; S.coins = 0; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
     else if(g.type === "clear_items"){ const itemCount = Object.keys(S.inv).length; S.inv = {}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div><div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
     else if(g.type === "reset"){ S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
   });
