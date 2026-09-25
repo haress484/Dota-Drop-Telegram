@@ -294,7 +294,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <div class="profile-head">
       <label class="profile-avatar" for="avatarInput">
         <img id="profAvatar" src="" style="display:none">
-        <span class="av-ph" id="profAvatarPh">Нажмите чтобы загрузить аватарку</span>
+        <span class="av-ph" id="profAvatarPh">Нажми чтобы загрузить аватарку</span>
       </label>
       <input type="file" id="avatarInput" accept="image/*" style="display:none">
       <div class="profile-name">
@@ -390,6 +390,8 @@ const GIFT_NAMES = {
   "gift_heart": "💝 Сердечко", "gift_teddy": "🧸 Мишка", "gift_box": "🎁 Подарок",
   "gift_rose": "🌹 Роза", "gift_cake": "🎂 Торт", "gift_bouquet": "💐 Букет", "gift_case": "🎁 Подарочный кейс"
 };
+const GIFT_PRICES = { gift_heart:15, gift_teddy:15, gift_box:25, gift_rose:25, gift_cake:50, gift_bouquet:50 };
+const giftPool = () => GIFT_ITEMS.map(id => ({ id, n: GIFT_NAMES[id], cost: GIFT_PRICES[id] }));
 
 const ITEMS = [
  {id:"royale_with_cheese",n:"Royale With Cheese",cost:2},{id:"tango_single",n:"Tango (Shared)",cost:30},{id:"blood_grenade",n:"Blood Grenade",cost:50},
@@ -621,7 +623,6 @@ function renderChests(){
 
 let spinning = false; const CELL = 104; let curChest = null; let lastCell = -1;
 
-// ИСПРАВЛЕНИЕ: gift_case маппится на chest id "gift" + защита от undefined
 window.openCaseView = function(id){
   if(id === "gift_case") id = "gift";
   const ch = CHESTS.find(c=>c.id===id);
@@ -634,7 +635,7 @@ window.openCaseView = function(id){
   $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
   
   if(ch.isGift) {
-    $("#cvList").innerHTML = Object.entries(GIFT_NAMES).filter(([k])=>k!=="gift_case").map(([k,v]) => `<div class="pick-row">${imgTag({id:k})}<span class="pn">${v}</span></div>`).join("");
+    $("#cvList").innerHTML = giftPool().map(it => `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${it.cost} ⭐</span></div>`).join("");
     const hasCase = (S.inv["gift_case"]||0) > 0;
     $("#cvOpen").style.display = "";
     $("#cvOpen").disabled = false;
@@ -673,7 +674,7 @@ function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
     const N = 64; const WIN = 56;
     const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : weightedPick(pool, ch.decay));
     stripEl.style.transition="none"; stripEl.style.transform="translateX(0)";
-    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost}</b></div>`).join("");
+    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${ch.isGift ? it.cost + '⭐' : it.cost}</b></div>`).join("");
     const state = { running:true, stripEl, wrapEl, lastCell:-1 };
     setTimeout(() => {
       requestAnimationFrame(tickLoop.bind(null, state));
@@ -697,22 +698,33 @@ function rollMulticast(chestId){
 async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
   
+  // ===== ПОДАРОЧНЫЙ КЕЙС: РУЛЕТКА КАК У ОБЫЧНЫХ =====
   if(ch.isGift) {
     if((S.inv["gift_case"]||0) > 0) {
       if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
       renderInv();
-      $("#cvOpen").disabled = true;
-      $("#cvOpen").textContent = "Открываю...";
+      $("#cvOpen").style.display = "none";
       try {
         const r = await fetch(`${API_URL}/open_gift_case_inv?user_id=${tgUserId()}`);
         const j = await r.json();
-        if(j.error) { addInv("gift_case"); renderInv(); toast(j.error); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ"; return; }
+        if(j.error) { addInv("gift_case"); renderInv(); toast(j.error); backToIdle(); return; }
         addInv(j.drop);
         renderInv();
-        const winner = {id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: 0};
-        runGiftAnimation(winner);
+        const winner = { id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: GIFT_PRICES[j.drop] || 0 };
+        
+        // Строим ленту рулетки с подарками
+        $("#cvArtSlot").innerHTML = `<div class="multi-wrap"><div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_gift"></div></div></div>`;
+        $("#caseView").scrollTop = 0;
+        spinning = true;
+        
+        const wrapEl = document.querySelector(".multi-wrap .strip-wrap");
+        const stripEl = $("#strip_gift");
+        await spinOneStrip({ wrapEl, stripEl, winner, pool: giftPool(), ch, duration: 6, delay: 0 });
+        spinning = false;
+        
+        showGiftResult(winner);
       } catch(e) {
-        addInv("gift_case"); renderInv(); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
+        addInv("gift_case"); renderInv(); toast("Ошибка сети"); spinning = false; backToIdle();
       }
     } else {
       $("#cvOpen").disabled = true;
@@ -722,6 +734,7 @@ async function startSpin(){
     return;
   }
 
+  // ===== ОБЫЧНЫЕ КЕЙСЫ =====
   const freeOpen = ch.id === "recruit" && isRecruitFree();
   if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
   if (freeOpen){ S.freeRecruitDate = today(); } 
@@ -758,8 +771,8 @@ async function startSpin(){
   showMultiResult(results, totalCost, multi);
 }
 
-function runGiftAnimation(winner) {
-  $("#cvOpen").style.display = "none";
+// Результат подарочной рулетки
+function showGiftResult(winner) {
   $("#cvArtSlot").innerHTML = `
     <div class="case-result">
       <div class="multicast-badge">ПОДАРОК!</div>
@@ -767,7 +780,7 @@ function runGiftAnimation(winner) {
         <div class="result-item">
           ${imgTag(winner)}
           <span class="rn">${winner.n}</span>
-          <span class="rc">Telegram Gift</span>
+          <span class="rc">${winner.cost} ⭐</span>
         </div>
       </div>
       <div class="rbtns">
@@ -838,7 +851,6 @@ function slotDraw(){
   $("#btnSpin").disabled = !(upOwn&&upTarget&&S.inv[upOwn]);
   $("#upHint").textContent = (upOwn&&upTarget) ? (CONFIG.burnOnLoss?"При промахе предмет сгорает":"При промахе предмет возвращается") : "Цель должна стоить дороже твоего предмета"; 
 }
-// ИСПРАВЛЕНИЕ: filter(Boolean) убирает undefined (подарки не попадают в апгрейд)
 $("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById).filter(Boolean), it=>{ upOwn=it.id; if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
 $("#slotTarget").onclick = () => { if(!upOwn) return toast("Сначала выбери свой предмет"); openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
 
@@ -909,7 +921,6 @@ $("#btnPromo").onclick = () => {
 function renderInv(){
   const ids=Object.keys(S.inv);
   $("#invCount").textContent = ids.length?`(${ids.length})`:"";
-  // ИСПРАВЛЕНИЕ: защита от undefined в последних дропах
   $("#topDrops").innerHTML = S.drops.length ? `<b style="font-size:13px">Последние дропы</b>` + S.drops.slice().reverse().map(d=>{
     const it = itemById(d.id); if(!it) return "";
     return `<div class="td">${imgTag(it)}<span class="tn">${it.n}</span><span class="tc">${it.cost}</span></div>`;
