@@ -1025,7 +1025,7 @@ async function syncWithServer(){
       const payBtn = $("#banPayBtn");
       if(bp > 0){
         payBtn.style.display = "";
-        payBtn.textContent = `💳 Оплатить разбан: ${bp} ⭐`;
+        payBtn.textContent = `Оплатить разбан: ${bp} ⭐`;
         payBtn.onclick = () => payUnban(bp);
       } else {
         payBtn.style.display = "none";
