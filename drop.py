@@ -17,7 +17,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiohttp import web
 
-# ================= НАСТРОЙКИ =================
+# ================= НАСТРОЙКИ ================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 if not BOT_TOKEN:
     raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
