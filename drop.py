@@ -46,7 +46,6 @@ GIFT_CATALOG = {
     "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
 }
 
-# ================= FSM =================
 class GiftSendStates(StatesGroup):
     waiting_user_id = State()
     confirming = State()
@@ -124,6 +123,50 @@ async def merge_player_stats(uid, patch):
     cur = (rows[0].get("stats") if rows else None) or {}
     cur.update(patch)
     await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+
+# ================= ЗАЩИТА: ПОДАРОЧНЫЙ ИНВЕНТАРЬ (ТОЛЬКО СЕРВЕР) =================
+async def get_gift_inv(uid):
+    rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+    if not rows:
+        await db.upsert("players", [{"user_id": uid, "stats": {"gift_inv": {}}}])
+        return {"gift_inv": {}}, {}
+    stats = rows[0].get("stats") or {}
+    return stats, (stats.get("gift_inv") or {})
+
+async def set_gift_inv(uid, stats, gift_inv):
+    stats["gift_inv"] = gift_inv
+    await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
+
+# ================= ЗАЩИТА: ПРОВЕРКА РЕАЛЬНОГО БАЛАНСА ЗВЁЗД =================
+async def get_real_stars():
+    try:
+        res = await bot.get_star_balance()
+        return getattr(res, "current_amount", None)
+    except Exception as e:
+        print("get_star_balance недоступен:", e)
+        return None
+
+async def refresh_stars_cache():
+    real = await get_real_stars()
+    if real is not None:
+        await db.upsert("meta", [{"key": "stars_cache", "value": real}])
+    return real
+
+async def stars_delta_ok(stars):
+    """Оплата засчитывается ТОЛЬКО если реальный баланс бота вырос на сумму платежа."""
+    real = await get_real_stars()
+    if real is None:
+        return True  # метод недоступен в этой версии API — доверяем successful_payment
+    rows = await db.select("meta", "?key=eq.stars_cache")
+    cache = int(rows[0].get("value")) if rows else None
+    if cache is None:
+        await db.upsert("meta", [{"key": "stars_cache", "value": real}])
+        return True
+    ok = real >= cache + stars
+    await db.upsert("meta", [{"key": "stars_cache", "value": real}])
+    if not ok:
+        print(f"🚨 FRAUD: баланс {real}, ожидалось >= {cache + stars} (платёж {stars})")
+    return ok
 
 # ================= КЛАВИАТУРЫ =================
 def play_kb(user_id):
@@ -256,8 +299,9 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
         await bot.send_gift(user_id=user_id, gift_id=gift["id"])
         new_balance = cur - gift["price"]
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
+        await refresh_stars_cache()
         await cb.message.edit_text(
-            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n Баланс бота: {new_balance} ⭐",
+            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
             parse_mode="HTML")
     except Exception as e:
         await cb.message.edit_text(f"❌ Ошибка: <code>{str(e)}</code>", parse_mode="HTML")
@@ -291,6 +335,7 @@ async def on_payment(message: Message):
         rows = await db.select("meta", "?key=eq.bot_stars")
         cur = int(rows[0].get("value")) if rows else 0
         await db.upsert("meta", [{"key": "bot_stars", "value": cur + add}])
+        await refresh_stars_cache()
         await message.answer(f"✅ Баланс бота пополнен на {add} ⭐")
         return
 
@@ -304,7 +349,7 @@ async def on_payment(message: Message):
             print(f"Unban error: {e}")
         return
 
-    # 3. ИСПРАВЛЕНИЕ: Покупка подарочного кейса -> кейс в инвентарь базы
+    # 3. Покупка подарочного кейса: ПРОВЕРКА БАЛАНСА -> выдача через grant
     if payload.startswith("gift_case_"):
         try:
             parts = payload.split("_")
@@ -313,27 +358,31 @@ async def on_payment(message: Message):
             if p_uid != user_id or p_stars != stars:
                 await message.answer("⚠️ Ошибка данных платежа. Обратитесь в поддержку.")
                 return
-            rows = await db.select("players", f"?user_id=eq.{user_id}&select=stats")
-            stats = (rows[0].get("stats") if rows else None) or {}
-            inv = stats.get("inventory", {})
-            inv["gift_case"] = inv.get("gift_case", 0) + 1
-            stats["inventory"] = inv
-            await db.upsert("players", [{"user_id": user_id, "stats": stats}])
+            if not await stars_delta_ok(stars):
+                await message.answer("⚠️ Платёж не подтверждён сервером Telegram. Обратитесь в поддержку.")
+                return
             await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": 0}])
-            await message.answer("🎁 Оплата прошла! Подарочный кейс добавлен в инвентарь игры.")
+            await db.insert("grants", [{
+                "user_id": user_id, "type": "item", "item_id": "gift_case",
+                "amount": 1, "reason": "Покупка подарочного кейса"
+            }])
+            await message.answer("🎁 Оплата подтверждена! Подарочный кейс начислен в игру.")
         except Exception as e:
             print(f"Gift case payment error: {e}")
             await message.answer("⚠️ Ошибка обработки платежа. Обратитесь в поддержку.")
         return
 
-    # 4. Обычное пополнение осколков
+    # 4. Обычное пополнение осколков: ПРОВЕРКА БАЛАНСА -> выдача через grant
     if payload.startswith("topup_"):
+        if not await stars_delta_ok(stars):
+            await message.answer("⚠️ Платёж не подтверждён сервером Telegram. Обратитесь в поддержку.")
+            return
         coins = {1: 100, 10: 1000, 20: 2000, 30: 5000}.get(stars, stars * 100)
         await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": coins}])
         await db.insert("grants", [{
             "user_id": user_id, "type": "coins", "amount": coins, "reason": "Покупка осколков"
         }])
-        await message.answer(f"✅ Оплата {stars} ⭐ прошла! Осколки уже в игре.")
+        await message.answer(f"✅ Оплата {stars} ⭐ подтверждена! Осколки начислены в игру.")
         return
 
 # ================= ВЕБ-СЕРВЕР =================
@@ -354,7 +403,6 @@ async def cors_middleware(request, handler):
 def json_resp(data, status=200):
     return web.json_response(data, status=status)
 
-# ---- создание счёта ----
 async def handle_create_invoice(request):
     uid = request.query.get("user_id")
     if not uid:
@@ -382,7 +430,6 @@ async def handle_create_invoice(request):
     except Exception as e:
         return json_resp({"error": str(e)}, 500)
 
-# ---- синхронизация ----
 async def handle_sync(request):
     uid = request.query.get("user_id")
     if not uid:
@@ -412,7 +459,19 @@ async def handle_sync(request):
             pass
     return json_resp({"banned": False, "grants": grants})
 
-# ---- промокод ----
+# ---- лёгкий пуш статов (НЕ трогает гранты) ----
+async def handle_push_stats(request):
+    uid = int(request.query.get("user_id", 0))
+    if not uid:
+        return json_resp({"ok": False})
+    raw = request.query.get("stats")
+    if raw:
+        try:
+            await merge_player_stats(uid, json.loads(raw))
+        except Exception:
+            pass
+    return json_resp({"ok": True})
+
 async def handle_promo(request):
     code = (request.query.get("code") or "").strip().upper()
     uid = request.query.get("user_id")
@@ -432,21 +491,17 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
-# ---- ИСПРАВЛЕНИЕ: открытие кейса из инвентаря (БЕЗ админ-авторизации) ----
+# ---- открытие подарочного кейса (серверный gift_inv) ----
 async def handle_open_gift_case_inv(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
         return json_resp({"error": "no user_id"})
-    players = await db.select("players", f"?user_id=eq.{uid}&select=stats")
-    if not players:
-        return json_resp({"error": "player not found"})
-    stats = players[0].get("stats") or {}
-    inv = stats.get("inventory", {})
-    if inv.get("gift_case", 0) < 1:
+    stats, ginv = await get_gift_inv(uid)
+    if ginv.get("gift_case", 0) < 1:
         return json_resp({"error": "Нет подарочного кейса в инвентаре"})
-    inv["gift_case"] -= 1
-    if inv["gift_case"] <= 0:
-        del inv["gift_case"]
+    ginv["gift_case"] -= 1
+    if ginv["gift_case"] <= 0:
+        del ginv["gift_case"]
     opened = stats.get("gift_cases_opened", 0)
     cycle = opened % 5
     if cycle in (0, 1, 3):
@@ -455,13 +510,12 @@ async def handle_open_gift_case_inv(request):
         drop = random.choice(["gift_box", "gift_rose"])
     else:
         drop = random.choice(["gift_cake", "gift_bouquet"])
-    inv[drop] = inv.get(drop, 0) + 1
-    stats["inventory"] = inv
+    ginv[drop] = ginv.get(drop, 0) + 1
     stats["gift_cases_opened"] = opened + 1
-    await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
+    await set_gift_inv(uid, stats, ginv)
     return json_resp({"ok": True, "drop": drop})
 
-# ---- ИСПРАВЛЕНИЕ: получение подарка из инвентаря (БЕЗ админ-авторизации) ----
+# ---- получение подарка (серверный gift_inv) ----
 async def handle_claim_gift_inv(request):
     try:
         d = await request.json()
@@ -473,12 +527,8 @@ async def handle_claim_gift_inv(request):
         return json_resp({"ok": False, "error": "bad request"})
     if gift_key not in GIFT_CATALOG:
         return json_resp({"ok": False, "error": "Неверный подарок"})
-    players = await db.select("players", f"?user_id=eq.{uid}&select=stats")
-    if not players:
-        return json_resp({"ok": False, "error": "player not found"})
-    stats = players[0].get("stats") or {}
-    inv = stats.get("inventory", {})
-    if inv.get(gift_key, 0) < 1:
+    stats, ginv = await get_gift_inv(uid)
+    if ginv.get(gift_key, 0) < 1:
         return json_resp({"ok": False, "error": "Нет подарка в инвентаре"})
     gift_data = GIFT_CATALOG[gift_key]
     rows = await db.select("meta", "?key=eq.bot_stars")
@@ -487,12 +537,12 @@ async def handle_claim_gift_inv(request):
         return json_resp({"ok": False, "error": f"У бота недостаточно звёзд ({cur} < {gift_data['price']}). Напишите админу."})
     try:
         await bot.send_gift(user_id=uid, gift_id=gift_data["id"])
-        inv[gift_key] -= 1
-        if inv[gift_key] <= 0:
-            del inv[gift_key]
-        stats["inventory"] = inv
-        await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
+        ginv[gift_key] -= 1
+        if ginv[gift_key] <= 0:
+            del ginv[gift_key]
+        await set_gift_inv(uid, stats, ginv)
         await db.upsert("meta", [{"key": "bot_stars", "value": cur - gift_data["price"]}])
+        await refresh_stars_cache()
         return json_resp({"ok": True})
     except Exception as e:
         print(f"🚨 Claim gift error: user_id={uid}, gift_key={gift_key}, error={e}")
@@ -531,7 +581,6 @@ async def admin_auth(request):
         return None, data
     return user, data
 
-# ---- админ-эндпоинты ----
 async def handle_admin(request):
     user, data = await admin_auth(request)
     if not user:
@@ -551,7 +600,10 @@ async def handle_admin(request):
         if not players:
             return json_resp({"error": "player not found"})
         stats = players[0].get("stats") or {}
-        return json_resp({"inventory": stats.get("inventory", {})})
+        inv = dict(stats.get("inventory") or {})
+        for k, v in (stats.get("gift_inv") or {}).items():
+            inv[k] = inv.get(k, 0) + v
+        return json_resp({"inventory": inv})
 
     if path == "/admin/player_details":
         uid = int(data.get("user_id", 0))
@@ -577,13 +629,22 @@ async def handle_admin(request):
 
     if path == "/admin/grant":
         uid = int(data["user_id"])
+        gtype = data.get("type", "coins")
+        amount = int(data.get("amount", 0))
+        item_id = data.get("item_id")
+        reason = data.get("reason") or None
         await db.insert("grants", [{
-            "user_id": uid,
-            "type": data.get("type", "coins"),
-            "amount": int(data.get("amount", 0)),
-            "item_id": data.get("item_id"),
-            "reason": data.get("reason") or None
+            "user_id": uid, "type": gtype, "amount": amount,
+            "item_id": item_id, "reason": reason
         }])
+        # Серверный подарочный инвентарь обновляется СРАЗУ (фикс рассинхрона)
+        if gtype == "item" and (item_id in GIFT_CATALOG or item_id == "gift_case"):
+            stats, ginv = await get_gift_inv(uid)
+            ginv[item_id] = ginv.get(item_id, 0) + 1
+            await set_gift_inv(uid, stats, ginv)
+        if gtype in ("clear_items", "reset"):
+            stats, ginv = await get_gift_inv(uid)
+            await set_gift_inv(uid, stats, {})
         return json_resp({"ok": True})
 
     if path == "/admin/annihilate":
@@ -594,9 +655,11 @@ async def handle_admin(request):
         await db.insert("grants", [{
             "user_id": uid,
             "type": "clear_coins" if gtype == "coins" else "clear_items",
-            "amount": 0,
-            "reason": "Аннуляция администратором"
+            "amount": 0, "reason": "Аннуляция администратором"
         }])
+        if gtype != "coins":
+            stats, ginv = await get_gift_inv(uid)
+            await set_gift_inv(uid, stats, {})
         return json_resp({"ok": True})
 
     if path == "/admin/reset":
@@ -604,7 +667,7 @@ async def handle_admin(request):
         if not uid:
             return json_resp({"error": "no user_id"})
         await db.update("players", f"?user_id=eq.{uid}", {
-            "stats": {"casesOpened": 0, "coinsSpent": 0, "balance": 2000, "inventory": {}}
+            "stats": {"casesOpened": 0, "coinsSpent": 0, "balance": 2000, "inventory": {}, "gift_inv": {}}
         })
         await db.insert("grants", [{
             "user_id": uid, "type": "reset", "amount": 0, "reason": "Сброс прогресса администратором"
@@ -614,10 +677,8 @@ async def handle_admin(request):
     if path == "/admin/grant_all":
         players = await db.select("players", "?select=user_id")
         rows = [{
-            "user_id": p["user_id"],
-            "type": "coins",
-            "amount": int(data.get("amount", 0)),
-            "reason": data.get("reason") or None
+            "user_id": p["user_id"], "type": "coins",
+            "amount": int(data.get("amount", 0)), "reason": data.get("reason") or None
         } for p in players]
         if rows:
             await db.insert("grants", rows)
@@ -708,8 +769,7 @@ async def handle_admin(request):
                     except Exception as e:
                         print(f"Gift image error for {g.id}: {e}")
                 items.append({
-                    "id": str(g.id),
-                    "star_count": g.star_count,
+                    "id": str(g.id), "star_count": g.star_count,
                     "remaining_count": g.remaining_count if g.remaining_count is not None else -1,
                     "total_count": g.total_count if g.total_count is not None else -1,
                     "image": image_url
@@ -739,6 +799,7 @@ async def handle_admin(request):
         except Exception as e:
             return json_resp({"ok": False, "error": str(e)})
         await db.upsert("meta", [{"key": "bot_stars", "value": cur - price}])
+        await refresh_stars_cache()
         return json_resp({"ok": True, "new_balance": cur - price})
 
     return json_resp({"error": "unknown path"}, 404)
@@ -747,6 +808,7 @@ async def start_web_server():
     app = web.Application(middlewares=[cors_middleware])
     app.router.add_get("/create_invoice", handle_create_invoice)
     app.router.add_route("*", "/sync", handle_sync)
+    app.router.add_route("*", "/push_stats", handle_push_stats)
     app.router.add_route("*", "/promo", handle_promo)
     app.router.add_route("*", "/open_gift_case_inv", handle_open_gift_case_inv)
     app.router.add_route("*", "/claim_gift_inv", handle_claim_gift_inv)
