@@ -7,7 +7,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg1:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--pur:#ffd35c;--pur2:#e8a41c;--gold:#f7c948;--grn:#3ddc84;--yel:#f1c40f;--org:#e67e22;--red:#e74c3c}
+:root{--bg1:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--pur:#ffd35c;--pur2:#e8a41c;--gold:#f7c948;--grn:#3ddc84;--yel:#f1c40f;--org:#e67e22;--red:#e74c3c;--tg-blue:#0088cc}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);min-height:100vh;background:var(--bg1)}
 body::before{content:"";position:fixed;inset:0;z-index:-2;background-image:var(--bg,none);background-size:cover;background-position:center}
@@ -197,7 +197,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   <div class="logo" style="font-size:26px"><i>Dota</i> DROP</div>
   <div class="loader-stage">
     <div class="orbit" id="orbit"></div>
-    <img class="loader-chest" id="loaderChest" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/ches.png" alt="">
+    <img class="loader-chest" id="loaderChest" src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/ches.png" alt="">
   </div>
   <div id="loadTxt">Загрузка…</div>
   <button class="btn pur big" id="loadBtn" disabled>ВОЙТИ</button>
@@ -219,7 +219,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <button class="pbtn" id="btnProfile" title="Профиль">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
     </button>
-    <div class="balance"><img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png" alt=""><span id="balance">0</span><button id="btnPlus" style="width:22px;height:22px;border-radius:50%;border:none;background:linear-gradient(180deg,#ffd35c,#e8a41c);color:#241a00;font-size:15px;font-weight:900;cursor:pointer;margin-left:5px;line-height:1">+</button></div>
+    <div class="balance"><img class="shard" src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/dota_gold.png" alt=""><span id="balance">0</span><button id="btnPlus" style="width:22px;height:22px;border-radius:50%;border:none;background:linear-gradient(180deg,#ffd35c,#e8a41c);color:#241a00;font-size:15px;font-weight:900;cursor:pointer;margin-left:5px;line-height:1">+</button></div>
   </div>
 </header>
 <main>
@@ -363,28 +363,39 @@ const CONFIG = {
   multicast: { x1:97, x2:2.4, x3:0.48, x4:0.12 }
 };
 
-const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
-const CHEST_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/ches.png";
-const SOUND_CASE = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/SOUND_CASE.mp3";
-const SOUND_SELL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_2_gold.mp3";
-const SOUND_MULTI_X2 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x2.mp3.mpeg";
-const SOUND_MULTI_X3 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x3.mp3.mpeg";
-const SOUND_MULTI_X4 = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/Multicast_x4.mp3.mpeg";
-const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/steam_achievement.mp3";
-const MUSIC_URL  = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/MUSIC.mp3";
-const BG_IMAGE_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/BG_IMAGE.jpg";
-const WHEEL_FRAME_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/WHEEL_FRAME.png";
+const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/dota_gold.png";
+const CHEST_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/ches.png";
+const SOUND_CASE = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/SOUND_CASE.mp3";
+const SOUND_SELL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/dota_2_gold.mp3";
+const SOUND_MULTI_X2 = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/Multicast_x2.mp3.mpeg";
+const SOUND_MULTI_X3 = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/Multicast_x3.mp3.mpeg";
+const SOUND_MULTI_X4 = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/Multicast_x4.mp3.mpeg";
+const SOUND_ACHIEVEMENT = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/steam_achievement.mp3";
+const MUSIC_URL  = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/MUSIC.mp3";
+const BG_IMAGE_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/BG_IMAGE.jpg";
+const WHEEL_FRAME_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/WHEEL_FRAME.png";
 const CHEST_IMAGES = {
-  recruit:  "https://raw.githubusercontent.com/haress484/Dota-Drop/main/recruit.jpg",
-  guardian: "https://raw.githubusercontent.com/haress484/Dota-Drop/main/guardian.jpg",
-  knight:   "https://raw.githubusercontent.com/haress484/Dota-Drop/main/knight.jpg",
-  immortal: "https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg" };
+  recruit:  "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/recruit.jpg",
+  guardian: "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/guardian.jpg",
+  knight:   "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/knight.jpg",
+  immortal: "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/immortal.jpg",
+  gift:     "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_chest.png"
+};
 
 const CHESTS = [
  { id:"recruit",  name:"Рекрут",   color:"#2ecc71", risk:0, min:0,    max:1000, price:500,  decay:.97 },
  { id:"guardian", name:"Страж",    color:"#f1c40f", risk:1, min:1000, max:2500, price:1700, decay:.95 },
  { id:"knight",   name:"Рыцарь",   color:"#e67e22", risk:2, min:2500, max:4500, price:3600, decay:.94 },
- { id:"immortal", name:"Иммортал", color:"#e74c3c", risk:3, min:4500, max:1e9,  price:5000, decay:.93 } ];
+ { id:"immortal", name:"Иммортал", color:"#e74c3c", risk:3, min:4500, max:1e9,  price:5000, decay:.93 },
+ { id:"gift",     name:"Подарочный", color:"#9b59b6", risk:4, min:0, max:0, price:25, decay:1, isGift:true }
+];
+
+const GIFT_ITEMS = ["gift_heart", "gift_teddy", "gift_box", "gift_rose", "gift_cake", "gift_bouquet"];
+const GIFT_NAMES = {
+  "gift_heart": "💝 Сердечко", "gift_teddy": "🧸 Мишка", "gift_box": "🎁 Подарок",
+  "gift_rose": "🌹 Роза", "gift_cake": "🎂 Торт", "gift_bouquet": "💐 Букет", "gift_case": "🎁 Подарочный кейс"
+};
+
 const ITEMS = [
  {id:"royale_with_cheese",n:"Royale With Cheese",cost:2},{id:"tango_single",n:"Tango (Shared)",cost:30},{id:"blood_grenade",n:"Blood Grenade",cost:50},
  {id:"courier",n:"Animal Courier",cost:50},{id:"smoke_of_deceit",n:"Smoke of Deceit",cost:50},{id:"ward_dispenser",n:"Observer & Sentry Wards",cost:50},
@@ -454,8 +465,11 @@ const ITEMS = [
  {id:"devastator",n:"Devastator",cost:5975},{id:"disperser",n:"Disperser",cost:6100},{id:"abyssal_blade",n:"Abyssal Blade",cost:6250},
  {id:"dagon_4",n:"Dagon 4",cost:6300},{id:"trident",n:"Trident",cost:6301},{id:"bloodthorn",n:"Bloodthorn",cost:6400},
  {id:"arcane_blink",n:"Arcane Blink",cost:6800},{id:"overwhelming_blink",n:"Overwhelming Blink",cost:6800},{id:"swift_blink",n:"Swift Blink",cost:6800},
- {id:"wind_waker",n:"Wind Waker",cost:6800},{id:"dagon_5",n:"Dagon 5",cost:7400} ];
+ {id:"wind_waker",n:"Wind Waker",cost:6800},{id:"dagon_5",n:"Dagon 5",cost:7400}
+];
+
 const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
+const GIFT_CDN = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/";
 const itemById = id => ITEMS.find(i => i.id === id);
 const sellPrice = it => it.cost;
 const chestPool = ch => ITEMS.filter(i => i.cost > ch.min && i.cost <= ch.max).sort((a,b)=>a.cost-b.cost);
@@ -464,10 +478,7 @@ const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
 
 const API_URL = "https://dota-drop-telegram.onrender.com";
 const PACKS = [
-  { stars:1, coins:100 },
-  { stars:10, coins:1000 },
-  { stars:20, coins:2000 },
-  { stars:30, coins:5000 }
+  { stars:1, coins:100 }, { stars:10, coins:1000 }, { stars:20, coins:2000 }, { stars:30, coins:5000 }
 ];
 const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
 
@@ -476,88 +487,51 @@ function buyInvoice(stars, coins){
   if(!uid){ toast("Открой игру через Telegram!"); return; }
   toast("Создаю счёт...");
   fetch(`${API_URL}/create_invoice?user_id=${uid}&stars=${stars}`)
-    .then(r => r.json())
-    .then(j => {
+    .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){
-          S.coins += coins; save(); balance(); renderChests(); slotDraw();
-          toast(`+${coins} осколков за ${stars} ⭐!`);
-        }
+        if(status === "paid"){ S.coins += coins; save(); balance(); renderChests(); slotDraw(); toast(`+${coins} осколков за ${stars} ⭐!`); }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
-    })
-    .catch(()=> toast("Нет связи с сервером (Render спит, подожди минуту)"));
+    }).catch(()=> toast("Нет связи с сервером"));
 }
-
 function openShop(){
-  $("#shopList").innerHTML = PACKS.map(p => `
-    <div class="shop-row" onclick="buyPack(${p.stars},${p.coins})">
-      <img class="si" src="${SHARD_URL}" alt="">
-      <span class="sn">+${p.coins} осколков</span>
-      <span class="sp">${p.stars} ⭐</span>
-    </div>`).join("");
+  $("#shopList").innerHTML = PACKS.map(p => `<div class="shop-row" onclick="buyPack(${p.stars},${p.coins})"><img class="si" src="${SHARD_URL}" alt=""><span class="sn">+${p.coins} осколков</span><span class="sp">${p.stars} ⭐</span></div>`).join("");
   $("#shopOverlay").hidden = false;
 }
 window.buyPack = (stars, coins) => { $("#shopOverlay").hidden = true; buyInvoice(stars, coins); };
 $("#btnPlus").onclick = () => openShop();
 $("#shopClose").onclick = () => { $("#shopOverlay").hidden = true; };
-
-function showNoCoins(need){
-  $("#noCoinsHint").textContent = need ? `Для этого нужно ${need} осколков` : "";
-  $("#noCoinsOverlay").hidden = false;
-}
+function showNoCoins(need){ $("#noCoinsHint").textContent = need ? `Для этого нужно ${need} осколков` : ""; $("#noCoinsOverlay").hidden = false; }
 $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openShop(); };
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 const ACHIEVEMENTS = [
-  { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus",
-    img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png",
-    check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод",
-    img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_2.png",
-    check: S => S.promos.includes(CONFIG.devPromo) },
-  { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков",
-    img:SHARD_URL,
-    check: S => (S.stats?.coinsSpent||0) >= 50000 }
+  { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
+  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод", img:"https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/achievement_2.png", check: S => S.promos.includes(CONFIG.devPromo) },
+  { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
 let musicOn = localStorage.getItem("dotaDrop_music") !== "0";
-const music = new Audio(); music.loop = true; music.volume = 0.25;
-if (MUSIC_URL) music.src = MUSIC_URL;
-const tickAudio = SOUND_CASE ? new Audio(SOUND_CASE) : null;
-if (tickAudio) tickAudio.volume = 1.0;
-const sellAudio = SOUND_SELL ? new Audio(SOUND_SELL) : null;
-if (sellAudio) sellAudio.volume = 0.8;
-const multiAudios = {
-  2: SOUND_MULTI_X2 ? new Audio(SOUND_MULTI_X2) : null,
-  3: SOUND_MULTI_X3 ? new Audio(SOUND_MULTI_X3) : null,
-  4: SOUND_MULTI_X4 ? new Audio(SOUND_MULTI_X4) : null
-};
+const music = new Audio(); music.loop = true; music.volume = 0.25; if (MUSIC_URL) music.src = MUSIC_URL;
+const tickAudio = SOUND_CASE ? new Audio(SOUND_CASE) : null; if (tickAudio) tickAudio.volume = 1.0;
+const sellAudio = SOUND_SELL ? new Audio(SOUND_SELL) : null; if (sellAudio) sellAudio.volume = 0.8;
+const multiAudios = { 2: SOUND_MULTI_X2 ? new Audio(SOUND_MULTI_X2) : null, 3: SOUND_MULTI_X3 ? new Audio(SOUND_MULTI_X3) : null, 4: SOUND_MULTI_X4 ? new Audio(SOUND_MULTI_X4) : null };
 Object.values(multiAudios).forEach(a => { if(a) a.volume = 1.0; });
-const achieveAudio = SOUND_ACHIEVEMENT ? new Audio(SOUND_ACHIEVEMENT) : null;
-if (achieveAudio) achieveAudio.volume = 0.9;
+const achieveAudio = SOUND_ACHIEVEMENT ? new Audio(SOUND_ACHIEVEMENT) : null; if (achieveAudio) achieveAudio.volume = 0.9;
 const SPK_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>';
 const SPK_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
 function musicTry(){ if(musicOn && MUSIC_URL) music.play().catch(()=>{}); }
 function drawMusicBtn(){ const b=$("#btnMusic"); if(!MUSIC_URL){ b.style.display="none"; return; } b.innerHTML = musicOn ? SPK_ON : SPK_OFF; }
-$("#btnMusic").onclick = () => { musicOn = !musicOn; localStorage.setItem("dotaDrop_music", musicOn?"1":"0");
-  if(musicOn) musicTry(); else music.pause(); drawMusicBtn(); };
+$("#btnMusic").onclick = () => { musicOn = !musicOn; localStorage.setItem("dotaDrop_music", musicOn?"1":"0"); if(musicOn) musicTry(); else music.pause(); drawMusicBtn(); };
 function playTick(){ if(tickAudio){ tickAudio.currentTime=0; tickAudio.play().catch(()=>{}); } }
 function playSell(){ if(sellAudio){ sellAudio.currentTime=0; sellAudio.play().catch(()=>{}); } }
 function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play().catch(()=>{}); } }
 function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
 
 const LKEY = "dotaDrop_save_v2";
-function defaultState(){ return {
-  coins:CONFIG.startCoins, inv:{}, promos:[],
-  daily:{last:"",streak:0}, drops:[], ts:0,
-  name:"", avatar:"",
-  stats:{casesOpened:0, coinsSpent:0},
-  achievements:[],
-  freeRecruitDate:""
-}; }
+function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"" }; }
 let S = defaultState();
 function loadLocal(){
   try{
@@ -565,48 +539,33 @@ function loadLocal(){
     if(raw) S = Object.assign(defaultState(), JSON.parse(raw));
     if(!S.stats) S.stats = {casesOpened:0, coinsSpent:0};
     if(!S.achievements) S.achievements = [];
-    if(!S.name) S.name = "";
-    if(!S.avatar) S.avatar = "";
-    if(!S.freeRecruitDate) S.freeRecruitDate = "";
+    if(!S.name) S.name = ""; if(!S.avatar) S.avatar = ""; if(!S.freeRecruitDate) S.freeRecruitDate = "";
   }catch(e){}
   localStorage.removeItem("dotaDrop_save");
 }
 function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringify(S)); }catch(e){} }
-
 const today = () => new Date().toISOString().slice(0,10);
 const yesterday = () => new Date(Date.now()-864e5).toISOString().slice(0,10);
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
 function balance(){ $("#balance").textContent = S.coins; }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
-function imgTag(it, cls=""){ return `<img class="${cls}" src="${CDN}${it.id}.png" alt="" onerror="imgFix(this)" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`; }
-window.imgFix = el => { const a=JSON.parse(el.dataset.alts||"[]"); let i=+el.dataset.idx+1;
-  if(i<a.length){ el.dataset.idx=i; el.src=CDN+a[i]; } else el.style.visibility="hidden"; };
-function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i));
-  let r = Math.random()*w.reduce((a,b)=>a+b,0);
-  for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
+function imgTag(it, cls=""){ 
+  const src = (GIFT_ITEMS.includes(it.id) || it.id === "gift_case") ? `${GIFT_CDN}${it.id}.png` : `${CDN}${it.id}.png`;
+  return `<img class="${cls}" src="${src}" alt="" onerror="this.style.visibility='hidden'" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`; 
+}
+window.imgFix = el => { const a=JSON.parse(el.dataset.alts||"[]"); let i=+el.dataset.idx+1; if(i<a.length){ el.dataset.idx=i; el.src=CDN+a[i]; } else el.style.visibility="hidden"; };
+function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
 function checkAchievements(){
   ACHIEVEMENTS.forEach(a => {
-    if (!S.achievements.includes(a.id) && a.check(S)){
-      S.achievements.push(a.id);
-      save();
-      showAchievement(a);
-      renderProfile();
-    }
+    if (!S.achievements.includes(a.id) && a.check(S)){ S.achievements.push(a.id); save(); showAchievement(a); renderProfile(); }
   });
 }
 function showAchievement(a){
-  const n = $("#achieveNotif");
-  n.querySelector(".an-img").src = a.img;
-  n.querySelector(".an-title").textContent = a.title;
-  n.querySelector(".an-desc").textContent = a.desc;
-  n.classList.remove("show");
-  void n.offsetWidth;
-  n.classList.add("show");
-  playAchievement();
-  setTimeout(() => n.classList.remove("show"), 4500);
+  const n = $("#achieveNotif"); n.querySelector(".an-img").src = a.img; n.querySelector(".an-title").textContent = a.title; n.querySelector(".an-desc").textContent = a.desc;
+  n.classList.remove("show"); void n.offsetWidth; n.classList.add("show"); playAchievement(); setTimeout(() => n.classList.remove("show"), 4500);
 }
 
 document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
@@ -618,27 +577,25 @@ const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 const RISK_COLORS = ["#2ecc71","#f1c40f","#e67e22","#e74c3c"], RISK_NAMES=["L","M","H","E"];
 function riskHtml(ch){
   const segs = RISK_NAMES.map((_,i)=>`<i style="background:${i<=ch.risk?RISK_COLORS[i]:"#2c4634"}">${i===ch.risk?'<span class="dot" style="left:50%"></span>':""}</i>`).join("");
-  return `<div class="risk">${segs}</div><div class="risk-labels">${RISK_NAMES.map(x=>`<span>${x}</span>`).join("")}</div>`; }
+  return `<div class="risk">${segs}</div><div class="risk-labels">${RISK_NAMES.map(x=>`<span>${x}</span>`).join("")}</div>`; 
+}
 function chestArt(ch, cls){
-  const inner = CHEST_IMAGES[ch.id] ? `<img src="${CHEST_IMAGES[ch.id]}">`
-    : `<svg viewBox="0 0 24 24" width="56%" fill="none" stroke="${ch.color}" stroke-width="1.2" opacity=".85"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>`;
-  return `<div class="${cls}" style="background:radial-gradient(circle at 35% 30%, ${ch.color}33, #102016 72%);border:5px solid ${ch.color}33">${inner}</div>`; }
+  const inner = CHEST_IMAGES[ch.id] ? `<img src="${CHEST_IMAGES[ch.id]}">` : `<svg viewBox="0 0 24 24" width="56%" fill="none" stroke="${ch.color}" stroke-width="1.2" opacity=".85"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>`;
+  return `<div class="${cls}" style="background:radial-gradient(circle at 35% 30%, ${ch.color}33, #102016 72%);border:5px solid ${ch.color}33">${inner}</div>`; 
+}
 function isRecruitFree(){ return S.freeRecruitDate !== today(); }
 function renderChests(){
   $("#chestGrid").innerHTML = CHESTS.map(ch => {
-    const pool = chestPool(ch);
+    const pool = ch.isGift ? [] : chestPool(ch);
     const free = ch.id === "recruit" && isRecruitFree();
-    const priceHtml = free
-      ? `<div class="price-row free">БЕСПЛАТНО</div>`
-      : `<div class="price-row">${ch.price} ${SHARD}</div>`;
+    const priceHtml = free ? `<div class="price-row free">БЕСПЛАТНО</div>` : `<div class="price-row">${ch.price} ${ch.isGift ? '⭐' : SHARD}</div>`;
     const badge = free ? `<div class="free-badge">БЕСПЛАТНО</div>` : "";
+    const rangeHtml = ch.isGift ? `<span class="range">Подарки Telegram</span>` : `<span class="range">+${pool[0].cost} – ${pool[pool.length-1].cost}</span>`;
     return `<div class="chest-card" onclick="openCaseView('${ch.id}')">
-      ${badge}
-      ${chestArt(ch,"case-art")}
-      <span class="range">+${pool[0].cost} – ${pool[pool.length-1].cost}</span>
-      ${priceHtml}
-      <div class="cname">${ch.name}</div>
-      ${riskHtml(ch)}</div>`; }).join(""); }
+      ${badge} ${chestArt(ch,"case-art")} ${rangeHtml} ${priceHtml}
+      <div class="cname">${ch.name}</div> ${ch.isGift ? '' : riskHtml(ch)}</div>`; 
+  }).join(""); 
+}
 
 let spinning = false; const CELL = 104; let curChest = null; let lastCell = -1;
 window.openCaseView = function(id){
@@ -646,13 +603,19 @@ window.openCaseView = function(id){
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
   const free = ch.id === "recruit" && isRecruitFree();
-  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${SHARD}`;
-  $("#cvRisk").innerHTML = riskHtml(ch);
-  const pool = chestPool(ch);
-  const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
-  $("#cvList").innerHTML = pool.slice().reverse().map(it=>{
-    const p = w[pool.indexOf(it)]/wsum*100; const ps = p>=1 ? p.toFixed(1) : p.toFixed(2);
-    return `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${ps}% · ${it.cost}</span></div>`; }).join("");
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${ch.isGift ? '⭐' : SHARD}`;
+  $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
+  
+  if(ch.isGift) {
+    $("#cvList").innerHTML = Object.entries(GIFT_NAMES).map(([k,v]) => `<div class="pick-row">${imgTag({id:k})}<span class="pn">${v}</span></div>`).join("");
+  } else {
+    const pool = chestPool(ch);
+    const w = pool.map((_,i)=>Math.pow(ch.decay,i)); const wsum = w.reduce((a,b)=>a+b,0);
+    $("#cvList").innerHTML = pool.slice().reverse().map(it=>{
+      const p = w[pool.indexOf(it)]/wsum*100; const ps = p>=1 ? p.toFixed(1) : p.toFixed(2);
+      return `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${ps}% · ${it.cost}</span></div>`; 
+    }).join("");
+  }
   $("#cvOpen").style.display = "";
   $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
@@ -660,7 +623,8 @@ window.openCaseView = function(id){
 };
 $("#cvOpen").onclick = () => startSpin();
 
-function tickLoop(state){ if(!state.running) return;
+function tickLoop(state){ 
+  if(!state.running) return;
   const st = state.stripEl; if(!st) return;
   const tr = getComputedStyle(st).transform; let tx=0;
   if (tr && tr!=="none"){ const m=tr.match(/matrix\(([^)]+)\)/); if(m) tx=parseFloat(m[1].split(",")[4])||0; }
@@ -673,9 +637,9 @@ function tickLoop(state){ if(!state.running) return;
 function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
   return new Promise(resolve => {
     const N = 64; const WIN = 56;
-    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : weightedPick(pool, ch.decay));
+    const cells = Array.from({length:N},(_,i)=> i===WIN ? winner : (ch.isGift ? weightedPick(Object.keys(GIFT_NAMES).map(k=>({id:k,n:GIFT_NAMES[k],cost:0})), 0.9) : weightedPick(pool, ch.decay)));
     stripEl.style.transition="none"; stripEl.style.transform="translateX(0)";
-    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost}</b></div>`).join("");
+    stripEl.innerHTML = cells.map(it=>`<div class="cell">${imgTag(it)}<b>${it.cost || '⭐'}</b></div>`).join("");
     const state = { running:true, stripEl, wrapEl, lastCell:-1 };
     setTimeout(() => {
       requestAnimationFrame(tickLoop.bind(null, state));
@@ -688,12 +652,8 @@ function spinOneStrip({wrapEl, stripEl, winner, pool, ch, duration, delay}){
 }
 
 function rollMulticast(chestId){
-  // Для Иммортала мультикаста нет вообще
   if(chestId === "immortal") return 1;
-  
-  const r = Math.random()*100;
-  const m = CONFIG.multicast;
-  let acc = 0;
+  const r = Math.random()*100; const m = CONFIG.multicast; let acc = 0;
   acc += m.x1; if (r < acc) return 1;
   acc += m.x2; if (r < acc) return 2;
   acc += m.x3; if (r < acc) return 3;
@@ -702,61 +662,79 @@ function rollMulticast(chestId){
 
 async function startSpin(){
   const ch = curChest; if(!ch || spinning) return;
+  
+  // Логика для подарочного кейса из инвентаря
+  if(ch.isGift) {
+    if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
+    $("#cvOpen").disabled = true;
+    $("#cvOpen").textContent = "Отправка запроса...";
+    try {
+      const r = await fetch(`${API_URL}/open_gift_case_inv?user_id=${tgUserId()}`);
+      const j = await r.json();
+      if(j.error) { addInv("gift_case"); toast(j.error); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ"; return; }
+      const winner = {id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: 0};
+      runGiftAnimation(winner);
+    } catch(e) {
+      addInv("gift_case"); toast("Ошибка сети"); $("#cvOpen").disabled=false; $("#cvOpen").textContent="ОТКРЫТЬ";
+    }
+    return;
+  }
+
+  // Обычная покупка за осколки
   const freeOpen = ch.id === "recruit" && isRecruitFree();
   if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
-  if (freeOpen){
-    S.freeRecruitDate = today();
-  } else {
-    S.coins -= ch.price;
-    S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
-  }
+  if (freeOpen){ S.freeRecruitDate = today(); } 
+  else { S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
   save(); balance();
+  
   const pool = chestPool(ch);
   const multi = rollMulticast(ch.id);
   $("#cvOpen").style.display = "none";
 
   const winners = Array.from({length:multi}, ()=>weightedPick(pool, ch.decay));
-
   let html = "";
   if (multi > 1) html += `<div class="multicast-badge">MULTICAST x${multi}</div>`;
   html += `<div class="multi-wrap">`;
-  for (let i=0; i<multi; i++){
-    html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`;
-  }
+  for (let i=0; i<multi; i++){ html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`; }
   html += `</div>`;
   $("#cvArtSlot").innerHTML = html;
   $("#caseView").scrollTop = 0;
-
   if (multi > 1) playMulti(multi);
-
   spinning = true;
 
   const promises = winners.map((winner, i) => {
     const wrapEl = document.querySelectorAll(".multi-wrap .strip-wrap")[i];
     const stripEl = $(`#strip_${i}`);
-    return spinOneStrip({
-      wrapEl, stripEl, winner, pool, ch,
-      duration: 6,
-      delay: i * 200
-    });
+    return spinOneStrip({ wrapEl, stripEl, winner, pool, ch, duration: 6, delay: i * 200 });
   });
 
   const results = await Promise.all(promises);
   spinning = false;
 
   const totalCost = results.reduce((s,it)=>s+it.cost,0);
-  results.forEach(it => {
-    addInv(it.id);
-    S.drops.push({n:it.n,c:it.cost,id:it.id});
-  });
+  results.forEach(it => { addInv(it.id); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
   S.drops = S.drops.slice(-2);
-  save();
-  renderInv();
-  renderChests();
-  checkAchievements();
-
+  save(); renderInv(); renderChests(); checkAchievements();
   showMultiResult(results, totalCost, multi);
+}
+
+function runGiftAnimation(winner) {
+  $("#cvArtSlot").innerHTML = `
+    <div class="case-result">
+      <div class="multicast-badge">ПОДАРОК!</div>
+      <div class="result-list">
+        <div class="result-item">
+          ${imgTag(winner)}
+          <span class="rn">${winner.n}</span>
+          <span class="rc">Telegram Gift</span>
+        </div>
+      </div>
+      <div class="rbtns">
+        <button class="btn grn" onclick="claimGiftFromInv('${winner.id}')">🎁 ПОЛУЧИТЬ В TELEGRAM</button>
+        <button class="btn outline" onclick="backToIdle()">ЗАКРЫТЬ</button>
+      </div>
+    </div>`;
 }
 
 function showMultiResult(items, totalCost, multi){
@@ -769,53 +747,23 @@ function showMultiResult(items, totalCost, multi){
       <button class="btn outline rsell" onclick="resultSellOne('${it.id}',${i})">+${sellPrice(it)}</button>
     </div>`).join("");
   const btns = isMulti
-    ? `<div class="rbtns">
-         <button class="btn outline" onclick="resultSellAll()">ПРОДАТЬ ВСЁ (+${totalCost})</button>
-         <button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button>
-         <button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button>
-       </div>`
-    : `<div class="rbtns">
-         <button class="btn outline" onclick="resultSellOne('${items[0].id}')">ПРОДАТЬ +${sellPrice(items[0])}</button>
-         <button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button>
-         <button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button>
-       </div>`;
-  $("#cvArtSlot").innerHTML = `
-    <div class="case-result">
-      ${isMulti ? `<div class="multicast-badge">MULTICAST x${multi}</div>` : ''}
-      <div class="result-list">${listHtml}</div>
-      <div class="hint">Суммарно: ${totalCost} осколков</div>
-      ${btns}
-    </div>`;
+    ? `<div class="rbtns"><button class="btn outline" onclick="resultSellAll()">ПРОДАТЬ ВСЁ (+${totalCost})</button><button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button><button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button></div>`
+    : `<div class="rbtns"><button class="btn outline" onclick="resultSellOne('${items[0].id}')">ПРОДАТЬ +${sellPrice(items[0])}</button><button class="btn pur" onclick="resultKeep()">ОСТАВИТЬ</button><button class="btn pur" onclick="resultAgain()">ЕЩЁ РАЗ</button></div>`;
+  $("#cvArtSlot").innerHTML = `<div class="case-result">${isMulti ? `<div class="multicast-badge">MULTICAST x${multi}</div>` : ''}<div class="result-list">${listHtml}</div><div class="hint">Суммарно: ${totalCost} осколков</div>${btns}</div>`;
 }
 
 window.resultSellOne = (id) => {
-  if(takeInv(id)){
-    const p = sellPrice(itemById(id));
-    S.coins += p; save(); balance(); renderInv();
-    playSell();
-    toast(`Продано: ${itemById(id).n} +${p}`);
-    backToIdle();
-  }
+  if(takeInv(id)){ const p = sellPrice(itemById(id)); S.coins += p; save(); balance(); renderInv(); playSell(); toast(`Продано: ${itemById(id).n} +${p}`); backToIdle(); }
 };
 window.resultSellAll = () => {
   if (!window._lastDropIds || !window._lastDropIds.length) return backToIdle();
   let total = 0;
-  window._lastDropIds.forEach(id => {
-    if (takeInv(id)) total += sellPrice(itemById(id));
-  });
-  if (total){
-    S.coins += total; save(); balance(); renderInv();
-    playSell();
-    toast(`Продано всё: +${total}`);
-  }
+  window._lastDropIds.forEach(id => { if (takeInv(id)) total += sellPrice(itemById(id)); });
+  if (total){ S.coins += total; save(); balance(); renderInv(); playSell(); toast(`Продано всё: +${total}`); }
   backToIdle();
 };
 const _origShowMultiResult = showMultiResult;
-showMultiResult = function(items, totalCost, multi){
-  window._lastDropIds = items.map(it=>it.id);
-  _origShowMultiResult(items, totalCost, multi);
-};
-
+showMultiResult = function(items, totalCost, multi){ window._lastDropIds = items.map(it=>it.id); _origShowMultiResult(items, totalCost, multi); };
 window.resultKeep = () => backToIdle();
 window.resultAgain = () => startSpin();
 function backToIdle(){
@@ -824,52 +772,38 @@ function backToIdle(){
   $("#cvOpen").style.display = "";
   $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
   $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
-  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${curChest.price} ${SHARD}`;
+  $("#cvOpen").disabled = false;
+  $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${curChest.price} ${curChest.isGift ? '⭐' : SHARD}`;
 }
 $("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
 
 let upOwn=null, upTarget=null;
-(function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180;
-  h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; }
-  $("#ticks").innerHTML=h; })();
+(function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180; h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; } $("#ticks").innerHTML=h; })();
 const upChance = () => (upOwn&&upTarget) ? Math.max(CONFIG.upgradeMin, Math.min(CONFIG.upgradeMax, Math.round(CONFIG.upgradeCoeff*itemById(upOwn).cost/itemById(upTarget).cost))) : null;
-function drawSector(pct){ const el=$("#winSector"); if(!pct){ el.setAttribute("d",""); return; }
-  const S_=pct*3.6*Math.PI/180, r=102;
-  el.setAttribute("d",`M150 ${150-r} A${r} ${r} 0 ${pct*3.6>180?1:0} 1 ${150+r*Math.sin(S_)} ${150-r*Math.cos(S_)}`); }
+function drawSector(pct){ const el=$("#winSector"); if(!pct){ el.setAttribute("d",""); return; } const S_=pct*3.6*Math.PI/180, r=102; el.setAttribute("d",`M150 ${150-r} A${r} ${r} 0 ${pct*3.6>180?1:0} 1 ${150+r*Math.sin(S_)} ${150-r*Math.cos(S_)}`); }
 function slotDraw(){
   const so=$("#slotOwn"), st=$("#slotTarget");
   so.classList.toggle("filled",!!upOwn); st.classList.toggle("filled",!!upTarget);
-  so.innerHTML = (upOwn? `${imgTag(itemById(upOwn),"fi")}<span class="fn">${itemById(upOwn).n}</span><span class="fp">${itemById(upOwn).cost}</span>`:"")
-    + so.querySelector(".sil").outerHTML + (upOwn?"":'<span class="st">Выбери предмет для апгрейда</span>');
-  st.innerHTML = (upTarget? `${imgTag(itemById(upTarget),"fi")}<span class="fn">${itemById(upTarget).n}</span><span class="fp">${itemById(upTarget).cost}</span>`:"")
-    + st.querySelector(".sil").outerHTML + (upTarget?"":'<span class="st">Выбери предмет, который хочешь получить</span>');
+  so.innerHTML = (upOwn? `${imgTag(itemById(upOwn),"fi")}<span class="fn">${itemById(upOwn).n}</span><span class="fp">${itemById(upOwn).cost}</span>`:"") + so.querySelector(".sil").outerHTML + (upOwn?"":'<span class="st">Выбери предмет для апгрейда</span>');
+  st.innerHTML = (upTarget? `${imgTag(itemById(upTarget),"fi")}<span class="fn">${itemById(upTarget).n}</span><span class="fp">${itemById(upTarget).cost}</span>`:"") + st.querySelector(".sil").outerHTML + (upTarget?"":'<span class="st">Выбери предмет, который хочешь получить</span>');
   const ch = upChance();
   $("#chanceLine").textContent = ch==null ? "Шанс успеха: —" : "Шанс успеха: "+ch+"%";
   drawSector(ch||0);
   $("#btnSpin").disabled = !(upOwn&&upTarget&&S.inv[upOwn]);
-  $("#upHint").textContent = (upOwn&&upTarget) ? (CONFIG.burnOnLoss?"При промахе предмет сгорает":"При промахе предмет возвращается") : "Цель должна стоить дороже твоего предмета"; }
-$("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById), it=>{ upOwn=it.id;
-  if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
-$("#slotTarget").onclick = () => { if(!upOwn) return toast("Сначала выбери свой предмет");
-  openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
+  $("#upHint").textContent = (upOwn&&upTarget) ? (CONFIG.burnOnLoss?"При промахе предмет сгорает":"При промахе предмет возвращается") : "Цель должна стоить дороже твоего предмета"; 
+}
+$("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById), it=>{ upOwn=it.id; if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
+$("#slotTarget").onclick = () => { if(!upOwn) return toast("Сначала выбери свой предмет"); openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
 
 let upgradeLastTick = -1;
 function upgradeTickLoop(endTime){
   if (Date.now() >= endTime) return;
-  const g = $("#needleG");
-  const tr = getComputedStyle(g).transform;
+  const g = $("#needleG"); const tr = getComputedStyle(g).transform;
   if (tr && tr !== "none"){
     const m = tr.match(/matrix\(([^)]+)\)/);
-    if (m){
-      const a = parseFloat(m[1]); const b = parseFloat(m[2]);
-      let angle = Math.atan2(b, a) * 180 / Math.PI;
-      if (angle < 0) angle += 360;
-      const tickEvery = 8;
-      const tickIdx = Math.floor(angle / tickEvery);
-      if (tickIdx !== upgradeLastTick){
-        upgradeLastTick = tickIdx;
-        playTick();
-      }
+    if (m){ const a = parseFloat(m[1]); const b = parseFloat(m[2]); let angle = Math.atan2(b, a) * 180 / Math.PI; if (angle < 0) angle += 360;
+      const tickEvery = 8; const tickIdx = Math.floor(angle / tickEvery);
+      if (tickIdx !== upgradeLastTick){ upgradeLastTick = tickIdx; playTick(); }
     }
   }
   requestAnimationFrame(() => upgradeTickLoop(endTime));
@@ -880,34 +814,27 @@ $("#btnSpin").onclick = () => {
   renderInv();
   const ch=upChance(), win=Math.random()*100<ch, Sdeg=ch*3.6;
   let u = win ? Sdeg*0.2+Math.random()*Sdeg*0.6 : Sdeg+6+Math.random()*Math.max(1,354-Sdeg-6);
-  const g=$("#needleG");
-  g.style.transition="none"; g.style.transform="rotate(0deg)";
+  const g=$("#needleG"); g.style.transition="none"; g.style.transform="rotate(0deg)";
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    g.style.transition="transform 4.6s cubic-bezier(.15,.85,.25,1)";
-    g.style.transform=`rotate(${360*5+u}deg)`;
-    upgradeLastTick = -1;
-    const endTime = Date.now() + 4600;
+    g.style.transition="transform 4.6s cubic-bezier(.15,.85,.25,1)"; g.style.transform=`rotate(${360*5+u}deg)`;
+    upgradeLastTick = -1; const endTime = Date.now() + 4600;
     requestAnimationFrame(() => upgradeTickLoop(endTime));
     setTimeout(()=>{
-      if(win){
-        addInv(upTarget);
-        toast(`Успех! Получен: ${itemById(upTarget).n}`);
-        checkAchievements();
-      } else {
-        if(!CONFIG.burnOnLoss) addInv(upOwn);
-        toast(`Промах. ${CONFIG.burnOnLoss?itemById(upOwn).n+" сгорел":"Предмет возвращён"}`);
-      }
+      if(win){ addInv(upTarget); toast(`Успех! Получен: ${itemById(upTarget).n}`); checkAchievements(); } 
+      else { if(!CONFIG.burnOnLoss) addInv(upOwn); toast(`Промах. ${CONFIG.burnOnLoss?itemById(upOwn).n+" сгорел":"Предмет возвращён"}`); }
       upOwn=null; slotDraw(); renderInv();
     },4700);
   }));
 };
 
 let pickCb=null;
-function openPicker(title,list,cb){ pickCb=cb; $("#pickerTitle").textContent=title; $("#pickerSearch").value="";
-  window._pl=list; drawPicker(list); $("#picker").hidden=false; }
-function drawPicker(list){ $("#pickerList").innerHTML = list.slice().sort((a,b)=>a.cost-b.cost).map(it=>{
-  const c=S.inv[it.id]?` x${S.inv[it.id]}`:"";
-  return `<div class="pick-row" data-id="${it.id}">${imgTag(it)}<span class="pn">${it.n}${c}</span><span class="pc">${it.cost}</span></div>`; }).join("") || '<div class="hint">Пусто</div>'; }
+function openPicker(title,list,cb){ pickCb=cb; $("#pickerTitle").textContent=title; $("#pickerSearch").value=""; window._pl=list; drawPicker(list); $("#picker").hidden=false; }
+function drawPicker(list){ 
+  $("#pickerList").innerHTML = list.slice().sort((a,b)=>a.cost-b.cost).map(it=>{
+    const c=S.inv[it.id]?` x${S.inv[it.id]}`:"";
+    return `<div class="pick-row" data-id="${it.id}">${imgTag(it)}<span class="pn">${it.n}${c}</span><span class="pc">${it.cost}</span></div>`; 
+  }).join("") || '<div class="hint">Пусто</div>'; 
+}
 $("#pickerList").onclick = e => { const r=e.target.closest(".pick-row"); if(!r) return; $("#picker").hidden=true; pickCb&&pickCb(itemById(r.dataset.id)); };
 $("#pickerClose").onclick = () => $("#picker").hidden=true;
 $("#pickerSearch").oninput = e => { const q=e.target.value.toLowerCase(); drawPicker(window._pl.filter(i=>i.n.toLowerCase().includes(q)||i.id.includes(q))); };
@@ -915,325 +842,168 @@ $("#pickerSearch").oninput = e => { const q=e.target.value.toLowerCase(); drawPi
 function renderTasks(){
   const can = S.daily.last !== today();
   const reward = Math.min(CONFIG.dailyBase + S.daily.streak*CONFIG.dailyStreakStep, CONFIG.dailyMax);
-  $("#taskList").innerHTML = `
-   <div class="card"><b>Ежедневный заход</b>
-     <div class="trow"><span>Серия: ${S.daily.streak} дн.</span><span>Награда: ${reward} ${SHARD_SM}</span></div>
-     <div class="task-btns">${can?`<button class="btn pur" onclick="claimDaily()">ЗАБРАТЬ +${reward}</button>`:`<span class="done">Получено сегодня</span>`}</div></div>`; }
+  $("#taskList").innerHTML = `<div class="card"><b>Ежедневный заход</b><div class="trow"><span>Серия: ${S.daily.streak} дн.</span><span>Награда: ${reward} ${SHARD_SM}</span></div><div class="task-btns">${can?`<button class="btn pur" onclick="claimDaily()">ЗАБРАТЬ +${reward}</button>`:`<span class="done">Получено сегодня</span>`}</div></div>`; 
+}
 window.claimDaily = () => { S.daily.streak = (S.daily.last===yesterday())? S.daily.streak+1 : 1;
   const r=Math.min(CONFIG.dailyBase+(S.daily.streak-1)*CONFIG.dailyStreakStep, CONFIG.dailyMax);
   S.daily.last=today(); S.coins+=r; save(); balance(); renderTasks(); toast(`+${r} осколков за дейлик`); };
 $("#btnPromo").onclick = () => {
-  const code=$("#promoInput").value.trim(); $("#promoInput").value="";
-  if(!code) return;
-  const uid = tgUserId();
-  if(!uid){ toast("Открой игру через Telegram!"); return; }
+  const code=$("#promoInput").value.trim(); $("#promoInput").value=""; if(!code) return;
+  const uid = tgUserId(); if(!uid){ toast("Открой игру через Telegram!"); return; }
   toast("Проверяю промокод...");
-  fetch(`${API_URL}/promo?code=${encodeURIComponent(code)}&user_id=${uid}`)
-    .then(r => r.json())
-    .then(j => {
-      if(j.ok){
-        if(j.secret){
-          if(!S.promos.includes(code)){ S.promos.push(code); save(); }
-          checkAchievements();
-          toast("Секретный промокод активирован!");
-        } else {
-          S.coins += j.amount; save(); balance();
-          toast(`+${j.amount} осколков по промокоду!`);
-        }
-      } else {
-        toast(j.error || "Неверный промокод");
-      }
-    })
-    .catch(()=> toast("Нет связи с сервером"));
+  fetch(`${API_URL}/promo?code=${encodeURIComponent(code)}&user_id=${uid}`).then(r => r.json()).then(j => {
+    if(j.ok){
+      if(j.secret){ if(!S.promos.includes(code)){ S.promos.push(code); save(); } checkAchievements(); toast("Секретный промокод активирован!"); } 
+      else { S.coins += j.amount; save(); balance(); toast(`+${j.amount} осколков по промокоду!`); }
+    } else { toast(j.error || "Неверный промокод"); }
+  }).catch(()=> toast("Нет связи с сервером"));
 };
 
 function renderInv(){
   const ids=Object.keys(S.inv);
   $("#invCount").textContent = ids.length?`(${ids.length})`:"";
-  $("#topDrops").innerHTML = S.drops.length ? `<b style="font-size:13px">Последние дропы</b>` + S.drops.slice().reverse().map(d=>
-    `<div class="td">${imgTag(itemById(d.id))}<span class="tn">${d.n}</span><span class="tc">${d.c}</span></div>`).join("") : "";
+  $("#topDrops").innerHTML = S.drops.length ? `<b style="font-size:13px">Последние дропы</b>` + S.drops.slice().reverse().map(d=>`<div class="td">${imgTag(itemById(d.id))}<span class="tn">${d.n}</span><span class="tc">${d.c}</span></div>`).join("") : "";
   $("#topDrops").style.display = S.drops.length?"":"none";
-  $("#invGrid").innerHTML = ids.map(itemById).sort((a,b)=>b.cost-a.cost).map(it=>`
-    <div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}
-      <div class="inv-name">${it.n}</div><div class="inv-cost">цена ${it.cost} ${SHARD_SM}</div>
-      <button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button>
-      <button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button></div>`).join("")
-    || '<div class="hint">Пусто — открой кейс</div>'; }
+  $("#invGrid").innerHTML = ids.map(id => {
+    const isGift = GIFT_ITEMS.includes(id);
+    const isCase = id === "gift_case";
+    const it = isGift ? {id, n:GIFT_NAMES[id], cost:0} : (isCase ? {id, n:"Подарочный кейс", cost:0} : itemById(id));
+    if(!it) return "";
+    let btns = "";
+    if(isCase) { btns = `<button class="btn pur" onclick="openCaseView('gift_case'); document.getElementById('caseView').hidden=false;">ОТКРЫТЬ</button>`; } 
+    else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')">🎁 ПОЛУЧИТЬ</button>`; } 
+    else { btns = `<button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button><button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button>`; }
+    return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
+  }).join("") || '<div class="hint">Пусто — открой кейс</div>'; 
+}
 window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); toast(`+${p}`); } };
 window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
 
+window.claimGiftFromInv = async (giftId) => {
+  if(!takeInv(giftId)) { toast("Предмет исчез из инвентаря"); renderInv(); return; }
+  renderInv(); toast("Отправка подарка...");
+  try {
+    const r = await fetch(`${API_URL}/claim_gift_inv`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({user_id: tgUserId(), gift_id: giftId}) });
+    const j = await r.json();
+    if(j.ok) { toast("🎉 Подарок отправлен в Telegram!"); } 
+    else { toast("Ошибка: " + (j.error || "Неизвестно")); addInv(giftId); renderInv(); }
+  } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); }
+};
+
 function renderProfile(){
   $("#profileName").value = S.name || "";
-  const av = $("#profAvatar");
-  const ph = $("#profAvatarPh");
+  const av = $("#profAvatar"), ph = $("#profAvatarPh");
   if (S.avatar){ av.src = S.avatar; av.style.display = ""; ph.style.display = "none"; }
   else { av.style.display = "none"; ph.style.display = ""; }
   $("#statCases").textContent = S.stats.casesOpened || 0;
   $("#statSpent").textContent = S.stats.coinsSpent || 0;
   $("#achGrid").innerHTML = ACHIEVEMENTS.map(a => {
     const got = S.achievements.includes(a.id);
-    if (got){
-      return `<div class="ach-card unlocked">
-        <div class="ach-frame"><img src="${a.img}"></div>
-        <div class="ach-name">${a.title}</div>
-      </div>`;
-    } else {
-      return `<div class="ach-card locked">
-        <div class="ach-frame"><span class="ach-q">?</span></div>
-        <div class="ach-name">неизвестно</div>
-      </div>`;
-    }
+    return got ? `<div class="ach-card unlocked"><div class="ach-frame"><img src="${a.img}"></div><div class="ach-name">${a.title}</div></div>`
+               : `<div class="ach-card locked"><div class="ach-frame"><span class="ach-q">?</span></div><div class="ach-name">неизвестно</div></div>`;
   }).join("");
 }
 $("#btnProfile").onclick = () => { renderProfile(); $("#profileOverlay").hidden = false; };
 $("#profileClose").onclick = () => { $("#profileOverlay").hidden = true; };
 $("#profileName").oninput = e => { S.name = e.target.value.trim(); save(); };
 $("#avatarInput").onchange = e => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
-      const max = 180;
-      let w = img.width, h = img.height;
-      if (w > h) { if (w > max) { h = h*max/w; w = max; } }
-      else { if (h > max) { w = w*max/h; h = max; } }
-      const cv = document.createElement("canvas");
-      cv.width = w; cv.height = h;
+      const max = 180; let w = img.width, h = img.height;
+      if (w > h) { if (w > max) { h = h*max/w; w = max; } } else { if (h > max) { w = w*max/h; h = max; } }
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
       cv.getContext("2d").drawImage(img, 0, 0, w, h);
-      S.avatar = cv.toDataURL("image/jpeg", 0.85);
-      save();
-      renderProfile();
+      S.avatar = cv.toDataURL("image/jpeg", 0.85); save(); renderProfile();
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 };
 
-// ═══ СИНХРОНИЗАЦИЯ С СЕРВЕРОМ (ОБНОВЛЕНА) ═══
 async function syncWithServer(){
-  const uid = tgUserId();
-  if(!uid) return;
-  const name = S.name || "";
-  const stats = JSON.stringify({
-    casesOpened: S.stats.casesOpened, 
-    coinsSpent: S.stats.coinsSpent,
-    balance: S.coins,
-    inventory: S.inv
-  });
+  const uid = tgUserId(); if(!uid) return;
+  const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv });
   try {
-    const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(name)}&stats=${encodeURIComponent(stats)}`);
+    const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(S.name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
     if(j.banned){
-      $("#banReason").textContent = j.reason || "Без причины";
-      $("#banOverlay").hidden = false;
+      if(j.ban_price > 0) alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}\nЦена разбана: ${j.ban_price} ⭐\n(Напишите в поддержку)`);
+      else alert(`Вы заблокированы. Причина: ${j.reason || 'Не указана'}`);
       return;
     }
-    if(j.grants && j.grants.length){
-      showGrants(j.grants);
-    }
-  } catch(e){
-    console.log("Sync error:", e);
-  }
+    if(j.grants && j.grants.length) showGrants(j.grants);
+  } catch(e){ console.log("Sync error:", e); }
 }
 
 function showGrants(grants){
-  const list = $("#grantsList");
-  const title = $("#grantsTitle");
-  const emoji = document.querySelector(".grants-emoji");
-  
-  let hasNormalGrants = false;
-  let html = "";
-  
+  const list = $("#grantsList"), title = $("#grantsTitle"), emoji = document.querySelector(".grants-emoji");
+  let hasNormalGrants = false, html = "";
   grants.forEach(g => {
-    if(g.type === "coins" && g.amount > 0){
-      hasNormalGrants = true;
-      html += `<div class="grant-item">
-        <div class="gi-type">Осколки</div>
-        <div class="gi-amount">+${g.amount}</div>
-        ${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}
-      </div>`;
-      S.coins += g.amount;
-    }
-    else if(g.type === "coins" && g.amount < 0){
-      hasNormalGrants = true;
-      const absAmount = Math.abs(g.amount);
-      const actualDeduction = Math.min(S.coins, absAmount);
-      S.coins = Math.max(0, S.coins - absAmount);
-      html += `<div class="grant-item">
-        <div class="gi-type" style="color:var(--red)">Списание осколков</div>
-        <div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>
-        ${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}
-      </div>`;
-    }
-    else if(g.type === "item"){
-      hasNormalGrants = true;
-      const it = itemById(g.item_id);
-      html += `<div class="grant-item">
-        <div class="gi-type">Предмет</div>
-        <div class="gi-amount">${it ? it.n : g.item_id}</div>
-        ${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}
-      </div>`;
-      if(it) addInv(it.id);
-    }
-    else if(g.type === "clear_coins"){
-      const oldCoins = S.coins;
-      S.coins = 0;
-      html += `<div class="grant-item">
-        <div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div>
-        <div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>
-        ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
-      </div>`;
-    }
-    else if(g.type === "clear_items"){
-      const itemCount = Object.keys(S.inv).length;
-      S.inv = {};
-      html += `<div class="grant-item">
-        <div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div>
-        <div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>
-        ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
-      </div>`;
-    }
-    else if(g.type === "reset"){
-      S.coins = CONFIG.startCoins;
-      S.inv = {};
-      S.stats = {casesOpened: 0, coinsSpent: 0};
-      html += `<div class="grant-item">
-        <div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div>
-        <div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div>
-        <div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>
-        ${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}
-      </div>`;
-    }
+    if(g.type === "coins" && g.amount > 0){ hasNormalGrants = true; html += `<div class="grant-item"><div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; S.coins += g.amount; }
+    else if(g.type === "coins" && g.amount < 0){ hasNormalGrants = true; const absAmount = Math.abs(g.amount), actualDeduction = Math.min(S.coins, absAmount); S.coins = Math.max(0, S.coins - absAmount); html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">Списание осколков</div><div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`; }
+    else if(g.type === "item"){ hasNormalGrants = true; const it = itemById(g.item_id); html += `<div class="grant-item"><div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; if(it) addInv(it.id); }
+    else if(g.type === "clear_coins"){ const oldCoins = S.coins; S.coins = 0; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
+    else if(g.type === "clear_items"){ const itemCount = Object.keys(S.inv).length; S.inv = {}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div><div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
+    else if(g.type === "reset"){ S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
   });
-  
-  if(!hasNormalGrants){
-    if(html){
-      title.textContent = "Административные действия";
-      emoji.textContent = "⚠️";
-    } else {
-      return;
-    }
-  } else {
-    title.textContent = "Тебе начислено!";
-    emoji.textContent = "🎁";
-  }
-  
-  list.innerHTML = html;
-  save();
-  balance();
-  renderInv();
-  $("#grantsOverlay").hidden = false;
+  if(!hasNormalGrants){ if(html){ title.textContent = "Административные действия"; emoji.textContent = "⚠️"; } else return; } 
+  else { title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; }
+  list.innerHTML = html; save(); balance(); renderInv(); $("#grantsOverlay").hidden = false;
 }
 $("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
 
 function refreshAll(){ balance(); renderChests(); renderTasks(); renderInv(); slotDraw(); drawMusicBtn();
-  const wf=$("#wheelFrame");
-  if (WHEEL_FRAME_URL){ wf.src=WHEEL_FRAME_URL; wf.style.display=""; } else { wf.style.display="none"; }
+  const wf=$("#wheelFrame"); if (WHEEL_FRAME_URL){ wf.src=WHEEL_FRAME_URL; wf.style.display=""; } else { wf.style.display="none"; }
 }
 function boot(){
   loadLocal(); refreshAll();
-  ACHIEVEMENTS.forEach(a => {
-    if (!S.achievements.includes(a.id) && a.check(S)){
-      S.achievements.push(a.id);
-    }
-  });
+  ACHIEVEMENTS.forEach(a => { if (!S.achievements.includes(a.id) && a.check(S)) S.achievements.push(a.id); });
   save();
 }
 boot();
 
 (function preloader(){
-  const pr = $("#preloader");
-  const orbit = $("#orbit");
-  const chest = $("#loaderChest");
-  const btn = $("#loadBtn");
-  const N = 8;
-  const shards = [];
+  const pr = $("#preloader"), orbit = $("#orbit"), chest = $("#loaderChest"), btn = $("#loadBtn");
+  const N = 8, shards = [];
   for (let i=0;i<N;i++){
-    const img = document.createElement("img");
-    img.className = "shard-orb";
-    img.src = SHARD_URL;
-    const angle = (360/N)*i;
-    img.style.transform = `rotate(${angle}deg) translateY(-82px) rotate(${-angle}deg)`;
-    orbit.appendChild(img);
-    shards.push(img);
+    const img = document.createElement("img"); img.className = "shard-orb"; img.src = SHARD_URL;
+    const angle = (360/N)*i; img.style.transform = `rotate(${angle}deg) translateY(-82px) rotate(${-angle}deg)`;
+    orbit.appendChild(img); shards.push(img);
   }
-
-  const allImgs = [BG_IMAGE_URL, CHEST_IMAGES.recruit, CHEST_IMAGES.guardian, CHEST_IMAGES.knight, CHEST_IMAGES.immortal, WHEEL_FRAME_URL, CHEST_URL];
+  const allImgs = [BG_IMAGE_URL, CHEST_IMAGES.recruit, CHEST_IMAGES.guardian, CHEST_IMAGES.knight, CHEST_IMAGES.immortal, CHEST_IMAGES.gift, CHEST_URL];
   ITEMS.forEach(it => allImgs.push(CDN + it.id + ".png"));
   ITEMS.forEach(it => { if(it.alts) it.alts.forEach(a => allImgs.push(CDN + a)); });
   ACHIEVEMENTS.forEach(a => { if(a.img && a.img !== SHARD_URL) allImgs.push(a.img); });
+  GIFT_ITEMS.forEach(id => allImgs.push(GIFT_CDN + id + ".png"));
+  allImgs.push(GIFT_CDN + "gift_case.png");
 
   const auds = [];
-  if (MUSIC_URL) auds.push(music);
-  if (SOUND_CASE) auds.push(tickAudio);
-  if (SOUND_SELL) auds.push(sellAudio);
-  Object.values(multiAudios).forEach(a => { if(a) auds.push(a); });
-  if (achieveAudio) auds.push(achieveAudio);
+  if (MUSIC_URL) auds.push(music); if (SOUND_CASE) auds.push(tickAudio); if (SOUND_SELL) auds.push(sellAudio);
+  Object.values(multiAudios).forEach(a => { if(a) auds.push(a); }); if (achieveAudio) auds.push(achieveAudio);
 
-  const total = allImgs.length + auds.length;
-  let loaded = 0;
-  let ready = false;
-
+  const total = allImgs.length + auds.length; let loaded = 0, ready = false;
   function bump(){
-    loaded++;
-    $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total}`;
-    if (loaded >= total && !ready){
-      ready = true;
-      btn.disabled = false;
-      btn.textContent = "ВОЙТИ";
-    }
+    loaded++; $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total}`;
+    if (loaded >= total && !ready){ ready = true; btn.disabled = false; btn.textContent = "ВОЙТИ"; }
   }
-
-  allImgs.forEach(u => {
-    const im = new Image();
-    im.onload = bump;
-    im.onerror = bump;
-    im.src = u;
-  });
-  auds.forEach(a => {
-    let d=false;
-    const fin=()=>{ if(d)return; d=true; bump(); };
-    a.preload="auto";
-    a.oncanplaythrough=fin;
-    a.onerror=fin;
-    try{ a.load(); }catch(e){ fin(); }
-  });
-
-  setTimeout(() => {
-    if (!ready){ $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; }
-  }, 15000);
+  allImgs.forEach(u => { const im = new Image(); im.onload = bump; im.onerror = bump; im.src = u; });
+  auds.forEach(a => { let d=false; const fin=()=>{ if(d)return; d=true; bump(); }; a.preload="auto"; a.oncanplaythrough=fin; a.onerror=fin; try{ a.load(); }catch(e){ fin(); } });
+  setTimeout(() => { if (!ready){ $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; } }, 15000);
 
   btn.onclick = () => {
     if (btn.disabled) return;
-    if (musicOn) {
-      music.play().then(() => {
-        localStorage.setItem("dotaDrop_music","1");
-        drawMusicBtn();
-      }).catch(()=>{});
-    }
-
+    if (musicOn) { music.play().then(() => { localStorage.setItem("dotaDrop_music","1"); drawMusicBtn(); }).catch(()=>{}); }
     orbit.classList.add("dying");
-    const rect = pr.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
+    const rect = pr.getBoundingClientRect(), cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
     shards.forEach((s, i) => {
-      const sr = s.getBoundingClientRect();
-      const sx = sr.left + sr.width/2;
-      const sy = sr.top + sr.height/2;
-      const dx = cx - sx;
-      const dy = cy - sy;
-      s.style.transform = `translate(${dx}px, ${dy}px) scale(0.2)`;
-      s.classList.add("fly");
+      const sr = s.getBoundingClientRect(), sx = sr.left + sr.width/2, sy = sr.top + sr.height/2;
+      s.style.transform = `translate(${cx - sx}px, ${cy - sy}px) scale(0.2)`; s.classList.add("fly");
     });
     chest.classList.add("glow");
-
-    setTimeout(() => {
-      pr.classList.add("done");
-      setTimeout(() => { pr.classList.add("gone"); pr.remove(); }, 500);
-      syncWithServer();
-    }, 1000);
+    setTimeout(() => { pr.classList.add("done"); setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); }, 500); }, 1000);
   };
 })();
 </script>
