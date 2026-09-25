@@ -324,6 +324,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <div class="ban-emoji">🚫</div>
     <div class="ban-title">Вы заблокированы</div>
     <div class="ban-reason" id="banReason"></div>
+    <button class="btn pur big" id="banPayBtn" style="display:none;margin-bottom:10px"></button>
     <div class="hint">Обратитесь к администратору</div>
   </div>
 </div>
@@ -506,6 +507,26 @@ function buyGiftCase(){
   fetch(`${API_URL}/create_invoice?user_id=${uid}&stars=25&gift_case=1`)
     .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
+      window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
+        if(status === "paid"){
+          toast("Оплата отправлена, подтверждаю...");
+          setTimeout(syncWithServer, 2500);
+          setTimeout(syncWithServer, 7000);
+        }
+        else if(status === "cancelled"){ toast("Оплата отменена"); }
+        else if(status === "failed"){ toast("Ошибка оплаты"); }
+      });
+    }).catch(()=> toast("Нет связи с сервером"));
+}
+
+// НОВОЕ: оплата разбана прямо из экрана блокировки
+function payUnban(price){
+  const uid = tgUserId();
+  if(!uid){ toast("Открой игру через Telegram!"); return; }
+  toast("Создаю счёт на разбан...");
+  fetch(`${API_URL}/create_unban_invoice?user_id=${uid}`)
+    .then(r => r.json()).then(j => {
+      if(!j.invoice_link){ toast("Ошибка: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
         if(status === "paid"){
           toast("Оплата отправлена, подтверждаю...");
@@ -999,10 +1020,20 @@ async function syncWithServer(){
     const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(S.name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
     if(j.banned){
-      $("#banReason").textContent = (j.reason || "Не указана") + (j.ban_price > 0 ? ` · Цена разбана: ${j.ban_price} ⭐` : "");
+      const bp = parseInt(j.ban_price) || 0;
+      $("#banReason").textContent = (j.reason || "Не указана") + (bp > 0 ? ` · Цена разбана: ${bp} ⭐` : "");
+      const payBtn = $("#banPayBtn");
+      if(bp > 0){
+        payBtn.style.display = "";
+        payBtn.textContent = `💳 Оплатить разбан: ${bp} ⭐`;
+        payBtn.onclick = () => payUnban(bp);
+      } else {
+        payBtn.style.display = "none";
+      }
       $("#banOverlay").hidden = false;
       return;
     }
+    $("#banOverlay").hidden = true;
     if(j.grants && j.grants.length) showGrants(j.grants);
   } catch(e){ console.log("Sync error:", e); }
 }
