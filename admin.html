@@ -22,6 +22,8 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);bac
 .tab.active{background:var(--panel2);color:var(--gold);border-color:var(--gold)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .card h2{font-size:15px;margin-bottom:10px;color:var(--gold)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-header h2{margin:0}
 .row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
 .row > *{flex:1}
 input,select,textarea{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px;font-size:14px;width:100%;font-family:inherit}
@@ -32,6 +34,7 @@ input,select,textarea{background:#0d1a12;border:1px solid var(--line);border-rad
 .btn.blue{background:var(--blue);color:#fff}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:#cfe8cf}
 .btn.sm{padding:6px 10px;font-size:11px}
+.btn:disabled{opacity:.5;cursor:default}
 .btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .btn-row .btn{flex:1;min-width:70px}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -100,6 +103,9 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 .field-with-select .btn{flex:0 0 auto;padding:10px 12px}
 
 .section-divider{margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.refreshing{display:inline-block;animation:spin 1s linear infinite}
 </style>
 </head>
 <body>
@@ -126,7 +132,10 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 </div>
 
 <div class="card tab-pane" data-pane="players">
-  <h2>Список игроков</h2>
+  <div class="card-header">
+    <h2>Список игроков</h2>
+    <button class="btn ghost" id="refreshBtn" onclick="refreshAllData()" style="padding:8px 14px;font-size:13px">🔄 Обновить</button>
+  </div>
   <div class="search-box">
     <input id="playerSearch" placeholder="🔍 Поиск по ID, имени или username..." oninput="filterPlayers()">
   </div>
@@ -166,7 +175,7 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   </div>
   
   <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
-    <h2 style="color:var(--red)">️ Аннулировать всё</h2>
+    <h2 style="color:var(--red)">⚠️ Аннулировать всё</h2>
     <div class="hint" style="margin-bottom:8px">
       Если выбрано "Осколки" — обнулит баланс игрока до 0.<br>
       Если выбрано "Предметы" — очистит весь инвентарь игрока.
@@ -210,23 +219,23 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
     </div>
     <div class="gift-temp" onclick="setGift('5170233102089322756')">
       <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_teddy.png" alt="">
-      <div class="gn"> Мишка</div>
+      <div class="gn">🧸 Мишка</div>
       <div class="gp">15 ⭐</div>
     </div>
     <div class="gift-temp" onclick="setGift('5170250947678437525')">
       <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_box.png" alt="">
       <div class="gn">🎁 Подарок</div>
-      <div class="gp">25 </div>
+      <div class="gp">25 ⭐</div>
     </div>
     <div class="gift-temp" onclick="setGift('5168103777563050263')">
       <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_rose.png" alt="">
-      <div class="gn"> Роза</div>
+      <div class="gn">🌹 Роза</div>
       <div class="gp">25 ⭐</div>
     </div>
     <div class="gift-temp" onclick="setGift('5170144170496491616')">
       <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_cake.png" alt="">
       <div class="gn">🎂 Торт</div>
-      <div class="gp">50 </div>
+      <div class="gp">50 ⭐</div>
     </div>
     <div class="gift-temp" onclick="setGift('5170314324215857265')">
       <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_bouquet.png" alt="">
@@ -266,15 +275,15 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div class="row">
     <div class="field-with-select" style="flex:1">
       <input id="mUid" type="number" placeholder="ID игрока">
-      <button class="btn ghost" onclick="openPlayerSelector('mUid')"></button>
+      <button class="btn ghost" onclick="openPlayerSelector('mUid')">👥</button>
     </div>
   </div>
   <textarea id="mText" rows="3" placeholder="Текст сообщения"></textarea>
-  <button class="btn pur" onclick="sendOne()" style="margin-top:8px">ОТПРАВИТЬ</button>
+  <button class="btn pur" onclick="sendOne()" style="margin-top:8px;width:100%">ОТПРАВИТЬ</button>
   <hr style="margin:16px 0;border-color:var(--line)">
   <h2>Рассылка всем</h2>
   <textarea id="bText" rows="3" placeholder="Текст для всех игроков"></textarea>
-  <button class="btn red" onclick="broadcast()" style="margin-top:8px">РАЗослать ВСЕМ</button>
+  <button class="btn red" onclick="broadcast()" style="margin-top:8px;width:100%">РАЗослать ВСЕМ</button>
 </div>
 
 <!-- Пикер предметов -->
@@ -284,7 +293,7 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
       <h3>Выбери предмет</h3>
       <button class="picker-close" onclick="closeItemPicker()">✕</button>
     </div>
-    <input id="pickerSearch" placeholder=" Поиск предмета..." oninput="filterItems()">
+    <input id="pickerSearch" placeholder="🔍 Поиск предмета..." oninput="filterItems()">
     <div class="picker-list" id="pickerList"></div>
   </div>
 </div>
@@ -305,7 +314,7 @@ th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   <div class="modal-box">
     <div class="modal-header">
       <h3 id="invModalTitle">Инвентарь игрока</h3>
-      <button class="modal-close" onclick="closeInventoryModal()"></button>
+      <button class="modal-close" onclick="closeInventoryModal()">✕</button>
     </div>
     <div id="invModalContent">Загрузка…</div>
   </div>
@@ -386,7 +395,7 @@ async function api(path, body){
     });
     const j = await r.json();
     if (j.error === "forbidden") {
-      document.body.innerHTML = '<div class="card"><h2> Доступ только для администратора</h2></div>';
+      document.body.innerHTML = '<div class="card"><h2>⛔ Доступ только для администратора</h2></div>';
       throw new Error("forbidden");
     }
     return j;
@@ -403,9 +412,30 @@ document.querySelectorAll(".tab").forEach(t => {
     t.classList.add("active");
     document.querySelectorAll(".tab-pane").forEach(p=>p.style.display="none");
     document.querySelector(`[data-pane="${t.dataset.tab}"]`).style.display = "";
-    if(t.dataset.tab === "players") loadStats();
   };
 });
+
+// НОВОЕ: кнопка обновления всех данных без перезагрузки страницы
+window.refreshAllData = async () => {
+  const btn = document.getElementById("refreshBtn");
+  const oldHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="refreshing">🔄</span> Обновление...';
+  try {
+    await Promise.all([
+      loadStats(),
+      loadPlayers(),
+      loadPromos(),
+      loadPayments(),
+      loadBotBalance()
+    ]);
+    toast("✅ Данные обновлены");
+  } catch(e) {
+    toast("Ошибка обновления");
+  }
+  btn.disabled = false;
+  btn.innerHTML = oldHtml;
+};
 
 // Смена типа выдачи
 document.getElementById("gType").onchange = e => {
@@ -435,8 +465,8 @@ const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react
 const GIFT_CDN = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/";
 
 const GIFT_NAMES = {
-  "gift_heart":"💝 Сердечко","gift_teddy":"🧸 Мишка","gift_box":" Подарок",
-  "gift_rose":"🌹 Роза","gift_cake":" Торт","gift_bouquet":"💐 Букет","gift_case":"🎁 Подарочный кейс"
+  "gift_heart":"💝 Сердечко","gift_teddy":"🧸 Мишка","gift_box":"🎁 Подарок",
+  "gift_rose":"🌹 Роза","gift_cake":"🎂 Торт","gift_bouquet":"💐 Букет","gift_case":"🎁 Подарочный кейс"
 };
 
 const ITEMS = [
@@ -526,7 +556,6 @@ window.filterItems = () => {
   renderPickerList(filtered);
 };
 function renderPickerList(list){
-  // Сначала подарки и кейс
   const giftKeys = Object.keys(GIFT_NAMES);
   const giftHtml = giftKeys.map(key => {
     const name = GIFT_NAMES[key];
@@ -539,7 +568,6 @@ function renderPickerList(list){
     </div>`;
   }).join("");
   
-  // Потом обычные предметы
   const itemsHtml = list.map(it => `
     <div class="pick-row" onclick="selectItem('${escapeHtml(it.id)}','${escapeHtml(it.n)}')">
       <img src="${CDN}${it.id}.png" alt="${escapeHtml(it.n)}" onerror="this.style.visibility='hidden'">
@@ -550,7 +578,7 @@ function renderPickerList(list){
   
   document.getElementById("pickerList").innerHTML = 
     `<div class="section-divider">🎁 Подарки и кейсы</div>${giftHtml}` +
-    `<div class="section-divider">️ Предметы Dota 2</div>${itemsHtml || '<div class="empty">Ничего не найдено</div>'}`;
+    `<div class="section-divider">⚔️ Предметы Dota 2</div>${itemsHtml || '<div class="empty">Ничего не найдено</div>'}`;
 }
 window.selectItem = (id, name) => {
   document.getElementById("gItem").value = id;
@@ -649,7 +677,7 @@ window.showInventory = async (uid) => {
     content.innerHTML = items.map(([itemId, count]) => {
       const isGift = itemId in GIFT_NAMES || itemId === "gift_case";
       const name = isGift ? (GIFT_NAMES[itemId] || itemId) : itemId;
-      const src = isGift ? `${GIFT_CDN}${itemId}.png` : `${CDN}${itemId}.png`;
+      const src = isGift ? `${GIFT_CDN}${itemId === "gift_case" ? "gift_chest" : itemId}.png` : `${CDN}${itemId}.png`;
       return `<div class="inv-item">
         <img src="${src}" alt="${escapeHtml(name)}" onerror="this.style.visibility='hidden'">
         <span class="in">${escapeHtml(name)}</span>
