@@ -392,7 +392,7 @@ const CHESTS = [
 
 const GIFT_ITEMS = ["gift_heart", "gift_teddy", "gift_box", "gift_rose", "gift_cake", "gift_bouquet"];
 const GIFT_NAMES = {
-  "gift_heart": "💝 Сердечко", "gift_teddy": " Мишка", "gift_box": "🎁 Подарок",
+  "gift_heart": "💝 Сердечко", "gift_teddy": "🧸 Мишка", "gift_box": "🎁 Подарок",
   "gift_rose": "🌹 Роза", "gift_cake": "🎂 Торт", "gift_bouquet": "💐 Букет", "gift_case": "🎁 Подарочный кейс"
 };
 
@@ -490,7 +490,7 @@ function buyInvoice(stars, coins){
     .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){ S.coins += coins; save(); balance(); renderChests(); slotDraw(); toast(`+${coins} осколков за ${stars} !`); }
+        if(status === "paid"){ S.coins += coins; save(); balance(); renderChests(); slotDraw(); toast(`+${coins} осколков за ${stars} ⭐!`); }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
@@ -899,7 +899,7 @@ function renderInv(){
     if(!it) return "";
     let btns = "";
     if(isCase) { btns = `<button class="btn pur" onclick="openCaseView('gift_case'); document.getElementById('caseView').hidden=false;">ОТКРЫТЬ</button>`; } 
-    else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')"> ПОЛУЧИТЬ</button>`; } 
+    else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')">🎁 ПОЛУЧИТЬ</button>`; } 
     else { btns = `<button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button><button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button>`; }
     return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
   }).join("") || '<div class="hint">Пусто — открой кейс</div>'; 
@@ -970,15 +970,45 @@ function showGrants(grants){
   const list = $("#grantsList"), title = $("#grantsTitle"), emoji = document.querySelector(".grants-emoji");
   let hasNormalGrants = false, html = "";
   grants.forEach(g => {
-    if(g.type === "coins" && g.amount > 0){ hasNormalGrants = true; html += `<div class="grant-item"><div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; S.coins += g.amount; }
-    else if(g.type === "coins" && g.amount < 0){ hasNormalGrants = true; const absAmount = Math.abs(g.amount), actualDeduction = Math.min(S.coins, absAmount); S.coins = Math.max(0, S.coins - absAmount); html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">Списание осколков</div><div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`; }
-    else if(g.type === "item"){ hasNormalGrants = true; const it = itemById(g.item_id); html += `<div class="grant-item"><div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; if(it) addInv(it.id); }
-    else if(g.type === "clear_coins"){ const oldCoins = S.coins; S.coins = 0; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
-    else if(g.type === "clear_items"){ const itemCount = Object.keys(S.inv).length; S.inv = {}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div><div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
-    else if(g.type === "reset"){ S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; }
+    if(g.type === "coins" && g.amount > 0){ 
+      hasNormalGrants = true; 
+      html += `<div class="grant-item"><div class="gi-type">Осколки</div><div class="gi-amount">+${g.amount}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`; 
+      S.coins += g.amount; 
+    }
+    else if(g.type === "coins" && g.amount < 0){ 
+      hasNormalGrants = true; 
+      const absAmount = Math.abs(g.amount), actualDeduction = Math.min(S.coins, absAmount); 
+      S.coins = Math.max(0, S.coins - absAmount); 
+      html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">Списание осколков</div><div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`; 
+    }
+    else if(g.type === "item"){
+      hasNormalGrants = true;
+      // ИСПРАВЛЕНИЕ: Проверяем, является ли предмет подарком или кейсом
+      const isGiftItem = GIFT_ITEMS.includes(g.item_id) || g.item_id === "gift_case";
+      const it = isGiftItem ? { id: g.item_id, n: GIFT_NAMES[g.item_id] || "Подарочный кейс" } : itemById(g.item_id);
+      
+      html += `<div class="grant-item"><div class="gi-type">Предмет</div><div class="gi-amount">${it ? it.n : g.item_id}</div>${g.reason ? `<div class="gi-reason">От: Админ · Причина: "${g.reason}"</div>` : ""}</div>`;
+      if(it) addInv(it.id); // Теперь это корректно добавит gift_case или gift_heart в инвентарь!
+    }
+    else if(g.type === "clear_coins"){ 
+      const oldCoins = S.coins; S.coins = 0; 
+      html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Баланс обнулён</div><div class="gi-amount" style="color:var(--red)">-${oldCoins} осколков</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
+    }
+    else if(g.type === "clear_items"){ 
+      const itemCount = Object.keys(S.inv).length; S.inv = {}; 
+      html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">⚠️ Инвентарь очищен</div><div class="gi-amount" style="color:var(--red)">-${itemCount} предметов</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
+    }
+    else if(g.type === "reset"){ 
+      S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; 
+      html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
+    }
   });
-  if(!hasNormalGrants){ if(html){ title.textContent = "Административные действия"; emoji.textContent = "⚠️"; } else return; } 
-  else { title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; }
+  if(!hasNormalGrants){ 
+    if(html){ title.textContent = "Административные действия"; emoji.textContent = "⚠️"; } 
+    else return; 
+  } else { 
+    title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; 
+  }
   list.innerHTML = html; save(); balance(); renderInv(); $("#grantsOverlay").hidden = false;
 }
 $("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
