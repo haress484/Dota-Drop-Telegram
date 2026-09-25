@@ -4,6 +4,7 @@ import os
 import hmac
 import hashlib
 import logging
+import random
 from datetime import datetime, timezone
 from urllib.parse import parse_qsl
 
@@ -35,10 +36,19 @@ dp = Dispatcher()
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
-# ================= FSM СОСТОЯНИЯ ДЛЯ ОТПРАВКИ ПОДАРКОВ =================
+# ================= ПОДАРКИ =================
+GIFT_CATALOG = {
+    "gift_heart": {"id": "5170145012310081615", "price": 15, "name": "💝 Сердечко"},
+    "gift_teddy": {"id": "5170233102089322756", "price": 15, "name": " Мишка"},
+    "gift_box":   {"id": "5170250947678437525", "price": 25, "name": " Подарок"},
+    "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
+    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
+    "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
+}
+
+# ================= FSM СОСТОЯНИЯ =================
 class GiftSendStates(StatesGroup):
     waiting_user_id = State()
-    waiting_gift_id = State()
     confirming = State()
 
 # ================= SUPABASE =================
@@ -201,7 +211,7 @@ async def cb_admin_gift(cb: CallbackQuery, state: FSMContext):
         return
     
     await cb.message.edit_text(
-        "🎁 <b>Отправка подарка</b>\n\n"
+        " <b>Отправка подарка</b>\n\n"
         "Введите <b>ID пользователя</b> (число), которому хотите отправить подарок:",
         parse_mode="HTML"
     )
@@ -222,29 +232,43 @@ async def process_user_id(message: Message, state: FSMContext):
         return
     
     await state.update_data(user_id=user_id)
+    
+    # Формируем кнопки с подарками
+    kb = InlineKeyboardMarkup(inline_keyboard=[])
+    row = []
+    for key, val in GIFT_CATALOG.items():
+        row.append(InlineKeyboardButton(text=f"{val['name']} ({val['price']}⭐)", callback_data=f"select_gift_{key}"))
+        if len(row) == 2:
+            kb.inline_keyboard.append(row)
+            row = []
+    if row:
+        kb.inline_keyboard.append(row)
+    kb.inline_keyboard.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_gift")])
+    
     await message.answer(
         f"✅ ID получателя: <code>{user_id}</code>\n\n"
-        f"Теперь введите <b>ID подарка</b> (число):",
-        parse_mode="HTML"
+        f"Теперь выберите подарок:",
+        parse_mode="HTML",
+        reply_markup=kb
     )
-    await state.set_state(GiftSendStates.waiting_gift_id)
+    await state.set_state(GiftSendStates.confirming)
 
-@dp.message(GiftSendStates.waiting_gift_id)
-async def process_gift_id(message: Message, state: FSMContext):
-    if message.from_user.id != OWNER_ID:
+@dp.callback_query(F.data.startswith("select_gift_"), GiftSendStates.confirming)
+async def select_gift(cb: CallbackQuery, state: FSMContext):
+    if cb.from_user.id != OWNER_ID:
+        await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
     
-    try:
-        gift_id = str(message.text.strip())
-        if not gift_id.isdigit():
-            raise ValueError("ID должен быть числом")
-    except Exception:
-        await message.answer("❌ Неверный ID подарка. Введите числовой ID:")
+    gift_key = cb.data.replace("select_gift_", "")
+    gift = GIFT_CATALOG.get(gift_key)
+    if not gift:
+        await cb.answer("❌ Подарок не найден", show_alert=True)
         return
     
     data = await state.get_data()
     user_id = data.get("user_id")
     
+    # Проверка баланса бота
     rows = await db.select("meta", "?key=eq.bot_stars")
     cur = 0
     if rows:
@@ -253,72 +277,24 @@ async def process_gift_id(message: Message, state: FSMContext):
         except Exception:
             pass
     
-    try:
-        gifts = await bot.get_available_gifts()
-        price = next((g.star_count for g in gifts.gifts if str(g.id) == gift_id), None)
-    except Exception as e:
-        await message.answer(f"❌ Ошибка получения списка подарков: {e}")
-        await state.clear()
+    if cur < gift["price"]:
+        await cb.answer(f"❌ Недостаточно звёзд! Нужно {gift['price']}, есть {cur}", show_alert=True)
         return
-    
-    if price is None:
-        await message.answer(f"❌ Подарок с ID <code>{gift_id}</code> не найден в списке доступных.", parse_mode="HTML")
-        await state.clear()
-        return
-    
-    await state.update_data(gift_id=gift_id, price=price)
-    
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Подтвердить", callback_data="confirm_gift")],
-        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_gift")]
-    ])
-    
-    await message.answer(
-        f"📋 <b>Подтверждение отправки</b>\n\n"
-        f"👤 Получатель: <code>{user_id}</code>\n"
-        f"🎁 Подарок ID: <code>{gift_id}</code>\n"
-        f"💰 Стоимость: <b>{price} ⭐</b>\n"
-        f"💳 Баланс бота: <b>{cur} ⭐</b>\n\n"
-        f"{'⚠️ <b>Недостаточно звёзд на балансе!</b>' if cur < price else '✅ Звёзд достаточно'}",
-        parse_mode="HTML",
-        reply_markup=kb
-    )
-    await state.set_state(GiftSendStates.confirming)
 
-@dp.callback_query(F.data == "confirm_gift", GiftSendStates.confirming)
-async def confirm_gift(cb: CallbackQuery, state: FSMContext):
-    if cb.from_user.id != OWNER_ID:
-        await cb.answer("⛔ Доступ запрещён", show_alert=True)
-        return
-    
-    data = await state.get_data()
-    user_id = int(data.get("user_id"))  # ← Явно конвертируем в int
-    gift_id = str(data.get("gift_id"))  # ← Явно конвертируем в строку
-    price = int(data.get("price"))
-    
     await cb.message.edit_text("⏳ Отправка подарка...")
     
     try:
-        # Передаём gift_id как строку
-        await bot.send_gift(user_id=user_id, gift_id=gift_id)
+        await bot.send_gift(user_id=user_id, gift_id=gift["id"])
         
         # Списываем звёзды с баланса бота
-        rows = await db.select("meta", "?key=eq.bot_stars")
-        cur = 0
-        if rows:
-            try:
-                cur = int(rows[0].get("value"))
-            except Exception:
-                pass
-        
-        new_balance = max(0, cur - price)
+        new_balance = cur - gift["price"]
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
         
         await cb.message.edit_text(
             f"✅ <b>Подарок успешно отправлен!</b>\n\n"
             f"👤 Получатель: <code>{user_id}</code>\n"
-            f"🎁 Подарок ID: <code>{gift_id}</code>\n"
-            f"💰 Списано: <b>{price} ⭐</b>\n"
+            f" {gift['name']}\n"
+            f"💰 Списано: <b>{gift['price']} ⭐</b>\n"
             f"💳 Новый баланс бота: <b>{new_balance} ⭐</b>",
             parse_mode="HTML"
         )
@@ -330,7 +306,7 @@ async def confirm_gift(cb: CallbackQuery, state: FSMContext):
             f"Возможно, недостаточно звёзд на балансе бота.",
             parse_mode="HTML"
         )
-        print(f"🚨 Gift send error: user_id={user_id}, gift_id={gift_id}, error={error_msg}")
+        print(f"🚨 Gift send error: user_id={user_id}, gift_id={gift['id']}, error={error_msg}")
     
     await state.clear()
 
@@ -374,7 +350,14 @@ async def on_payment(message: Message):
         await message.answer(f"✅ Баланс бота пополнен на {add} ⭐")
         return
 
-    # 2. Обычное пополнение осколков
+    # 2. Платный разбан
+    if payload.startswith("unban_"):
+        target_uid = int(payload.split("_")[1])
+        await db.delete("bans", f"?user_id=eq.{target_uid}")
+        await message.answer("✅ Вы успешно разбанены! Добро пожаловать обратно.")
+        return
+
+    # 3. Обычное пополнение осколков
     if payload.startswith("topup_"):
         coins = {1: 100, 10: 1000, 20: 2000, 30: 5000}.get(stars, stars * 100)
         
@@ -389,7 +372,7 @@ async def on_payment(message: Message):
         await message.answer(f"✅ Оплата {stars} ⭐ прошла! Осколки уже в игре.")
         return
 
-    # 3. Подарочный кейс (с защитой)
+    # 4. Подарочный кейс (с защитой)
     if payload.startswith("gift_case_"):
         try:
             parts = payload.split("_")
@@ -398,15 +381,22 @@ async def on_payment(message: Message):
             
             p_user_id = int(parts[1])
             p_stars = int(parts[2])
-            gift_id = parts[3]
+            gift_key = parts[3]
 
             if p_user_id != user_id or p_stars != stars:
                 await message.answer("⚠️ Ошибка: несовпадение данных платежа.")
                 return
 
+            if gift_key not in GIFT_CATALOG:
+                await message.answer("⚠️ Ошибка: неверный подарок.")
+                return
+
+            gift_data = GIFT_CATALOG[gift_key]
+
             try:
-                await bot.send_gift(user_id=p_user_id, gift_id=gift_id)
+                await bot.send_gift(user_id=p_user_id, gift_id=gift_data["id"])
                 
+                # Начисляем награду за кейс
                 await db.insert("grants", [{
                     "user_id": user_id,
                     "type": "coins",
@@ -414,7 +404,7 @@ async def on_payment(message: Message):
                     "reason": "Награда за подарочный кейс"
                 }])
                 
-                await message.answer("🎉 Поздравляем! Подарок успешно отправлен тебе в чат, а также начислено 500 осколков!")
+                await message.answer(f"🎉 Поздравляем! Подарок '{gift_data['name']}' успешно отправлен тебе в чат, а также начислено 500 осколков!")
                 
             except Exception as gift_error:
                 print(f"🚨 FRAUD/ERROR DETECTED: user_id={user_id}, error={gift_error}")
@@ -428,7 +418,7 @@ async def on_payment(message: Message):
 
         except Exception as e:
             print(f"Gift case payment error: {e}")
-            await message.answer("⚠️ Произошла техническая ошибка при обработке платежа.")
+            await message.answer("️ Произошла техническая ошибка при обработке платежа.")
         return
 
 # ================= ВЕБ-СЕРВЕР =================
@@ -449,24 +439,6 @@ async def cors_middleware(request, handler):
 def json_resp(data, status=200):
     return web.json_response(data, status=status)
 
-# ---- создание счёта на звёзды ----
-async def handle_create_invoice(request):
-    uid = request.query.get("user_id")
-    stars = int(request.query.get("stars", 10))
-    if not uid:
-        return json_resp({"error": "No user_id"}, 400)
-    coins = {1: 100, 10: 1000, 20: 2000, 30: 5000}.get(stars, stars * 100)
-    try:
-        link = await bot.create_invoice_link(
-            title="Пополнение Dota Drop",
-            description=f"{coins} осколков за {stars} Stars",
-            payload=f"topup_{uid}_{stars}",
-            currency="XTR",
-            prices=[LabeledPrice(label="Пополнение", amount=stars)])
-        return json_resp({"invoice_link": link})
-    except Exception as e:
-        return json_resp({"error": str(e)}, 500)
-
 # ---- синхронизация страницы ----
 async def handle_sync(request):
     uid = request.query.get("user_id")
@@ -476,7 +448,11 @@ async def handle_sync(request):
     
     banned = await db.select("bans", f"?user_id=eq.{uid}")
     if banned:
-        return json_resp({"banned": True, "reason": banned[0].get("reason")})
+        return json_resp({
+            "banned": True, 
+            "reason": banned[0].get("reason"),
+            "ban_price": banned[0].get("ban_price", 0)
+        })
     
     grants = await db.select("grants", f"?user_id=eq.{uid}&consumed=eq.false&order=created_at.asc")
     
@@ -673,7 +649,8 @@ async def handle_admin(request):
     if path == "/admin/ban":
         await db.upsert("bans", [{
             "user_id": int(data["user_id"]),
-            "reason": data.get("reason") or None
+            "reason": data.get("reason") or None,
+            "ban_price": int(data.get("ban_price", 0))
         }])
         return json_resp({"ok": True})
 
@@ -771,7 +748,7 @@ async def handle_admin(request):
 
     if path == "/admin/send_gift":
         user_id = int(data.get("user_id", 0))
-        gift_id = str(data.get("gift_id"))  # ← ИСПРАВЛЕНО: конвертируем в строку
+        gift_id = str(data.get("gift_id"))
         
         if not user_id or not gift_id or gift_id == "None":
             return json_resp({"ok": False, "error": "bad request"})
@@ -803,26 +780,135 @@ async def handle_admin(request):
         await db.upsert("meta", [{"key": "bot_stars", "value": cur - price}])
         return json_resp({"ok": True, "new_balance": cur - price})
 
+    # ---- Эндпоинты для подарочного кейса ----
+    if path == "/open_gift_case_inv":
+        uid = int(request.query.get("user_id", 0))
+        if not uid:
+            return json_resp({"error": "no user_id"})
+        
+        players = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+        if not players:
+            return json_resp({"error": "player not found"})
+        
+        stats = players[0].get("stats") or {}
+        inv = stats.get("inventory", {})
+        
+        # Проверяем наличие кейса в инвентаре
+        if inv.get("gift_case", 0) < 1:
+            return json_resp({"error": "Нет подарочного кейса в инвентаре"})
+        
+        # Списываем кейс
+        inv["gift_case"] -= 1
+        if inv["gift_case"] <= 0:
+            del inv["gift_case"]
+        
+        # Логика гарантов (скрытая pity-система)
+        opened = stats.get("gift_cases_opened", 0)
+        cycle = opened % 5
+        
+        if cycle == 0 or cycle == 1 or cycle == 3:
+            # Дешёвые подарки (15⭐)
+            drop = random.choice(["gift_heart", "gift_teddy"])
+        elif cycle == 2:
+            # Средние подарки (25⭐)
+            drop = random.choice(["gift_box", "gift_rose"])
+        else:  # cycle == 4
+            # Дорогие подарки (50⭐)
+            drop = random.choice(["gift_cake", "gift_bouquet"])
+        
+        # Добавляем подарок в инвентарь
+        inv[drop] = inv.get(drop, 0) + 1
+        stats["inventory"] = inv
+        stats["gift_cases_opened"] = opened + 1
+        
+        await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
+        return json_resp({"ok": True, "drop": drop})
+
+    if path == "/claim_gift_inv":
+        try:
+            d = await request.json()
+        except Exception:
+            return json_resp({"ok": False, "error": "bad request"})
+        
+        uid = int(d.get("user_id", 0))
+        gift_key = d.get("gift_id")
+        
+        if not uid or not gift_key:
+            return json_resp({"ok": False, "error": "bad request"})
+        
+        if gift_key not in GIFT_CATALOG:
+            return json_resp({"ok": False, "error": "Неверный подарок"})
+        
+        players = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+        if not players:
+            return json_resp({"ok": False, "error": "player not found"})
+        
+        stats = players[0].get("stats") or {}
+        inv = stats.get("inventory", {})
+        
+        # Проверяем наличие подарка в инвентаре
+        if inv.get(gift_key, 0) < 1:
+            return json_resp({"ok": False, "error": "Нет подарка в инвентаре"})
+        
+        gift_data = GIFT_CATALOG[gift_key]
+        
+        # Проверка баланса бота перед отправкой
+        rows = await db.select("meta", "?key=eq.bot_stars")
+        cur = 0
+        if rows:
+            try:
+                cur = int(rows[0].get("value"))
+            except Exception:
+                pass
+        
+        if cur < gift_data["price"]:
+            return json_resp({
+                "ok": False, 
+                "error": f"У бота недостаточно звёзд ({cur} < {gift_data['price']}). Напишите админу."
+            })
+        
+        try:
+            # Отправляем подарок
+            await bot.send_gift(user_id=uid, gift_id=gift_data["id"])
+            
+            # Успех: списываем предмет и звёзды
+            inv[gift_key] -= 1
+            if inv[gift_key] <= 0:
+                del inv[gift_key]
+            stats["inventory"] = inv
+            await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
+            await db.upsert("meta", [{"key": "bot_stars", "value": cur - gift_data["price"]}])
+            
+            return json_resp({"ok": True})
+        except Exception as e:
+            error_msg = str(e)
+            print(f"🚨 Claim gift error: user_id={uid}, gift_key={gift_key}, error={error_msg}")
+            return json_resp({"ok": False, "error": error_msg})
+
     return json_resp({"error": "unknown path"}, 404)
 
-# ---- тестовый эндпоинт ----
-async def handle_dbtest(request):
-    sel = await db.select("players", "?limit=1")
-    up = await db.upsert("meta", [{"key": "dbtest", "value": {"t": now_iso()}}])
-    back = await db.select("meta", "?key=eq.dbtest")
-    return json_resp({
-        "url_set": bool(SUPABASE_URL),
-        "key_set": bool(SUPABASE_KEY),
-        "select_players": sel,
-        "upsert_meta": up,
-        "read_back": back
-    })
+# ---- создание счёта на звёзды ----
+async def handle_create_invoice(request):
+    uid = request.query.get("user_id")
+    stars = int(request.query.get("stars", 10))
+    if not uid:
+        return json_resp({"error": "No user_id"}, 400)
+    coins = {1: 100, 10: 1000, 20: 2000, 30: 5000}.get(stars, stars * 100)
+    try:
+        link = await bot.create_invoice_link(
+            title="Пополнение Dota Drop",
+            description=f"{coins} осколков за {stars} Stars",
+            payload=f"topup_{uid}_{stars}",
+            currency="XTR",
+            prices=[LabeledPrice(label="Пополнение", amount=stars)])
+        return json_resp({"invoice_link": link})
+    except Exception as e:
+        return json_resp({"error": str(e)}, 500)
 
 async def start_web_server():
     app = web.Application(middlewares=[cors_middleware])
     
     app.router.add_get("/create_invoice", handle_create_invoice)
-    app.router.add_get("/dbtest", handle_dbtest)
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/promo", handle_promo)
     
@@ -833,7 +919,8 @@ async def start_web_server():
         "/admin/send", "/admin/broadcast",
         "/admin/promo_create", "/admin/promo_list", "/admin/promo_delete",
         "/admin/bot_balance", "/admin/topup_bot",
-        "/admin/available_gifts", "/admin/send_gift"
+        "/admin/available_gifts", "/admin/send_gift",
+        "/open_gift_case_inv", "/claim_gift_inv"
     ]
     for p in admin_paths:
         app.router.add_route("*", p, handle_admin)
@@ -849,7 +936,7 @@ async def start_web_server():
 async def main():
     print("🚀 Запуск...")
     asyncio.create_task(start_web_server())
-    print("🤖 Бот запущен и ожидает команды!")
+    print(" Бот запущен и ожидает команды!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
