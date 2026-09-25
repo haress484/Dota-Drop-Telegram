@@ -117,7 +117,7 @@ async def merge_player_stats(uid, patch):
 
 # ================= КЛАВИАТУРЫ =================
 def play_kb(user_id):
-    rows = [[InlineKeyboardButton(text=" ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
+    rows = [[InlineKeyboardButton(text="🎮 ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
     if user_id == OWNER_ID:
         rows.append([InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL))])
         rows.append([InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift")])
@@ -187,7 +187,7 @@ async def cb_check_sub(cb: CallbackQuery):
     uid = cb.from_user.id
     if await check_sub(uid):
         await cb.message.edit_text(
-            " Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
+            "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
             reply_markup=play_kb(uid))
         await cb.answer("Подписка подтверждена!")
     else:
@@ -245,7 +245,6 @@ async def process_gift_id(message: Message, state: FSMContext):
     data = await state.get_data()
     user_id = data.get("user_id")
     
-    # Проверяем баланс бота
     rows = await db.select("meta", "?key=eq.bot_stars")
     cur = 0
     if rows:
@@ -254,7 +253,6 @@ async def process_gift_id(message: Message, state: FSMContext):
         except Exception:
             pass
     
-    # Получаем цену подарка
     try:
         gifts = await bot.get_available_gifts()
         price = next((g.star_count for g in gifts.gifts if str(g.id) == gift_id), None)
@@ -270,7 +268,6 @@ async def process_gift_id(message: Message, state: FSMContext):
     
     await state.update_data(gift_id=gift_id, price=price)
     
-    # Кнопки подтверждения
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Подтвердить", callback_data="confirm_gift")],
         [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_gift")]
@@ -295,14 +292,15 @@ async def confirm_gift(cb: CallbackQuery, state: FSMContext):
         return
     
     data = await state.get_data()
-    user_id = data.get("user_id")
-    gift_id = data.get("gift_id")
-    price = data.get("price")
+    user_id = int(data.get("user_id"))  # ← Явно конвертируем в int
+    gift_id = str(data.get("gift_id"))  # ← Явно конвертируем в строку
+    price = int(data.get("price"))
     
     await cb.message.edit_text("⏳ Отправка подарка...")
     
     try:
-        await bot.send_gift(user_id, gift_id)
+        # Передаём gift_id как строку
+        await bot.send_gift(user_id=user_id, gift_id=gift_id)
         
         # Списываем звёзды с баланса бота
         rows = await db.select("meta", "?key=eq.bot_stars")
@@ -319,7 +317,7 @@ async def confirm_gift(cb: CallbackQuery, state: FSMContext):
         await cb.message.edit_text(
             f"✅ <b>Подарок успешно отправлен!</b>\n\n"
             f"👤 Получатель: <code>{user_id}</code>\n"
-            f" Подарок ID: <code>{gift_id}</code>\n"
+            f"🎁 Подарок ID: <code>{gift_id}</code>\n"
             f"💰 Списано: <b>{price} ⭐</b>\n"
             f"💳 Новый баланс бота: <b>{new_balance} ⭐</b>",
             parse_mode="HTML"
@@ -342,7 +340,7 @@ async def cancel_gift(cb: CallbackQuery, state: FSMContext):
         await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
     
-    await cb.message.edit_text(" Отправка подарка отменена.")
+    await cb.message.edit_text("❌ Отправка подарка отменена.")
     await state.clear()
 
 # ================= ОПЛАТА =================
@@ -407,7 +405,7 @@ async def on_payment(message: Message):
                 return
 
             try:
-                await bot.send_gift(user_id, gift_id)
+                await bot.send_gift(user_id=p_user_id, gift_id=gift_id)
                 
                 await db.insert("grants", [{
                     "user_id": user_id,
@@ -419,7 +417,7 @@ async def on_payment(message: Message):
                 await message.answer("🎉 Поздравляем! Подарок успешно отправлен тебе в чат, а также начислено 500 осколков!")
                 
             except Exception as gift_error:
-                print(f" FRAUD/ERROR DETECTED: user_id={user_id}, error={gift_error}")
+                print(f"🚨 FRAUD/ERROR DETECTED: user_id={user_id}, error={gift_error}")
                 
                 await message.answer(
                     "❌ Произошла ошибка при выдаче подарка. "
@@ -430,7 +428,7 @@ async def on_payment(message: Message):
 
         except Exception as e:
             print(f"Gift case payment error: {e}")
-            await message.answer("️ Произошла техническая ошибка при обработке платежа.")
+            await message.answer("⚠️ Произошла техническая ошибка при обработке платежа.")
         return
 
 # ================= ВЕБ-СЕРВЕР =================
@@ -795,10 +793,10 @@ async def handle_admin(request):
         if price is None:
             return json_resp({"ok": False, "error": "подарок не найден"})
         if cur < price:
-            return json_resp({"ok": False, "error": f"На балансе бота {cur} , нужно {price}"})
+            return json_resp({"ok": False, "error": f"На балансе бота {cur} ⭐, нужно {price}"})
         
         try:
-            await bot.send_gift(user_id, gift_id)
+            await bot.send_gift(user_id=user_id, gift_id=gift_id)
         except Exception as e:
             return json_resp({"ok": False, "error": str(e)})
         
@@ -851,7 +849,7 @@ async def start_web_server():
 async def main():
     print("🚀 Запуск...")
     asyncio.create_task(start_web_server())
-    print(" Бот запущен и ожидает команды!")
+    print("🤖 Бот запущен и ожидает команды!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
