@@ -17,7 +17,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiohttp import web
 
-# ================= НАСТРОЙКИ ================
+# ================= НАСТРОЙКИ =================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 if not BOT_TOKEN:
     raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
@@ -124,7 +124,7 @@ async def merge_player_stats(uid, patch):
     cur.update(patch)
     await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
 
-# ================= ЗАЩИТА: ПОДАРОЧНЫЙ ИНВЕНТАРЬ (ТОЛЬКО СЕРВЕР) =================
+# ================= СЕРВЕРНЫЙ ПОДАРОЧНЫЙ ИНВЕНТАРЬ =================
 async def get_gift_inv(uid):
     rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
     if not rows:
@@ -156,7 +156,7 @@ async def stars_delta_ok(stars):
     """Оплата засчитывается ТОЛЬКО если реальный баланс бота вырос на сумму платежа."""
     real = await get_real_stars()
     if real is None:
-        return True  # метод недоступен в этой версии API — доверяем successful_payment
+        return True
     rows = await db.select("meta", "?key=eq.stars_cache")
     cache = int(rows[0].get("value")) if rows else None
     if cache is None:
@@ -349,7 +349,7 @@ async def on_payment(message: Message):
             print(f"Unban error: {e}")
         return
 
-    # 3. Покупка подарочного кейса: ПРОВЕРКА БАЛАНСА -> выдача через grant
+    # 3. Покупка подарочного кейса: проверка баланса -> выдача через grant
     if payload.startswith("gift_case_"):
         try:
             parts = payload.split("_")
@@ -372,7 +372,7 @@ async def on_payment(message: Message):
             await message.answer("⚠️ Ошибка обработки платежа. Обратитесь в поддержку.")
         return
 
-    # 4. Обычное пополнение осколков: ПРОВЕРКА БАЛАНСА -> выдача через grant
+    # 4. Обычное пополнение осколков: проверка баланса -> выдача через grant
     if payload.startswith("topup_"):
         if not await stars_delta_ok(stars):
             await message.answer("⚠️ Платёж не подтверждён сервером Telegram. Обратитесь в поддержку.")
@@ -459,7 +459,6 @@ async def handle_sync(request):
             pass
     return json_resp({"banned": False, "grants": grants})
 
-# ---- лёгкий пуш статов (НЕ трогает гранты) ----
 async def handle_push_stats(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
@@ -491,7 +490,7 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
-# ---- открытие подарочного кейса (серверный gift_inv) ----
+# ---- открытие подарочного кейса (цикл 6 открытий) ----
 async def handle_open_gift_case_inv(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
@@ -515,7 +514,7 @@ async def handle_open_gift_case_inv(request):
     await set_gift_inv(uid, stats, ginv)
     return json_resp({"ok": True, "drop": drop})
 
-# ---- получение подарка (серверный gift_inv) ----
+# ---- получение подарка из инвентаря ----
 async def handle_claim_gift_inv(request):
     try:
         d = await request.json()
@@ -581,6 +580,7 @@ async def admin_auth(request):
         return None, data
     return user, data
 
+# ---- админ-эндпоинты ----
 async def handle_admin(request):
     user, data = await admin_auth(request)
     if not user:
@@ -637,7 +637,6 @@ async def handle_admin(request):
             "user_id": uid, "type": gtype, "amount": amount,
             "item_id": item_id, "reason": reason
         }])
-        # Серверный подарочный инвентарь обновляется СРАЗУ (фикс рассинхрона)
         if gtype == "item" and (item_id in GIFT_CATALOG or item_id == "gift_case"):
             stats, ginv = await get_gift_inv(uid)
             ginv[item_id] = ginv.get(item_id, 0) + 1
@@ -685,7 +684,7 @@ async def handle_admin(request):
         return json_resp({"ok": True, "count": len(rows)})
 
     if path == "/admin/ban":
-      uid_b = int(data["user_id"])
+        uid_b = int(data["user_id"])
         await db.delete("bans", f"?user_id=eq.{uid_b}")
         res = await db.insert("bans", [{
             "user_id": uid_b,
