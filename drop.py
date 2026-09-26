@@ -12,7 +12,9 @@ import aiohttp
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import (Message, CallbackQuery, LabeledPrice, WebAppInfo,
-                           InlineKeyboardButton, InlineKeyboardMarkup, PreCheckoutQuery)
+                           InlineKeyboardButton, InlineKeyboardMarkup, PreCheckoutQuery,
+                           InlineQuery, InlineQueryResultArticle, InlineQueryResultPhoto,
+                           InputTextMessageContent)
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiohttp import web
@@ -29,6 +31,27 @@ OWNER_ID = 1837442717
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+
+# Inline-режим
+BANNER_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/inline_banner.jpg"
+INLINE_MAX_STARS = 10000
+
+# Снайпер лимиток
+SNIPER_ENABLED = True
+SNIPER_INTERVAL = 15
+
+# Паттерны дропа подарочного кейса (6 открытий, веса в %)
+GIFT_PATTERNS = [
+    {"seq": [15, 15, 25, 15, 15, 50], "weight": 40},
+    {"seq": [25, 15, 15, 15, 15, 50], "weight": 30},
+    {"seq": [15, 15, 25, 15, 15, 25], "weight": 20},
+    {"seq": [15, 15, 15, 15, 15, 25], "weight": 10},
+]
+PRICE_TO_GIFTS = {
+    15: ["gift_heart", "gift_teddy"],
+    25: ["gift_box", "gift_rose"],
+    50: ["gift_cake", "gift_bouquet"],
+}
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -49,6 +72,11 @@ GIFT_CATALOG = {
 class GiftSendStates(StatesGroup):
     waiting_user_id = State()
     confirming = State()
+
+class BroadcastStates(StatesGroup):
+    choosing_audience = State()
+    waiting_uid = State()
+    waiting_content = State()
 
 # ================= SUPABASE =================
 class DB:
@@ -137,7 +165,7 @@ async def set_gift_inv(uid, stats, gift_inv):
     stats["gift_inv"] = gift_inv
     await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
 
-# ================= ЗАЩИТА: ПРОВЕРКА РЕАЛЬНОГО БАЛАНСА ЗВЁЗД =================
+# ================= ЗАЩИТА: ПРОВЕРКА БАЛАНСА ЗВЁЗД =================
 async def get_real_stars():
     try:
         res = await bot.get_star_balance()
@@ -153,7 +181,6 @@ async def refresh_stars_cache():
     return real
 
 async def stars_delta_ok(stars):
-    """Оплата засчитывается ТОЛЬКО если реальный баланс бота вырос на сумму платежа."""
     real = await get_real_stars()
     if real is None:
         return True
@@ -172,8 +199,11 @@ async def stars_delta_ok(stars):
 def play_kb(user_id):
     rows = [[InlineKeyboardButton(text="🎮 ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
     if user_id == OWNER_ID:
-        rows.append([InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL))])
-        rows.append([InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift")])
+        rows.append([
+            InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL)),
+            InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift"),
+        ])
+        rows.append([InlineKeyboardButton(text="📢 РАССЫЛКА", callback_data="admin_broadcast")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
@@ -192,7 +222,8 @@ async def check_sub(user_id):
 LAST_MSG = {}
 
 @dp.message(Command("start"))
-async def cmd_start(message: Message):
+async def cmd_start(message: Message, state: FSMContext):
+    await state.clear()
     uid = message.from_user.id
     old_mid = LAST_MSG.get(uid)
     if old_mid is None:
@@ -240,6 +271,57 @@ async def cb_check_sub(cb: CallbackQuery):
         await cb.answer("Подписка подтверждена!")
     else:
         await cb.answer("⚠️ Ты всё ещё не подписан!", show_alert=True)
+
+# ================= INLINE-РЕЖИМ: СПОНСОРСТВО =================
+@dp.inline_query()
+async def handle_inline(iq: InlineQuery):
+    if iq.from_user.id != OWNER_ID:
+        await iq.answer([], cache_time=0, is_personal=True)
+        return
+    q = (iq.query or "").strip()
+    if not q.isdigit():
+        hint = InlineQueryResultArticle(
+            id="hint",
+            title="Введи число звёзд",
+            description="Например: 25 — карточка спонсорства бота",
+            input_message_content=InputTextMessageContent(
+                message_text="💎 Спонсорство Dota Drop: напиши @бот и число звёзд"),
+        )
+        await iq.answer([hint], cache_time=0, is_personal=True)
+        return
+    n = int(q)
+    if n < 1 or n > INLINE_MAX_STARS:
+        hint = InlineQueryResultArticle(
+            id="hint_range",
+            title=f"Число от 1 до {INLINE_MAX_STARS}",
+            description="Столько звёзд сможет внести спонсор",
+            input_message_content=InputTextMessageContent(
+                message_text="💎 Введи число звёзд от 1 до 10000"),
+        )
+        await iq.answer([hint], cache_time=0, is_personal=True)
+        return
+    try:
+        link = await bot.create_invoice_link(
+            title="Спонсорство Dota Drop",
+            description=f"Поддержка бота на {n} Stars",
+            payload=f"bot_topup_{n}",
+            currency="XTR",
+            prices=[LabeledPrice(label="Спонсорство", amount=n)])
+    except Exception as e:
+        print(f"Inline invoice error: {e}")
+        await iq.answer([], cache_time=0, is_personal=True)
+        return
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"💳 Спонсировать {n} ⭐", url=link)]
+    ])
+    result = InlineQueryResultPhoto(
+        id=f"sponsor_{n}",
+        photo_url=BANNER_URL,
+        thumbnail_url=BANNER_URL,
+        caption=f"💎 Поддержи бота Dota Drop на {n} ⭐",
+        reply_markup=kb,
+    )
+    await iq.answer([result], cache_time=0, is_personal=True)
 
 # ================= ОТПРАВКА ПОДАРКА ЧЕРЕЗ БОТА (FSM) =================
 @dp.callback_query(F.data == "admin_gift")
@@ -314,6 +396,261 @@ async def cancel_gift(cb: CallbackQuery, state: FSMContext):
     await cb.message.edit_text("❌ Отменено.")
     await state.clear()
 
+# ================= РАССЫЛКА (FSM) =================
+@dp.callback_query(F.data == "admin_broadcast")
+async def cb_admin_broadcast(cb: CallbackQuery, state: FSMContext):
+    if cb.from_user.id != OWNER_ID:
+        await cb.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👥 Всем", callback_data="bc_all"),
+         InlineKeyboardButton(text="👤 Конкретному", callback_data="bc_one")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="bc_cancel")],
+    ])
+    await cb.message.answer("📢 <b>Рассылка</b>\n\nКому отправить сообщение?", parse_mode="HTML", reply_markup=kb)
+    await state.set_state(BroadcastStates.choosing_audience)
+    await cb.answer()
+
+@dp.callback_query(F.data == "bc_cancel")
+async def bc_cancel(cb: CallbackQuery, state: FSMContext):
+    await state.clear()
+    try:
+        await cb.message.delete()
+    except Exception:
+        pass
+    await cb.answer("❌ Отменено")
+
+@dp.message(BroadcastStates(), F.text.in_(["/cancel", "Отмена", "❌ Отмена"]))
+async def bc_cancel_text(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer("❌ Рассылка отменена.")
+
+@dp.callback_query(F.data == "bc_all", BroadcastStates.choosing_audience)
+async def bc_all(cb: CallbackQuery, state: FSMContext):
+    if cb.from_user.id != OWNER_ID:
+        return
+    await state.update_data(target="all")
+    await cb.message.answer(
+        "👥 Отправлю ВСЕМ игрокам.\n\nТеперь пришли сообщение для рассылки "
+        "(текст, фото, файл, видео, стикер) — скопирую как есть.")
+    await state.set_state(BroadcastStates.waiting_content)
+    await cb.answer()
+
+@dp.callback_query(F.data == "bc_one", BroadcastStates.choosing_audience)
+async def bc_one(cb: CallbackQuery, state: FSMContext):
+    if cb.from_user.id != OWNER_ID:
+        return
+    await state.update_data(target="one")
+    await cb.message.answer("👤 Введи ID получателя (число, можно взять из админки):")
+    await state.set_state(BroadcastStates.waiting_uid)
+    await cb.answer()
+
+@dp.message(BroadcastStates.waiting_uid)
+async def bc_uid(message: Message, state: FSMContext):
+    if message.from_user.id != OWNER_ID:
+        return
+    try:
+        uid = int(message.text.strip())
+        if uid <= 0:
+            raise ValueError()
+    except Exception:
+        await message.answer("❌ Неверный ID. Введите число:")
+        return
+    await state.update_data(target_uid=uid)
+    await message.answer(
+        f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
+        f"(текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
+    await state.set_state(BroadcastStates.waiting_content)
+
+@dp.message(BroadcastStates.waiting_content)
+async def bc_content(message: Message, state: FSMContext):
+    if message.from_user.id != OWNER_ID:
+        return
+    data = await state.get_data()
+    await state.clear()
+    if data.get("target") == "all":
+        players = await db.select("players", "?select=user_id")
+        targets = [p["user_id"] for p in players]
+    else:
+        targets = [int(data.get("target_uid", 0))]
+    status = await message.answer(f"⏳ Отправляю на {len(targets)} чат(ов)...")
+    sent = 0
+    failed = 0
+    for uid in targets:
+        try:
+            await message.copy_to(uid)
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.05)
+    await status.edit_text(f"✅ Рассылка завершена\n📤 Отправлено: {sent}\n⚠️ Ошибок: {failed}")
+
+# ================= СНАЙПЕР ЛИМИТОК =================
+SNIPER_STATE = {"notified": set(), "msg_ids": {}}
+
+async def sniper_load_cache():
+    rows = await db.select("meta", "?key=eq.sniper_notified")
+    if rows:
+        try:
+            SNIPER_STATE["notified"] = set(json.loads(rows[0].get("value") or "[]"))
+        except Exception:
+            SNIPER_STATE["notified"] = set()
+
+async def sniper_save_cache():
+    await db.upsert("meta", [{"key": "sniper_notified", "value": json.dumps(list(SNIPER_STATE["notified"]))}])
+
+async def sniper_edit(cb, text):
+    try:
+        await cb.message.edit_caption(text)
+    except Exception:
+        try:
+            await cb.message.edit_text(text)
+        except Exception:
+            pass
+
+async def sniper_notify(g):
+    gid = str(g.id)
+    price = g.star_count
+    image_url = ""
+    try:
+        if getattr(g, "image", None) and getattr(g.image, "file_id", None):
+            file = await bot.get_file(g.image.file_id)
+            image_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file.file_path}"
+    except Exception:
+        image_url = ""
+    rows = await db.select("meta", "?key=eq.bot_stars")
+    balance = int(rows[0].get("value")) if rows else 0
+    remaining = g.remaining_count if g.remaining_count is not None else "?"
+    text = (f"🔥 Новая лимитка!\n🎁 Gift ID: <code>{gid}</code>\n💰 Цена: {price} ⭐\n"
+            f"📦 Остаток: {remaining} из {g.total_count}\n💳 Баланс бота: {balance} ⭐")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"💳 Купить за {price}⭐", callback_data=f"sniper_buy_{gid}")],
+        [InlineKeyboardButton(text="❌ Не интересно", callback_data=f"sniper_skip_{gid}"),
+         InlineKeyboardButton(text=f"💎 Пополнить {price}⭐", callback_data=f"sniper_topup_{gid}_{price}")],
+    ])
+    try:
+        if image_url:
+            msg = await bot.send_photo(OWNER_ID, image_url, caption=text, reply_markup=kb, parse_mode="HTML")
+        else:
+            msg = await bot.send_message(OWNER_ID, text, reply_markup=kb, parse_mode="HTML")
+        SNIPER_STATE["msg_ids"][gid] = (OWNER_ID, msg.message_id)
+        print(f"🎯 Sniper: найдена лимитка {gid} за {price}⭐")
+    except Exception as e:
+        print(f"Sniper notify error: {e}")
+
+async def sniper_loop():
+    first = True
+    await sniper_load_cache()
+    fresh_start = len(SNIPER_STATE["notified"]) == 0
+    while True:
+        try:
+            gifts = await bot.get_available_gifts()
+            limited = [g for g in gifts.gifts
+                       if g.total_count is not None and (g.remaining_count is None or g.remaining_count > 0)]
+            alive = {str(g.id) for g in limited}
+            if first and fresh_start:
+                for g in limited:
+                    SNIPER_STATE["notified"].add(str(g.id))
+                await sniper_save_cache()
+                print(f"🎯 Sniper: базовая линия {len(limited)} лимиток (уведомляем только о новых)")
+            else:
+                for g in limited:
+                    gid = str(g.id)
+                    if gid in SNIPER_STATE["notified"]:
+                        continue
+                    SNIPER_STATE["notified"].add(gid)
+                    await sniper_notify(g)
+                await sniper_save_cache()
+                for gid in list(SNIPER_STATE["msg_ids"].keys()):
+                    if gid not in alive:
+                        try:
+                            await bot.edit_message_caption("😔 Раскупили без нас — остаток 0.",
+                                                           chat_id=OWNER_ID,
+                                                           message_id=SNIPER_STATE["msg_ids"][gid][1])
+                        except Exception:
+                            try:
+                                await bot.edit_message_text("😔 Раскупили без нас — остаток 0.",
+                                                              chat_id=OWNER_ID,
+                                                              message_id=SNIPER_STATE["msg_ids"][gid][1])
+                            except Exception:
+                                pass
+                        del SNIPER_STATE["msg_ids"][gid]
+            first = False
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            print(f"Sniper loop error: {e}")
+        await asyncio.sleep(SNIPER_INTERVAL)
+
+@dp.callback_query(F.data.startswith("sniper_buy_"))
+async def sniper_buy(cb: CallbackQuery):
+    if cb.from_user.id != OWNER_ID:
+        await cb.answer("⛔", show_alert=True)
+        return
+    gid = cb.data.replace("sniper_buy_", "")
+    try:
+        gifts = await bot.get_available_gifts()
+        g = next((x for x in gifts.gifts if str(x.id) == gid), None)
+    except Exception:
+        await cb.answer("Не удалось проверить наличие", show_alert=True)
+        return
+    if g is None or (g.remaining_count is not None and g.remaining_count <= 0):
+        await cb.answer("Уже раскуплено 😔", show_alert=True)
+        await sniper_edit(cb, "😔 Раскупили без нас.")
+        SNIPER_STATE["msg_ids"].pop(gid, None)
+        return
+    price = g.star_count
+    rows = await db.select("meta", "?key=eq.bot_stars")
+    balance = int(rows[0].get("value")) if rows else 0
+    if balance < price:
+        await cb.answer(f"Не хватает звёзд: {balance} < {price}. Нажми «Пополнить».", show_alert=True)
+        return
+    try:
+        await bot.send_gift(user_id=OWNER_ID, gift_id=gid)
+    except Exception as e:
+        await cb.answer(f"Ошибка покупки: {e}", show_alert=True)
+        return
+    await db.upsert("meta", [{"key": "bot_stars", "value": balance - price}])
+    await refresh_stars_cache()
+    await cb.answer("✅ Куплено!")
+    await sniper_edit(cb, f"✅ Куплено за {price} ⭐! Лимитка у тебя — улучшишь сам, когда захочешь.")
+    SNIPER_STATE["msg_ids"].pop(gid, None)
+
+@dp.callback_query(F.data.startswith("sniper_skip_"))
+async def sniper_skip(cb: CallbackQuery):
+    if cb.from_user.id != OWNER_ID:
+        await cb.answer("⛔", show_alert=True)
+        return
+    gid = cb.data.replace("sniper_skip_", "")
+    await cb.answer("Пропущено")
+    await sniper_edit(cb, "⏭ Пропущено.")
+    SNIPER_STATE["msg_ids"].pop(gid, None)
+
+@dp.callback_query(F.data.startswith("sniper_topup_"))
+async def sniper_topup(cb: CallbackQuery):
+    if cb.from_user.id != OWNER_ID:
+        await cb.answer("⛔", show_alert=True)
+        return
+    parts = cb.data.split("_")
+    try:
+        gid = parts[2]
+        price = int(parts[3])
+    except Exception:
+        await cb.answer("Ошибка данных", show_alert=True)
+        return
+    try:
+        link = await bot.create_invoice_link(
+            title="Пополнение под лимитку",
+            description=f"{price} Stars для покупки лимитированного подарка",
+            payload=f"bot_topup_{price}",
+            currency="XTR",
+            prices=[LabeledPrice(label="Пополнение", amount=price)])
+    except Exception as e:
+        await cb.answer(f"Ошибка инвойса: {e}", show_alert=True)
+        return
+    await cb.message.answer(f"💎 Инвойс на {price} ⭐ для покупки лимитки:\n{link}")
+    await cb.answer("Инвойс создан")
+
 # ================= ОПЛАТА =================
 @dp.pre_checkout_query()
 async def pre_checkout(q: PreCheckoutQuery):
@@ -326,7 +663,6 @@ async def on_payment(message: Message):
     payload = p.invoice_payload or ""
     user_id = message.from_user.id
 
-    # 1. Пополнение баланса бота
     if payload.startswith("bot_topup_"):
         try:
             add = int(payload.split("_", 2)[2])
@@ -339,7 +675,6 @@ async def on_payment(message: Message):
         await message.answer(f"✅ Баланс бота пополнен на {add} ⭐")
         return
 
-    # 2. Платный разбан (с проверкой цены)
     if payload.startswith("unban_"):
         try:
             parts = payload.split("_")
@@ -359,7 +694,6 @@ async def on_payment(message: Message):
             print(f"Unban error: {e}")
         return
 
-    # 3. Покупка подарочного кейса: проверка баланса -> выдача через grant
     if payload.startswith("gift_case_"):
         try:
             parts = payload.split("_")
@@ -382,7 +716,6 @@ async def on_payment(message: Message):
             await message.answer("⚠️ Ошибка обработки платежа. Обратитесь в поддержку.")
         return
 
-    # 4. Обычное пополнение осколков: проверка баланса -> выдача через grant
     if payload.startswith("topup_"):
         if not await stars_delta_ok(stars):
             await message.answer("⚠️ Платёж не подтверждён сервером Telegram. Обратитесь в поддержку.")
@@ -440,7 +773,6 @@ async def handle_create_invoice(request):
     except Exception as e:
         return json_resp({"error": str(e)}, 500)
 
-# ---- счёт на платный разбан ----
 async def handle_create_unban_invoice(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
@@ -522,7 +854,7 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
-# ---- открытие подарочного кейса (цикл 6 открытий) ----
+# ---- открытие подарочного кейса: СИСТЕМА ПАТТЕРНОВ ----
 async def handle_open_gift_case_inv(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
@@ -534,13 +866,17 @@ async def handle_open_gift_case_inv(request):
     if ginv["gift_case"] <= 0:
         del ginv["gift_case"]
     opened = stats.get("gift_cases_opened", 0)
-    cycle = opened % 6
-    if cycle in (0, 1, 3, 4):
-        drop = random.choice(["gift_heart", "gift_teddy"])
-    elif cycle == 2:
-        drop = random.choice(["gift_box", "gift_rose"])
+    pos = opened % 6
+    if pos == 0:
+        weights = [p["weight"] for p in GIFT_PATTERNS]
+        idx = random.choices(range(len(GIFT_PATTERNS)), weights=weights, k=1)[0]
+        stats["gift_cycle_pattern"] = idx
     else:
-        drop = random.choice(["gift_cake", "gift_bouquet"])
+        idx = stats.get("gift_cycle_pattern", 0)
+        if idx is None or not (0 <= idx < len(GIFT_PATTERNS)):
+            idx = 0
+    price = GIFT_PATTERNS[idx]["seq"][pos]
+    drop = random.choice(PRICE_TO_GIFTS[price])
     ginv[drop] = ginv.get(drop, 0) + 1
     stats["gift_cases_opened"] = opened + 1
     await set_gift_inv(uid, stats, ginv)
@@ -872,6 +1208,9 @@ async def start_web_server():
 async def main():
     print("🚀 Запуск...")
     asyncio.create_task(start_web_server())
+    if SNIPER_ENABLED:
+        asyncio.create_task(sniper_loop())
+        print("🎯 Снайпер лимиток включён")
     print("🤖 Бот запущен и ожидает команды!")
     await dp.start_polling(bot)
 
