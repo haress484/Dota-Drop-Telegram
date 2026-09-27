@@ -142,7 +142,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
 .profile-avatar img{width:100%;height:100%;object-fit:cover}
 .profile-avatar .av-ph{color:var(--mut);font-size:12px;text-align:center;padding:4px}
-.profile-avatar::after{content:"📷";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
+.profile-avatar::after{content:"";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
 .profile-name{flex:1;display:flex;flex-direction:column;gap:6px}
 .profile-name input{font-size:17px;font-weight:700}
 .profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
@@ -272,7 +272,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="shopOverlay" hidden>
   <div class="shop-box">
-    <div class="case-top"><span>💎 Купить осколки</span><button class="x" id="shopClose">✕</button></div>
+    <div class="case-top"><span> Купить осколки</span><button class="x" id="shopClose">✕</button></div>
     <div class="hint" style="margin:0 0 6px">Оплата через Telegram Stars</div>
     <div id="shopList"></div>
   </div>
@@ -479,6 +479,7 @@ const PACKS = [
   { stars:1, coins:100 }, { stars:10, coins:1000 }, { stars:20, coins:2000 }, { stars:30, coins:5000 }
 ];
 const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
+const tgInitData = () => (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp.initData : "";
 
 // ЗАЩИТА: оплата ничего не начисляет локально, начисляет только сервер через гранты
 function buyInvoice(stars, coins){
@@ -601,22 +602,47 @@ function imgTag(it, cls=""){
   if (it.id === "gift_case") src = GIFT_CDN + "gift_chest.png";
   else if (GIFT_ITEMS.includes(it.id)) src = GIFT_CDN + it.id + ".png";
   else src = CDN + it.id + ".png";
-  return `<img class="${cls}" src="${src}" alt="" onerror="this.style.visibility='hidden'" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`;
+  return `<img class="${cls}" src="${src}" alt="" onerror="imgFix(this)" data-id="${it.id}" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`;
 }
-window.imgFix = el => { const a=JSON.parse(el.dataset.alts||"[]"); let i=+el.dataset.idx+1; if(i<a.length){ el.dataset.idx=i; el.src=CDN+a[i]; } else el.style.visibility="hidden"; };
+window.imgFix = el => {
+  const a = JSON.parse(el.dataset.alts || "[]");
+  let i = +el.dataset.idx + 1;
+  if (i < a.length) { el.dataset.idx = i; el.src = CDN + a[i]; return; }
+  const id = el.dataset.id;
+  if (el.dataset.legacy !== "1" && id && !GIFT_ITEMS.includes(id) && id !== "gift_case") {
+    el.dataset.legacy = "1";
+    el.src = "https://cdn.dota2.com/img/items/" + id + ".png";
+    return;
+  }
+  el.style.visibility = "hidden";
+};
 function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
-// Мгновенная отправка статов на сервер (не трогает гранты)
-function pushStats(){
+// НОВОЕ: синхронизация профиля с сервером
+let profileSyncTimer = null;
+function pushProfile(){
+  clearTimeout(profileSyncTimer);
+  profileSyncTimer = setTimeout(() => {
+    const uid = tgUserId(); if(!uid) return;
+    const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv, name: S.name, achievements: S.achievements });
+    fetch(`${API_URL}/push_stats?user_id=${uid}&stats=${encodeURIComponent(stats)}`).catch(()=>{});
+  }, 500);
+}
+
+// НОВОЕ: загрузка аватара на сервер
+function uploadAvatar(base64){
   const uid = tgUserId(); if(!uid) return;
-  const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv });
-  fetch(`${API_URL}/push_stats?user_id=${uid}&stats=${encodeURIComponent(stats)}`).catch(()=>{});
+  fetch(`${API_URL}/game/avatar`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({initData: tgInitData(), avatar: base64})
+  }).catch(()=>{});
 }
 
 function checkAchievements(){
   ACHIEVEMENTS.forEach(a => {
-    if (!S.achievements.includes(a.id) && a.check(S)){ S.achievements.push(a.id); save(); showAchievement(a); renderProfile(); }
+    if (!S.achievements.includes(a.id) && a.check(S)){ S.achievements.push(a.id); save(); showAchievement(a); renderProfile(); pushProfile(); }
   });
 }
 function showAchievement(a){
@@ -737,12 +763,16 @@ async function startSpin(){
       renderInv();
       $("#cvOpen").style.display = "none";
       try {
-        const r = await fetch(`${API_URL}/open_gift_case_inv?user_id=${tgUserId()}`);
+        const r = await fetch(`${API_URL}/open_gift_case_inv`, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({initData: tgInitData(), user_id: tgUserId()})
+        });
         const j = await r.json();
-        if(j.error) { addInv("gift_case"); renderInv(); pushStats(); toast(j.error); backToIdle(); return; }
+        if(j.error) { addInv("gift_case"); renderInv(); pushProfile(); toast(j.error); backToIdle(); return; }
         addInv(j.drop);
         renderInv();
-        pushStats();
+        pushProfile();
         const winner = { id: j.drop, n: GIFT_NAMES[j.drop] || j.drop, cost: GIFT_PRICES[j.drop] || 0 };
         $("#cvArtSlot").innerHTML = `<div class="multi-wrap"><div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_gift"></div></div></div>`;
         $("#caseView").scrollTop = 0;
@@ -753,7 +783,7 @@ async function startSpin(){
         spinning = false;
         showGiftResult(winner);
       } catch(e) {
-        addInv("gift_case"); renderInv(); pushStats(); toast("Ошибка сети"); spinning = false; backToIdle();
+        addInv("gift_case"); renderInv(); pushProfile(); toast("Ошибка сети"); spinning = false; backToIdle();
       }
     } else {
       $("#cvOpen").disabled = true;
@@ -796,7 +826,7 @@ async function startSpin(){
   const totalCost = results.reduce((s,it)=>s+it.cost,0);
   results.forEach(it => { addInv(it.id); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
   S.drops = S.drops.slice(-5);
-  save(); renderInv(); renderChests(); checkAchievements(); pushStats();
+  save(); renderInv(); renderChests(); checkAchievements(); pushProfile();
   showMultiResult(results, totalCost, multi);
 }
 
@@ -834,18 +864,18 @@ function showMultiResult(items, totalCost, multi){
 }
 
 window.resultSellOne = (id) => {
-  if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins += p; save(); balance(); renderInv(); playSell(); pushStats(); toast(`Продано: ${itemById(id).n} +${p}`); backToIdle(); }
+  if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins += p; save(); balance(); renderInv(); playSell(); pushProfile(); toast(`Продано: ${itemById(id).n} +${p}`); backToIdle(); }
 };
 window.resultSellAll = () => {
   if (!window._lastDropIds || !window._lastDropIds.length) return backToIdle();
   let total = 0;
   window._lastDropIds.forEach(id => { if (takeInv(id)) total += sellPrice(itemById(id)); });
-  if (total){ S.coins += total; save(); balance(); renderInv(); playSell(); pushStats(); toast(`Продано всё: +${total}`); }
+  if (total){ S.coins += total; save(); balance(); renderInv(); playSell(); pushProfile(); toast(`Продано всё: +${total}`); }
   backToIdle();
 };
 const _origShowMultiResult = showMultiResult;
 showMultiResult = function(items, totalCost, multi){ window._lastDropIds = items.map(it=>it.id); _origShowMultiResult(items, totalCost, multi); };
-window.resultKeep = () => { pushStats(); backToIdle(); };
+window.resultKeep = () => { pushProfile(); backToIdle(); };
 window.resultAgain = () => startSpin();
 function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
@@ -909,7 +939,7 @@ $("#btnSpin").onclick = () => {
     setTimeout(()=>{
       if(win){ addInv(upTarget); toast(`Успех! Получен: ${itemById(upTarget).n}`); checkAchievements(); } 
       else { if(!CONFIG.burnOnLoss) addInv(upOwn); toast(`Промах. ${CONFIG.burnOnLoss?itemById(upOwn).n+" сгорел":"Предмет возвращён"}`); }
-      upOwn=null; slotDraw(); renderInv(); pushStats();
+      upOwn=null; slotDraw(); renderInv(); pushProfile();
     },4700);
   }));
 };
@@ -933,7 +963,7 @@ function renderTasks(){
 }
 window.claimDaily = () => { S.daily.streak = (S.daily.last===yesterday())? S.daily.streak+1 : 1;
   const r=Math.min(CONFIG.dailyBase+(S.daily.streak-1)*CONFIG.dailyStreakStep, CONFIG.dailyMax);
-  S.daily.last=today(); S.coins+=r; save(); balance(); renderTasks(); pushStats(); toast(`+${r} осколков за дейлик`); };
+  S.daily.last=today(); S.coins+=r; save(); balance(); renderTasks(); pushProfile(); toast(`+${r} осколков за дейлик`); };
 $("#btnPromo").onclick = () => {
   const code=$("#promoInput").value.trim(); $("#promoInput").value=""; if(!code) return;
   const uid = tgUserId(); if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -941,7 +971,7 @@ $("#btnPromo").onclick = () => {
   fetch(`${API_URL}/promo?code=${encodeURIComponent(code)}&user_id=${uid}`).then(r => r.json()).then(j => {
     if(j.ok){
       if(j.secret){ if(!S.promos.includes(code)){ S.promos.push(code); save(); } checkAchievements(); toast("Секретный промокод активирован!"); } 
-      else { S.coins += j.amount; save(); balance(); pushStats(); toast(`+${j.amount} осколков по промокоду!`); }
+      else { S.coins += j.amount; save(); balance(); pushProfile(); toast(`+${j.amount} осколков по промокоду!`); }
     } else { toast(j.error || "Неверный промокод"); }
   }).catch(()=> toast("Нет связи с сервером"));
 };
@@ -966,18 +996,22 @@ function renderInv(){
     return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
   }).join("") || '<div class="hint">Пусто — открой кейс</div>'; 
 }
-window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); pushStats(); toast(`+${p}`); } };
+window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); pushProfile(); toast(`+${p}`); } };
 window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
 
 window.claimGiftFromInv = async (giftId) => {
   if(!takeInv(giftId)) { toast("Предмет исчез из инвентаря"); renderInv(); return; }
   renderInv(); toast("Отправка подарка...");
   try {
-    const r = await fetch(`${API_URL}/claim_gift_inv`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({user_id: tgUserId(), gift_id: giftId}) });
+    const r = await fetch(`${API_URL}/claim_gift_inv`, { 
+      method: "POST", 
+      headers: {"Content-Type":"application/json"}, 
+      body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), gift_id: giftId}) 
+    });
     const j = await r.json();
-    if(j.ok) { toast("🎉 Подарок отправлен в Telegram!"); pushStats(); } 
-    else { toast("Ошибка: " + (j.error || "Неизвестно")); addInv(giftId); renderInv(); pushStats(); }
-  } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushStats(); }
+    if(j.ok) { toast("🎉 Подарок отправлен в Telegram!"); pushProfile(); } 
+    else { toast("Ошибка: " + (j.error || "Неизвестно")); addInv(giftId); renderInv(); pushProfile(); }
+  } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
 
 function renderProfile(){
@@ -995,7 +1029,7 @@ function renderProfile(){
 }
 $("#btnProfile").onclick = () => { renderProfile(); $("#profileOverlay").hidden = false; };
 $("#profileClose").onclick = () => { $("#profileOverlay").hidden = true; };
-$("#profileName").oninput = e => { S.name = e.target.value.trim(); save(); };
+$("#profileName").oninput = e => { S.name = e.target.value.trim(); save(); pushProfile(); };
 $("#avatarInput").onchange = e => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -1006,12 +1040,26 @@ $("#avatarInput").onchange = e => {
       if (w > h) { if (w > max) { h = h*max/w; w = max; } } else { if (h > max) { w = w*max/h; h = max; } }
       const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
       cv.getContext("2d").drawImage(img, 0, 0, w, h);
-      S.avatar = cv.toDataURL("image/jpeg", 0.85); save(); renderProfile();
+      S.avatar = cv.toDataURL("image/jpeg", 0.85); save(); renderProfile(); uploadAvatar(S.avatar);
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 };
+
+// НОВОЕ: загрузка профиля с сервера при входе
+async function fetchProfile(){
+  const uid = tgUserId(); if(!uid) return;
+  try {
+    const r = await fetch(`${API_URL}/game/profile?user_id=${uid}`);
+    const j = await r.json();
+    if(j.balance !== undefined) S.coins = j.balance;
+    if(j.name !== undefined) S.name = j.name;
+    if(j.avatar !== undefined) S.avatar = j.avatar;
+    if(j.achievements !== undefined) S.achievements = j.achievements;
+    save();
+  } catch(e) { console.log("Profile fetch error:", e); }
+}
 
 async function syncWithServer(){
   const uid = tgUserId(); if(!uid) return;
@@ -1025,7 +1073,7 @@ async function syncWithServer(){
       const payBtn = $("#banPayBtn");
       if(bp > 0){
         payBtn.style.display = "";
-        payBtn.textContent = `Оплатить разбан: ${bp} ⭐`;
+        payBtn.textContent = ` Оплатить разбан: ${bp} ⭐`;
         payBtn.onclick = () => payUnban(bp);
       } else {
         payBtn.style.display = "none";
@@ -1079,7 +1127,7 @@ function showGrants(grants){
   } else { 
     title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; 
   }
-  list.innerHTML = html; save(); balance(); renderInv(); pushStats(); $("#grantsOverlay").hidden = false;
+  list.innerHTML = html; save(); balance(); renderInv(); pushProfile(); $("#grantsOverlay").hidden = false;
 }
 $("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
 
@@ -1121,7 +1169,7 @@ boot();
   auds.forEach(a => { let d=false; const fin=()=>{ if(d)return; d=true; bump(); }; a.preload="auto"; a.oncanplaythrough=fin; a.onerror=fin; try{ a.load(); }catch(e){ fin(); } });
   setTimeout(() => { if (!ready){ $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; } }, 15000);
 
-  btn.onclick = () => {
+  btn.onclick = async () => {
     if (btn.disabled) return;
     if (musicOn) { music.play().then(() => { localStorage.setItem("dotaDrop_music","1"); drawMusicBtn(); }).catch(()=>{}); }
     orbit.classList.add("dying");
@@ -1131,7 +1179,12 @@ boot();
       s.style.transform = `translate(${cx - sx}px, ${cy - sy}px) scale(0.2)`; s.classList.add("fly");
     });
     chest.classList.add("glow");
-    setTimeout(() => { pr.classList.add("done"); setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); setInterval(syncWithServer, 60000); }, 500); }, 1000);
+    setTimeout(async () => { 
+      pr.classList.add("done"); 
+      await fetchProfile(); // НОВОЕ: тянем профиль с сервера
+      refreshAll(); // перерисовываем с серверными данными
+      setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); setInterval(syncWithServer, 60000); }, 500); 
+    }, 1000);
   };
 })();
 </script>
