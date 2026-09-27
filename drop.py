@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import logging
 import random
+import time
 from datetime import datetime, timezone
 from urllib.parse import parse_qsl
 
@@ -39,6 +40,7 @@ INLINE_MAX_STARS = 10000
 # Снайпер лимиток
 SNIPER_ENABLED = True
 SNIPER_INTERVAL = 15
+SNIPER_MANUAL_COOLDOWN = 5
 
 # Паттерны дропа подарочного кейса (6 открытий, веса в %)
 GIFT_PATTERNS = [
@@ -204,6 +206,7 @@ def play_kb(user_id):
             InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift"),
         ])
         rows.append([InlineKeyboardButton(text="📢 РАССЫЛКА", callback_data="admin_broadcast")])
+        rows.append([InlineKeyboardButton(text="🎯 СКАН ЛИМИТОК", callback_data="admin_sniper_scan")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
@@ -486,7 +489,7 @@ async def bc_content(message: Message, state: FSMContext):
     await status.edit_text(f"✅ Рассылка завершена\n📤 Отправлено: {sent}\n⚠️ Ошибок: {failed}")
 
 # ================= СНАЙПЕР ЛИМИТОК =================
-SNIPER_STATE = {"notified": set(), "msg_ids": {}}
+SNIPER_STATE = {"notified": set(), "msg_ids": {}, "last_manual": 0.0, "baseline_done": False}
 
 async def sniper_load_cache():
     rows = await db.select("meta", "?key=eq.sniper_notified")
@@ -538,49 +541,73 @@ async def sniper_notify(g):
     except Exception as e:
         print(f"Sniper notify error: {e}")
 
+async def sniper_scan_once():
+    """Один цикл сканирования. Возвращает (новых_найдено, всего_лимиток)."""
+    gifts = await bot.get_available_gifts()
+    limited = [g for g in gifts.gifts
+               if g.total_count is not None and (g.remaining_count is None or g.remaining_count > 0)]
+    alive = {str(g.id) for g in limited}
+    new_found = 0
+    if not SNIPER_STATE["baseline_done"]:
+        for g in limited:
+            SNIPER_STATE["notified"].add(str(g.id))
+        SNIPER_STATE["baseline_done"] = True
+        await sniper_save_cache()
+        print(f"🎯 Sniper: базовая линия {len(limited)} лимиток (уведомляем только о новых)")
+    else:
+        for g in limited:
+            gid = str(g.id)
+            if gid in SNIPER_STATE["notified"]:
+                continue
+            SNIPER_STATE["notified"].add(gid)
+            await sniper_notify(g)
+            new_found += 1
+        await sniper_save_cache()
+        for gid in list(SNIPER_STATE["msg_ids"].keys()):
+            if gid not in alive:
+                chat_id, msg_id = SNIPER_STATE["msg_ids"][gid]
+                try:
+                    await bot.edit_message_caption("😔 Раскупили без нас — остаток 0.",
+                                                   chat_id=chat_id, message_id=msg_id)
+                except Exception:
+                    try:
+                        await bot.edit_message_text("😔 Раскупили без нас — остаток 0.",
+                                                      chat_id=chat_id, message_id=msg_id)
+                    except Exception:
+                        pass
+                del SNIPER_STATE["msg_ids"][gid]
+    return new_found, len(limited)
+
 async def sniper_loop():
-    first = True
     await sniper_load_cache()
-    fresh_start = len(SNIPER_STATE["notified"]) == 0
+    SNIPER_STATE["baseline_done"] = len(SNIPER_STATE["notified"]) > 0
     while True:
         try:
-            gifts = await bot.get_available_gifts()
-            limited = [g for g in gifts.gifts
-                       if g.total_count is not None and (g.remaining_count is None or g.remaining_count > 0)]
-            alive = {str(g.id) for g in limited}
-            if first and fresh_start:
-                for g in limited:
-                    SNIPER_STATE["notified"].add(str(g.id))
-                await sniper_save_cache()
-                print(f"🎯 Sniper: базовая линия {len(limited)} лимиток (уведомляем только о новых)")
-            else:
-                for g in limited:
-                    gid = str(g.id)
-                    if gid in SNIPER_STATE["notified"]:
-                        continue
-                    SNIPER_STATE["notified"].add(gid)
-                    await sniper_notify(g)
-                await sniper_save_cache()
-                for gid in list(SNIPER_STATE["msg_ids"].keys()):
-                    if gid not in alive:
-                        try:
-                            await bot.edit_message_caption("😔 Раскупили без нас — остаток 0.",
-                                                           chat_id=OWNER_ID,
-                                                           message_id=SNIPER_STATE["msg_ids"][gid][1])
-                        except Exception:
-                            try:
-                                await bot.edit_message_text("😔 Раскупили без нас — остаток 0.",
-                                                              chat_id=OWNER_ID,
-                                                              message_id=SNIPER_STATE["msg_ids"][gid][1])
-                            except Exception:
-                                pass
-                        del SNIPER_STATE["msg_ids"][gid]
-            first = False
+            await sniper_scan_once()
         except asyncio.CancelledError:
             raise
         except Exception as e:
             print(f"Sniper loop error: {e}")
         await asyncio.sleep(SNIPER_INTERVAL)
+
+@dp.callback_query(F.data == "admin_sniper_scan")
+async def cb_sniper_scan(cb: CallbackQuery):
+    if cb.from_user.id != OWNER_ID:
+        await cb.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    now_ts = time.time()
+    if now_ts - SNIPER_STATE["last_manual"] < SNIPER_MANUAL_COOLDOWN:
+        await cb.answer("⏳ Слишком часто, подожди пару секунд", show_alert=True)
+        return
+    SNIPER_STATE["last_manual"] = now_ts
+    await cb.answer("🎯 Сканирую...")
+    status = await cb.message.answer("🎯 Принудительное сканирование запущено...")
+    try:
+        new_found, total = await sniper_scan_once()
+        await status.edit_text(
+            f"🎯 Сканирование завершено\n🔥 Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
+    except Exception as e:
+        await status.edit_text(f"❌ Ошибка сканирования: {e}")
 
 @dp.callback_query(F.data.startswith("sniper_buy_"))
 async def sniper_buy(cb: CallbackQuery):
