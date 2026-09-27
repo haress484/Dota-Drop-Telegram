@@ -105,7 +105,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .inv-card .btn{width:100%;padding:8px;font-size:11px;margin-top:4px}
 .cnt{position:absolute;top:6px;right:8px;background:var(--grn);color:#0c1410;border-radius:10px;font-size:11px;font-weight:800;padding:2px 7px}
 .bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:6;display:flex;background:rgba(10,18,12,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
-.nav-btn{flex:1;background:none;border:none;color:var(--mut);padding:9px 0 11px;font-size:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.nav-btn{flex:1;background:none;border:none;color:var(--mut);padding:9px 0 11px;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
 .nav-btn svg{width:22px;height:22px}.nav-btn.active{color:var(--gold)}
 .overlay{position:fixed;inset:0;z-index:20;background:rgba(6,12,8,.97);display:flex;flex-direction:column;justify-content:center;padding:16px}
 .overlay[hidden]{display:none}
@@ -186,6 +186,16 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .grant-item .gi-reason{font-size:13px;color:var(--txt);margin-top:6px;font-style:italic}
 .frozen-banner{position:fixed;top:0;left:0;right:0;z-index:50;background:linear-gradient(90deg,#e74c3c,#c0392b);color:#fff;padding:12px 16px;text-align:center;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .frozen-banner span{display:block;font-size:11px;font-weight:400;margin-top:4px;opacity:.9}
+/* ТОП-100 */
+.top-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.top-row:last-child{border:none}
+.top-row .place{width:34px;text-align:center;font-weight:900;color:var(--mut);font-size:14px;flex-shrink:0}
+.top-row .place.p1{color:var(--gold);font-size:18px}.top-row .place.p2{color:#c0c0c0;font-size:16px}.top-row .place.p3{color:#cd7f32;font-size:16px}
+.top-row img.ava{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--line);flex-shrink:0}
+.top-row .ava-ph{width:40px;height:40px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:16px;flex-shrink:0}
+.top-row .nm{flex:1;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-row .bl{color:var(--gold);font-weight:800;font-size:13px;white-space:nowrap}
+.top-row.me{background:rgba(247,201,72,.07);border-radius:10px;padding:8px 6px}
 </style>
 </head>
 <body>
@@ -252,12 +262,17 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <div class="card top-drops" id="topDrops"></div>
     <div class="inv-grid" id="invGrid"></div>
   </section>
+  <section id="tab-top" class="tab">
+    <h2 class="tab-title">🏆 Топ-100 игроков</h2>
+    <div id="topList" class="card"><div class="hint">Загрузка…</div></div>
+  </section>
 </main>
 <nav class="bottomnav">
   <button class="nav-btn active" data-tab="chests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 6 0 0 1 16 0v9H4z"/><path d="M4 13h16"/><circle cx="12" cy="14" r="1.6"/></svg>Кейсы</button>
   <button class="nav-btn" data-tab="upgrade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 13l6-6 6 6"/><path d="M6 19l6-6 6 6"/></svg>Апгрейд</button>
   <button class="nav-btn" data-tab="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 10l2 2 4-4"/><path d="M8 16h8"/></svg>Задания</button>
   <button class="nav-btn" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Инвентарь</button>
+  <button class="nav-btn" data-tab="top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/></svg>Топ-100</button>
 </nav>
 
 <div class="overlay view" id="caseView" hidden>
@@ -274,7 +289,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="shopOverlay" hidden>
   <div class="shop-box">
-    <div class="case-top"><span> Купить осколки</span><button class="x" id="shopClose">✕</button></div>
+    <div class="case-top"><span>💎 Купить осколки</span><button class="x" id="shopClose">✕</button></div>
     <div class="hint" style="margin:0 0 6px">Оплата через Telegram Stars</div>
     <div id="shopList"></div>
   </div>
@@ -396,7 +411,7 @@ const CHESTS = [
 const GIFT_ITEMS = ["gift_heart", "gift_teddy", "gift_box", "gift_rose", "gift_cake", "gift_bouquet"];
 const GIFT_NAMES = {
   "gift_heart": "💝 Сердечко", "gift_teddy": "🧸 Мишка", "gift_box": "🎁 Подарок",
-  "gift_rose": " Роза", "gift_cake": " Торт", "gift_bouquet": " Букет", "gift_case": " Подарочный кейс"
+  "gift_rose": "🌹 Роза", "gift_cake": "🎂 Торт", "gift_bouquet": "💐 Букет", "gift_case": "🎁 Подарочный кейс"
 };
 const GIFT_PRICES = { gift_heart:15, gift_teddy:15, gift_box:25, gift_rose:25, gift_cake:50, gift_bouquet:50 };
 const giftPool = () => GIFT_ITEMS.map(id => ({ id, n: GIFT_NAMES[id], cost: GIFT_PRICES[id] }));
@@ -487,6 +502,7 @@ const PACKS = [
 ];
 const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
 const tgInitData = () => (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp.initData : "";
+const escHtml = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 function buyInvoice(stars, coins){
   const uid = tgUserId();
@@ -652,8 +668,26 @@ function showAchievement(a){
 document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
   document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active"); $("#tab-"+b.dataset.tab).classList.add("active"); });
+  b.classList.add("active"); $("#tab-"+b.dataset.tab).classList.add("active");
+  if(b.dataset.tab === "top") loadTop();
+});
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
+
+// ===== ТОП-100 =====
+async function loadTop(){
+  const uid = tgUserId();
+  $("#topList").innerHTML = '<div class="hint">Загрузка…</div>';
+  try{
+    const r = await fetch(`${API_URL}/game/top100`);
+    const j = await r.json();
+    const list = j.top || [];
+    $("#topList").innerHTML = list.length ? list.map(p => {
+      const medal = p.place===1?"🥇":p.place===2?"🥈":p.place===3?"🥉":p.place;
+      const ava = p.avatar ? `<img class="ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;ava-ph&quot;>?</div>'">` : `<div class="ava-ph">?</div>`;
+      return `<div class="top-row${p.user_id===uid?" me":""}"><div class="place p${p.place}">${medal}</div>${ava}<div class="nm">${escHtml(p.name)}</div><div class="bl">${p.balance} ${SHARD_SM}</div></div>`;
+    }).join("") : '<div class="hint">Пока пусто</div>';
+  }catch(e){ $("#topList").innerHTML = '<div class="hint">Ошибка загрузки топа</div>'; }
+}
 
 const RISK_COLORS = ["#2ecc71","#f1c40f","#e67e22","#e74c3c"], RISK_NAMES=["L","M","H","E"];
 function riskHtml(ch){
@@ -804,7 +838,18 @@ async function startSpin(){
   const multi = rollMulticast(ch.id);
   $("#cvOpen").style.display = "none";
 
-  const winners = Array.from({length:multi}, ()=>weightedPick(pool, ch.decay));
+  // ТАРГЕТ-ДРОП: спрашиваем сервер, есть ли подмена для этого кейса
+  let overrideItem = null;
+  try{
+    const dr = await fetch(`${API_URL}/game/case_drop`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), chest_id: ch.id})
+    });
+    const dj = await dr.json();
+    if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
+  }catch(e){}
+
+  const winners = Array.from({length:multi}, (_,i)=> (i===0 && overrideItem) ? overrideItem : weightedPick(pool, ch.decay));
   let html = `<div class="multi-wrap">`;
   for (let i=0; i<multi; i++){ html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`; }
   html += `</div>`;
@@ -1015,7 +1060,7 @@ window.claimGiftFromInv = async (giftId) => {
       body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), gift_id: giftId}) 
     });
     const j = await r.json();
-    if(j.ok) { toast(" Подарок отправлен в Telegram!"); pushProfile(); } 
+    if(j.ok) { toast("🎉 Подарок отправлен в Telegram!"); pushProfile(); } 
     else { toast("Ошибка: " + (j.error || "Неизвестно")); addInv(giftId); renderInv(); pushProfile(); }
   } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
@@ -1139,7 +1184,7 @@ function showGrants(grants){
     if(html){ title.textContent = "Административные действия"; emoji.textContent = "⚠️"; } 
     else return; 
   } else { 
-    title.textContent = "Тебе начислено!"; emoji.textContent = ""; 
+    title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; 
   }
   list.innerHTML = html; save(); balance(); renderInv(); pushProfile(); $("#grantsOverlay").hidden = false;
 }
@@ -1171,7 +1216,6 @@ boot();
   GIFT_ITEMS.forEach(id => allImgs.push(GIFT_CDN + id + ".png"));
   allImgs.push(GIFT_CDN + "gift_chest.png");
 
-  // Собираем аудио, у которых задан src
   const auds = [];
   if (MUSIC_URL && music.src) auds.push(music);
   if (SOUND_CASE && tickAudio && tickAudio.src) auds.push(tickAudio);
@@ -1189,7 +1233,6 @@ boot();
     if (loaded >= total){ ready = true; btn.disabled = false; btn.textContent = "ВОЙТИ"; }
   }
   
-  // Картинки
   allImgs.forEach(u => { 
     const im = new Image(); 
     im.onload = bump; 
@@ -1197,26 +1240,20 @@ boot();
     im.src = u; 
   });
   
-  // Аудио — с проверкой readyState (главный фикс!)
   auds.forEach(a => { 
     let done = false;
     const fin = () => { if(done) return; done = true; bump(); };
-    
-    // Если аудио уже загружено — сразу считаем
     if(a.readyState >= 2){ fin(); return; }
-    
     a.oncanplaythrough = fin;
     a.onerror = fin;
     a.onstalled = fin;
     a.onabort = fin;
-    
     try{ 
       if(a.src) a.load(); 
       else fin();
     }catch(e){ fin(); }
   });
   
-  // ТАЙМАУТ: если через 20 сек не всё загрузилось — всё равно разблокируем
   setTimeout(() => {
     if(!ready){
       ready = true;
@@ -1226,7 +1263,6 @@ boot();
     }
   }, 20000);
   
-  // Сообщение о медленной сети
   setTimeout(() => { 
     if (!ready){ 
       $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; 
