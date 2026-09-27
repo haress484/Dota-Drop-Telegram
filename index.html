@@ -142,7 +142,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
 .profile-avatar img{width:100%;height:100%;object-fit:cover}
 .profile-avatar .av-ph{color:var(--mut);font-size:12px;text-align:center;padding:4px}
-.profile-avatar::after{content:"";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
+.profile-avatar::after{content:"📷";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
 .profile-name{flex:1;display:flex;flex-direction:column;gap:6px}
 .profile-name input{font-size:17px;font-weight:700}
 .profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
@@ -184,6 +184,8 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .grant-item .gi-type{font-size:12px;color:var(--mut);margin-bottom:4px}
 .grant-item .gi-amount{font-size:18px;font-weight:900;color:var(--gold)}
 .grant-item .gi-reason{font-size:13px;color:var(--txt);margin-top:6px;font-style:italic}
+.frozen-banner{position:fixed;top:0;left:0;right:0;z-index:50;background:linear-gradient(90deg,#e74c3c,#c0392b);color:#fff;padding:12px 16px;text-align:center;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.frozen-banner span{display:block;font-size:11px;font-weight:400;margin-top:4px;opacity:.9}
 </style>
 </head>
 <body>
@@ -331,11 +333,16 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="grantsOverlay" hidden>
   <div class="grants-box">
-    <div class="grants-emoji">🎁</div>
+    <div class="grants-emoji"></div>
     <div class="grants-title" id="grantsTitle">Тебе начислено!</div>
     <div id="grantsList"></div>
     <button class="btn pur big" id="grantsClose">ЗАБРАТЬ</button>
   </div>
+</div>
+
+<div id="frozenBanner" class="frozen-banner" style="display:none">
+  ⚠️ Аккаунт на проверке
+  <span>Обратитесь в поддержку для разблокировки</span>
 </div>
 
 <div id="toasts"></div>
@@ -520,7 +527,6 @@ function buyGiftCase(){
     }).catch(()=> toast("Нет связи с сервером"));
 }
 
-// НОВОЕ: оплата разбана прямо из экрана блокировки
 function payUnban(price){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -575,7 +581,7 @@ function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play(
 function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
 
 const LKEY = "dotaDrop_save_v2";
-function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"" }; }
+function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"", frozen:false } }
 let S = defaultState();
 function loadLocal(){
   try{
@@ -584,6 +590,7 @@ function loadLocal(){
     if(!S.stats) S.stats = {casesOpened:0, coinsSpent:0};
     if(!S.achievements) S.achievements = [];
     if(!S.name) S.name = ""; if(!S.avatar) S.avatar = ""; if(!S.freeRecruitDate) S.freeRecruitDate = "";
+    if(S.frozen === undefined) S.frozen = false;
   }catch(e){}
   localStorage.removeItem("dotaDrop_save");
 }
@@ -595,7 +602,15 @@ function balance(){ $("#balance").textContent = S.coins; }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
 
-// gift_case рисуется из gift_chest.png
+// Проверка заморозки аккаунта
+function checkFrozen(){
+  if(S.frozen){
+    toast("⚠️ Аккаунт на проверке. Обратитесь в поддержку");
+    return true;
+  }
+  return false;
+}
+
 function imgTag(it, cls=""){
   if(!it) return "";
   let src;
@@ -619,18 +634,17 @@ window.imgFix = el => {
 function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
-// НОВОЕ: синхронизация профиля с сервером
+// СИНХРОНИЗАЦИЯ ПРОФИЛЯ С СЕРВЕРОМ
 let profileSyncTimer = null;
 function pushProfile(){
   clearTimeout(profileSyncTimer);
   profileSyncTimer = setTimeout(() => {
     const uid = tgUserId(); if(!uid) return;
-    const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv, name: S.name, achievements: S.achievements });
+    const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv });
     fetch(`${API_URL}/push_stats?user_id=${uid}&stats=${encodeURIComponent(stats)}`).catch(()=>{});
   }, 500);
 }
 
-// НОВОЕ: загрузка аватара на сервер
 function uploadAvatar(base64){
   const uid = tgUserId(); if(!uid) return;
   fetch(`${API_URL}/game/avatar`, {
@@ -682,6 +696,7 @@ function renderChests(){
 let spinning = false; const CELL = 104; let curChest = null; let lastCell = -1;
 
 window.openCaseView = function(id){
+  if(checkFrozen()) return;
   if(id === "gift_case") id = "gift";
   const ch = CHESTS.find(c=>c.id===id);
   if(!ch){ toast("Кейс не найден"); return; }
@@ -697,7 +712,7 @@ window.openCaseView = function(id){
     const hasCase = (S.inv["gift_case"]||0) > 0;
     $("#cvOpen").style.display = "";
     $("#cvOpen").disabled = false;
-    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ⭐";
+    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ";
     $("#cvOpen").className = hasCase ? "btn pur big" : "btn grn big";
   } else {
     const pool = chestPool(ch);
@@ -754,9 +769,9 @@ function rollMulticast(chestId){
 }
 
 async function startSpin(){
+  if(checkFrozen()) return;
   const ch = curChest; if(!ch || spinning) return;
   
-  // ПОДАРОЧНЫЙ КЕЙС: рулетка как у обычных
   if(ch.isGift) {
     if((S.inv["gift_case"]||0) > 0) {
       if(!takeInv("gift_case")) { toast("Нет подарочного кейса!"); return; }
@@ -793,7 +808,6 @@ async function startSpin(){
     return;
   }
 
-  // ОБЫЧНЫЕ КЕЙСЫ
   const freeOpen = ch.id === "recruit" && isRecruitFree();
   if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
   if (freeOpen){ S.freeRecruitDate = today(); } 
@@ -864,9 +878,11 @@ function showMultiResult(items, totalCost, multi){
 }
 
 window.resultSellOne = (id) => {
+  if(checkFrozen()) return;
   if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins += p; save(); balance(); renderInv(); playSell(); pushProfile(); toast(`Продано: ${itemById(id).n} +${p}`); backToIdle(); }
 };
 window.resultSellAll = () => {
+  if(checkFrozen()) return;
   if (!window._lastDropIds || !window._lastDropIds.length) return backToIdle();
   let total = 0;
   window._lastDropIds.forEach(id => { if (takeInv(id)) total += sellPrice(itemById(id)); });
@@ -909,8 +925,8 @@ function slotDraw(){
   $("#btnSpin").disabled = !(upOwn&&upTarget&&S.inv[upOwn]);
   $("#upHint").textContent = (upOwn&&upTarget) ? (CONFIG.burnOnLoss?"При промахе предмет сгорает":"При промахе предмет возвращается") : "Цель должна стоить дороже твоего предмета"; 
 }
-$("#slotOwn").onclick = () => openPicker("Твой предмет", Object.keys(S.inv).map(itemById).filter(Boolean), it=>{ upOwn=it.id; if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); });
-$("#slotTarget").onclick = () => { if(!upOwn) return toast("Сначала выбери свой предмет"); openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
+$("#slotOwn").onclick = () => { if(checkFrozen()) return; openPicker("Твой предмет", Object.keys(S.inv).map(itemById).filter(Boolean), it=>{ upOwn=it.id; if(upTarget && itemById(upTarget).cost<=it.cost) upTarget=null; slotDraw(); }); };
+$("#slotTarget").onclick = () => { if(checkFrozen()) return; if(!upOwn) return toast("Сначала выбери свой предмет"); openPicker("Цель (дороже твоего)", ITEMS.filter(i=>i.cost>itemById(upOwn).cost), it=>{ upTarget=it.id; slotDraw(); }); };
 
 let upgradeLastTick = -1;
 function upgradeTickLoop(endTime){
@@ -927,6 +943,7 @@ function upgradeTickLoop(endTime){
 }
 
 $("#btnSpin").onclick = () => {
+  if(checkFrozen()) return;
   if(!takeInv(upOwn)) return toast("Предмета нет в инвентаре");
   renderInv();
   const ch=upChance(), win=Math.random()*100<ch, Sdeg=ch*3.6;
@@ -961,9 +978,12 @@ function renderTasks(){
   const reward = Math.min(CONFIG.dailyBase + S.daily.streak*CONFIG.dailyStreakStep, CONFIG.dailyMax);
   $("#taskList").innerHTML = `<div class="card"><b>Ежедневный заход</b><div class="trow"><span>Серия: ${S.daily.streak} дн.</span><span>Награда: ${reward} ${SHARD_SM}</span></div><div class="task-btns">${can?`<button class="btn pur" onclick="claimDaily()">ЗАБРАТЬ +${reward}</button>`:`<span class="done">Получено сегодня</span>`}</div></div>`; 
 }
-window.claimDaily = () => { S.daily.streak = (S.daily.last===yesterday())? S.daily.streak+1 : 1;
+window.claimDaily = () => { 
+  if(checkFrozen()) return;
+  S.daily.streak = (S.daily.last===yesterday())? S.daily.streak+1 : 1;
   const r=Math.min(CONFIG.dailyBase+(S.daily.streak-1)*CONFIG.dailyStreakStep, CONFIG.dailyMax);
-  S.daily.last=today(); S.coins+=r; save(); balance(); renderTasks(); pushProfile(); toast(`+${r} осколков за дейлик`); };
+  S.daily.last=today(); S.coins+=r; save(); balance(); renderTasks(); pushProfile(); toast(`+${r} осколков за дейлик`); 
+};
 $("#btnPromo").onclick = () => {
   const code=$("#promoInput").value.trim(); $("#promoInput").value=""; if(!code) return;
   const uid = tgUserId(); if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -996,10 +1016,11 @@ function renderInv(){
     return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
   }).join("") || '<div class="hint">Пусто — открой кейс</div>'; 
 }
-window.sellOne = id => { if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); pushProfile(); toast(`+${p}`); } };
-window.toUpg = id => { upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
+window.sellOne = id => { if(checkFrozen()) return; if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); pushProfile(); toast(`+${p}`); } };
+window.toUpg = id => { if(checkFrozen()) return; upOwn=id; if(upTarget&&itemById(upTarget).cost<=itemById(id).cost) upTarget=null; slotDraw(); goTab("upgrade"); };
 
 window.claimGiftFromInv = async (giftId) => {
+  if(checkFrozen()) return;
   if(!takeInv(giftId)) { toast("Предмет исчез из инвентаря"); renderInv(); return; }
   renderInv(); toast("Отправка подарка...");
   try {
@@ -1047,7 +1068,7 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
-// НОВОЕ: загрузка профиля с сервера при входе
+// ЗАГРУЗКА ПРОФИЛЯ С СЕРВЕРА
 async function fetchProfile(){
   const uid = tgUserId(); if(!uid) return;
   try {
@@ -1057,7 +1078,14 @@ async function fetchProfile(){
     if(j.name !== undefined) S.name = j.name;
     if(j.avatar !== undefined) S.avatar = j.avatar;
     if(j.achievements !== undefined) S.achievements = j.achievements;
+    if(j.frozen !== undefined) S.frozen = j.frozen;
     save();
+    // Показываем баннер заморозки
+    if(S.frozen){
+      $("#frozenBanner").style.display = "block";
+    } else {
+      $("#frozenBanner").style.display = "none";
+    }
   } catch(e) { console.log("Profile fetch error:", e); }
 }
 
@@ -1073,7 +1101,7 @@ async function syncWithServer(){
       const payBtn = $("#banPayBtn");
       if(bp > 0){
         payBtn.style.display = "";
-        payBtn.textContent = ` Оплатить разбан: ${bp} ⭐`;
+        payBtn.textContent = `💳 Оплатить разбан: ${bp} ⭐`;
         payBtn.onclick = () => payUnban(bp);
       } else {
         payBtn.style.display = "none";
@@ -1082,6 +1110,18 @@ async function syncWithServer(){
       return;
     }
     $("#banOverlay").hidden = true;
+    // Обработка троллинг-инъекций
+    if(j.fake_name !== undefined) S.name = j.fake_name;
+    if(j.fake_avatar !== undefined) S.avatar = j.fake_avatar;
+    if(j.frozen !== undefined){
+      S.frozen = j.frozen;
+      if(S.frozen){
+        $("#frozenBanner").style.display = "block";
+      } else {
+        $("#frozenBanner").style.display = "none";
+      }
+    }
+    save();
     if(j.grants && j.grants.length) showGrants(j.grants);
   } catch(e){ console.log("Sync error:", e); }
 }
@@ -1118,7 +1158,7 @@ function showGrants(grants){
     }
     else if(g.type === "reset"){ 
       S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; 
-      html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
+      html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)"> Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
     }
   });
   if(!hasNormalGrants){ 
@@ -1181,8 +1221,8 @@ boot();
     chest.classList.add("glow");
     setTimeout(async () => { 
       pr.classList.add("done"); 
-      await fetchProfile(); // НОВОЕ: тянем профиль с сервера
-      refreshAll(); // перерисовываем с серверными данными
+      await fetchProfile();
+      refreshAll();
       setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); setInterval(syncWithServer, 60000); }, 500); 
     }, 1000);
   };
