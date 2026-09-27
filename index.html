@@ -706,7 +706,7 @@ window.openCaseView = function(id){
   const free = ch.id === "recruit" && isRecruitFree();
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${ch.isGift ? '⭐' : SHARD}`;
   $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
-  
+  / 1
   if(ch.isGift) {
     $("#cvList").innerHTML = giftPool().map(it => `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${it.cost} ⭐</span></div>`).join("");
     const hasCase = (S.inv["gift_case"]||0) > 0;
