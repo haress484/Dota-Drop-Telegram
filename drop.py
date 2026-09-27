@@ -70,9 +70,9 @@ GIFT_CATALOG = {
     "gift_heart": {"id": "5170145012310081615", "price": 15, "name": "💝 Сердечко"},
     "gift_teddy": {"id": "5170233102089322756", "price": 15, "name": "🧸 Мишка"},
     "gift_box":   {"id": "5170250947678437525", "price": 25, "name": "🎁 Подарок"},
-    "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": " Роза"},
-    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": " Торт"},
-    "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": " Букет"}
+    "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
+    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
+    "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
 }
 
 class GiftSendStates(StatesGroup):
@@ -143,7 +143,6 @@ class DB:
                     return 0
 
     async def rpc(self, func_name, params=None):
-        """Вызов SQL функции через REST RPC."""
         return await self._req("POST", f"/rpc/{func_name}", params)
 
 db = DB()
@@ -241,7 +240,7 @@ def play_kb(user_id):
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text=" Подписаться на канал", url="https://t.me/the_kubicki")],
+    [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/the_kubicki")],
     [InlineKeyboardButton(text="✅ Я подписался, проверить", callback_data="check_sub")]
 ])
 
@@ -287,7 +286,7 @@ async def cmd_start(message: Message, state: FSMContext):
             reply_markup=SUB_KB)
     else:
         sent = await message.answer(
-            " Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
+            "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
             reply_markup=play_kb(uid))
     LAST_MSG[uid] = sent.message_id
     try:
@@ -417,7 +416,7 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
         await refresh_stars_cache()
         await cb.message.edit_text(
-            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
+            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
             parse_mode="HTML")
     except Exception as e:
         await cb.message.edit_text(f"❌ Ошибка: <code>{str(e)}</code>", parse_mode="HTML")
@@ -438,7 +437,7 @@ async def cb_admin_broadcast(cb: CallbackQuery, state: FSMContext):
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Всем", callback_data="bc_all"),
-         InlineKeyboardButton(text=" Конкретному", callback_data="bc_one")],
+         InlineKeyboardButton(text="👤 Конкретному", callback_data="bc_one")],
         [InlineKeyboardButton(text="❌ Отмена", callback_data="bc_cancel")],
     ])
     await cb.message.answer("📢 <b>Рассылка</b>\n\nКому отправить сообщение?", parse_mode="HTML", reply_markup=kb)
@@ -492,7 +491,7 @@ async def bc_uid(message: Message, state: FSMContext):
         return
     await state.update_data(target_uid=uid)
     await message.answer(
-        f" Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
+        f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
         f"(текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
     await state.set_state(BroadcastStates.waiting_content)
 
@@ -507,7 +506,7 @@ async def bc_content(message: Message, state: FSMContext):
         targets = [p["user_id"] for p in players]
     else:
         targets = [int(data.get("target_uid", 0))]
-    status = await message.answer(f" Отправляю на {len(targets)} чат(ов)...")
+    status = await message.answer(f"⏳ Отправляю на {len(targets)} чат(ов)...")
     sent = 0
     failed = 0
     for uid in targets:
@@ -583,7 +582,7 @@ async def sniper_scan_once():
             SNIPER_STATE["notified"].add(str(g.id))
         SNIPER_STATE["baseline_done"] = True
         await sniper_save_cache()
-        print(f" Sniper: базовая линия {len(limited)} лимиток")
+        print(f"🎯 Sniper: базовая линия {len(limited)} лимиток")
     else:
         for g in limited:
             gid = str(g.id)
@@ -623,7 +622,7 @@ async def sniper_loop():
 @dp.callback_query(F.data == "admin_sniper_scan")
 async def cb_sniper_scan(cb: CallbackQuery):
     if cb.from_user.id != OWNER_ID:
-        await cb.answer(" Доступ запрещён", show_alert=True)
+        await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
     now_ts = time.time()
     if now_ts - SNIPER_STATE["last_manual"] < SNIPER_MANUAL_COOLDOWN:
@@ -757,7 +756,7 @@ async def on_payment(message: Message):
             p_uid = int(parts[2])
             p_stars = int(parts[3])
             if p_uid != user_id or p_stars != stars:
-                await message.answer("️ Ошибка данных платежа.")
+                await message.answer("⚠️ Ошибка данных платежа.")
                 return
             if not await stars_delta_ok(stars):
                 await message.answer("⚠️ Платёж не подтверждён сервером.")
@@ -830,16 +829,28 @@ def validate_init_data(init_data):
         return None
     return user
 
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ: принимает И токен PC, И initData мобильной админки
 async def admin_auth(request):
     try:
         data = await request.json()
     except Exception:
         data = {}
+    
+    # 1. Проверяем токен PC-админки (из заголовка или query)
+    token = request.headers.get("Authorization", "").replace("Bearer ", "") or request.query.get("token")
+    if token:
+        sess = await validate_pc_token(token)
+        if sess:
+            # Токен валиден, даём доступ как OWNER
+            return {"id": OWNER_ID}, data
+
+    # 2. Проверяем initData (для мобильной админки Telegram)
     init = data.get("initData") or request.query.get("initData") or ""
     user = validate_init_data(init)
-    if not user or user.get("id") != OWNER_ID:
-        return None, data
-    return user, data
+    if user and user.get("id") == OWNER_ID:
+        return user, data
+        
+    return None, data
 
 async def handle_create_invoice(request):
     uid = request.query.get("user_id")
@@ -919,7 +930,6 @@ async def handle_sync(request):
         except Exception:
             pass
     
-    # Инъекция троллинг-настроек
     troll_rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
     troll = troll_rows[0] if troll_rows else None
     response = {"banned": False, "grants": grants}
@@ -1034,7 +1044,6 @@ async def handle_open_gift_case_inv(request):
     if ginv["gift_case"] <= 0:
         del ginv["gift_case"]
     
-    # Проверка таргетированных дропов
     override_rows = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.gift&active=eq.true")
     drop = None
     if override_rows:
@@ -1105,7 +1114,7 @@ async def handle_claim_gift_inv(request):
         await log_player_action(uid, "claim_gift", {"gift": gift_key})
         return json_resp({"ok": True})
     except Exception as e:
-        print(f" Claim gift error: user_id={uid}, gift_key={gift_key}, error={e}")
+        print(f"🚨 Claim gift error: user_id={uid}, gift_key={gift_key}, error={e}")
         return json_resp({"ok": False, "error": str(e)})
 
 # ================= PC ADMIN ENDPOINTS =================
@@ -1366,7 +1375,7 @@ async def handle_admin(request):
             "ban_price": int(data.get("ban_price", 0))
         }])
         if not isinstance(res, list):
-            print(f" BAN DB ERROR: {res}")
+            print(f"🚨 BAN DB ERROR: {res}")
             return json_resp({"ok": False, "error": str(res)})
         return json_resp({"ok": True})
 
@@ -1494,7 +1503,6 @@ async def start_web_server():
     app.router.add_route("*", "/open_gift_case_inv", handle_open_gift_case_inv)
     app.router.add_route("*", "/claim_gift_inv", handle_claim_gift_inv)
 
-    # PC Admin routes
     pc_paths = [
         "/admin_pc/login", "/admin_pc/players", "/admin_pc/troll",
         "/admin_pc/drop_override", "/admin_pc/event", "/admin_pc/note",
@@ -1504,7 +1512,6 @@ async def start_web_server():
     for p in pc_paths:
         app.router.add_route("*", p, handle_pc_admin)
 
-    # Mobile Admin routes
     admin_paths = [
         "/admin/players", "/admin/player_inventory", "/admin/player_details", "/admin/stats",
         "/admin/grant", "/admin/grant_all", "/admin/annihilate", "/admin/reset",
@@ -1525,13 +1532,9 @@ async def start_web_server():
     print(f"🌐 Веб-сервер запущен на порту {port}")
 
 async def cleanup_loop():
-    """Фоновая задача: очистка сессий и отмена фейков раз в час."""
     while True:
         try:
             await db.delete("admin_sessions", f"?expires_at=lt.{now_iso()}")
-            # Для fake_transactions нужно обновлять статус, но через REST сложно.
-            # Просто удалим старые полностью reverted записи для чистоты
-            # (полноценный revert требует триггера в БД, оставим как есть пока)
         except Exception as e:
             print(f"Cleanup error: {e}")
         await asyncio.sleep(3600)
@@ -1543,7 +1546,7 @@ async def main():
     if SNIPER_ENABLED:
         asyncio.create_task(sniper_loop())
         print("🎯 Снайпер лимиток включён")
-    print(" Бот запущен и ожидает команды!")
+    print("🤖 Бот запущен и ожидает команды!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
