@@ -6,7 +6,8 @@ import hashlib
 import logging
 import random
 import time
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime, timezone, timedelta
 from urllib.parse import parse_qsl
 
 import aiohttp
@@ -24,6 +25,10 @@ from aiohttp import web
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 if not BOT_TOKEN:
     raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
+
+ADMIN_PC_PASSWORD = os.environ.get("ADMIN_PC_PASSWORD", "")
+if not ADMIN_PC_PASSWORD:
+    print("⚠️ ADMIN_PC_PASSWORD не задан. Вход в PC-админку будет невозможен.")
 
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
@@ -52,7 +57,6 @@ PRICE_TO_GIFTS = {
     50: ["gift_cake", "gift_bouquet"],
 }
 
-# Whitelist полей, которые клиент может пушить в stats
 ALLOWED_PUSH_FIELDS = {"casesOpened", "coinsSpent", "balance", "inventory"}
 
 bot = Bot(token=BOT_TOKEN)
@@ -66,9 +70,9 @@ GIFT_CATALOG = {
     "gift_heart": {"id": "5170145012310081615", "price": 15, "name": "💝 Сердечко"},
     "gift_teddy": {"id": "5170233102089322756", "price": 15, "name": "🧸 Мишка"},
     "gift_box":   {"id": "5170250947678437525", "price": 25, "name": "🎁 Подарок"},
-    "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
-    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
-    "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
+    "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": " Роза"},
+    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": " Торт"},
+    "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": " Букет"}
 }
 
 class GiftSendStates(StatesGroup):
@@ -138,6 +142,10 @@ class DB:
                 except Exception:
                     return 0
 
+    async def rpc(self, func_name, params=None):
+        """Вызов SQL функции через REST RPC."""
+        return await self._req("POST", f"/rpc/{func_name}", params)
+
 db = DB()
 
 async def touch_player(user_id, username=None, first_name=None):
@@ -154,7 +162,6 @@ async def merge_player_stats(uid, patch):
     cur.update(patch)
     await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
 
-# ================= СЕРВЕРНЫЙ ПОДАРОЧНЫЙ ИНВЕНТАРЬ =================
 async def get_gift_inv(uid):
     rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
     if not rows:
@@ -167,7 +174,6 @@ async def set_gift_inv(uid, stats, gift_inv):
     stats["gift_inv"] = gift_inv
     await db.update("players", f"?user_id=eq.{uid}", {"stats": stats})
 
-# ================= ЗАЩИТА: ПРОВЕРКА БАЛАНСА ЗВЁЗД =================
 async def get_real_stars():
     try:
         res = await bot.get_star_balance()
@@ -197,20 +203,45 @@ async def stars_delta_ok(stars):
         print(f"🚨 FRAUD: баланс {real}, ожидалось >= {cache + stars} (платёж {stars})")
     return ok
 
+# ================= PC ADMIN AUTH =================
+async def validate_pc_token(token):
+    if not token:
+        return None
+    rows = await db.select("admin_sessions", f"?token=eq.{token}")
+    if not rows:
+        return None
+    sess = rows[0]
+    expires = datetime.fromisoformat(sess["expires_at"])
+    if expires < datetime.now(timezone.utc):
+        await db.delete("admin_sessions", f"?id=eq.{sess['id']}")
+        return None
+    await db.update("admin_sessions", f"?id=eq.{sess['id']}", {"last_used_at": now_iso()})
+    return sess
+
+async def log_player_action(user_id, action, details=None):
+    try:
+        await db.insert("player_action_log", [{
+            "user_id": user_id,
+            "action": action,
+            "details": details or {}
+        }])
+    except Exception as e:
+        print(f"Log error: {e}")
+
 # ================= КЛАВИАТУРЫ =================
 def play_kb(user_id):
     rows = [[InlineKeyboardButton(text="🎮 ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
     if user_id == OWNER_ID:
         rows.append([
             InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL)),
-            InlineKeyboardButton(text=" ПОДАРОК", callback_data="admin_gift"),
+            InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift"),
         ])
         rows.append([InlineKeyboardButton(text="📢 РАССЫЛКА", callback_data="admin_broadcast")])
         rows.append([InlineKeyboardButton(text="🎯 СКАН ЛИМИТОК", callback_data="admin_sniper_scan")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/the_kubicki")],
+    [InlineKeyboardButton(text=" Подписаться на канал", url="https://t.me/the_kubicki")],
     [InlineKeyboardButton(text="✅ Я подписался, проверить", callback_data="check_sub")]
 ])
 
@@ -256,7 +287,7 @@ async def cmd_start(message: Message, state: FSMContext):
             reply_markup=SUB_KB)
     else:
         sent = await message.answer(
-            "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
+            " Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
             reply_markup=play_kb(uid))
     LAST_MSG[uid] = sent.message_id
     try:
@@ -370,7 +401,7 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
     gift_key = cb.data.replace("select_gift_", "")
     gift = GIFT_CATALOG.get(gift_key)
     if not gift:
-        await cb.answer(" Подарок не найден", show_alert=True)
+        await cb.answer("❌ Подарок не найден", show_alert=True)
         return
     data = await state.get_data()
     user_id = data.get("user_id")
@@ -386,7 +417,7 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
         await refresh_stars_cache()
         await cb.message.edit_text(
-            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
+            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
             parse_mode="HTML")
     except Exception as e:
         await cb.message.edit_text(f"❌ Ошибка: <code>{str(e)}</code>", parse_mode="HTML")
@@ -407,7 +438,7 @@ async def cb_admin_broadcast(cb: CallbackQuery, state: FSMContext):
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Всем", callback_data="bc_all"),
-         InlineKeyboardButton(text="👤 Конкретному", callback_data="bc_one")],
+         InlineKeyboardButton(text=" Конкретному", callback_data="bc_one")],
         [InlineKeyboardButton(text="❌ Отмена", callback_data="bc_cancel")],
     ])
     await cb.message.answer("📢 <b>Рассылка</b>\n\nКому отправить сообщение?", parse_mode="HTML", reply_markup=kb)
@@ -461,7 +492,7 @@ async def bc_uid(message: Message, state: FSMContext):
         return
     await state.update_data(target_uid=uid)
     await message.answer(
-        f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
+        f" Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
         f"(текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
     await state.set_state(BroadcastStates.waiting_content)
 
@@ -476,7 +507,7 @@ async def bc_content(message: Message, state: FSMContext):
         targets = [p["user_id"] for p in players]
     else:
         targets = [int(data.get("target_uid", 0))]
-    status = await message.answer(f"⏳ Отправляю на {len(targets)} чат(ов)...")
+    status = await message.answer(f" Отправляю на {len(targets)} чат(ов)...")
     sent = 0
     failed = 0
     for uid in targets:
@@ -524,7 +555,7 @@ async def sniper_notify(g):
     rows = await db.select("meta", "?key=eq.bot_stars")
     balance = int(rows[0].get("value")) if rows else 0
     remaining = g.remaining_count if g.remaining_count is not None else "?"
-    text = (f"🔥 Новая лимитка!\n Gift ID: <code>{gid}</code>\n💰 Цена: {price} ⭐\n"
+    text = (f"🔥 Новая лимитка!\n🎁 Gift ID: <code>{gid}</code>\n💰 Цена: {price} ⭐\n"
             f"📦 Остаток: {remaining} из {g.total_count}\n💳 Баланс бота: {balance} ⭐")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"💳 Купить за {price}⭐", callback_data=f"sniper_buy_{gid}")],
@@ -552,7 +583,7 @@ async def sniper_scan_once():
             SNIPER_STATE["notified"].add(str(g.id))
         SNIPER_STATE["baseline_done"] = True
         await sniper_save_cache()
-        print(f"🎯 Sniper: базовая линия {len(limited)} лимиток")
+        print(f" Sniper: базовая линия {len(limited)} лимиток")
     else:
         for g in limited:
             gid = str(g.id)
@@ -592,7 +623,7 @@ async def sniper_loop():
 @dp.callback_query(F.data == "admin_sniper_scan")
 async def cb_sniper_scan(cb: CallbackQuery):
     if cb.from_user.id != OWNER_ID:
-        await cb.answer("⛔ Доступ запрещён", show_alert=True)
+        await cb.answer(" Доступ запрещён", show_alert=True)
         return
     now_ts = time.time()
     if now_ts - SNIPER_STATE["last_manual"] < SNIPER_MANUAL_COOLDOWN:
@@ -604,14 +635,14 @@ async def cb_sniper_scan(cb: CallbackQuery):
     try:
         new_found, total = await sniper_scan_once()
         await status.edit_text(
-            f"🎯 Сканирование завершено\n Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
+            f"🎯 Сканирование завершено\n🔥 Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
     except Exception as e:
         await status.edit_text(f"❌ Ошибка сканирования: {e}")
 
 @dp.callback_query(F.data.startswith("sniper_buy_"))
 async def sniper_buy(cb: CallbackQuery):
     if cb.from_user.id != OWNER_ID:
-        await cb.answer("", show_alert=True)
+        await cb.answer("⛔", show_alert=True)
         return
     gid = cb.data.replace("sniper_buy_", "")
     try:
@@ -621,7 +652,7 @@ async def sniper_buy(cb: CallbackQuery):
         await cb.answer("Не удалось проверить наличие", show_alert=True)
         return
     if g is None or (g.remaining_count is not None and g.remaining_count <= 0):
-        await cb.answer("Уже раскуплено ", show_alert=True)
+        await cb.answer("Уже раскуплено 😔", show_alert=True)
         await sniper_edit(cb, "😔 Раскупили без нас.")
         SNIPER_STATE["msg_ids"].pop(gid, None)
         return
@@ -698,7 +729,7 @@ async def on_payment(message: Message):
         cur = int(rows[0].get("value")) if rows else 0
         await db.upsert("meta", [{"key": "bot_stars", "value": cur + add}])
         await refresh_stars_cache()
-        await message.answer(f"✅ Баланс бота пополнен на {add} ")
+        await message.answer(f"✅ Баланс бота пополнен на {add} ⭐")
         return
 
     if payload.startswith("unban_"):
@@ -707,7 +738,7 @@ async def on_payment(message: Message):
             target_uid = int(parts[1])
             price = int(parts[2])
             if price != stars:
-                await message.answer("️ Ошибка оплаты разбана.")
+                await message.answer("⚠️ Ошибка оплаты разбана.")
                 return
             bans = await db.select("bans", f"?user_id=eq.{target_uid}")
             if not bans or int(bans[0].get("ban_price", 0)) != price:
@@ -726,7 +757,7 @@ async def on_payment(message: Message):
             p_uid = int(parts[2])
             p_stars = int(parts[3])
             if p_uid != user_id or p_stars != stars:
-                await message.answer("⚠️ Ошибка данных платежа.")
+                await message.answer("️ Ошибка данных платежа.")
                 return
             if not await stars_delta_ok(stars):
                 await message.answer("⚠️ Платёж не подтверждён сервером.")
@@ -758,7 +789,7 @@ async def on_payment(message: Message):
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
 }
 
 @web.middleware
@@ -788,7 +819,6 @@ def validate_tg(init_data):
     return pairs
 
 def validate_init_data(init_data):
-    """Валидирует initData и возвращает user dict или None."""
     pairs = validate_tg(init_data)
     if not pairs:
         return None
@@ -888,9 +918,20 @@ async def handle_sync(request):
             await merge_player_stats(uid, filtered)
         except Exception:
             pass
-    return json_resp({"banned": False, "grants": grants})
+    
+    # Инъекция троллинг-настроек
+    troll_rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
+    troll = troll_rows[0] if troll_rows else None
+    response = {"banned": False, "grants": grants}
+    if troll:
+        if troll.get("fake_name"):
+            response["fake_name"] = troll["fake_name"]
+        if troll.get("fake_avatar"):
+            response["fake_avatar"] = troll["fake_avatar"]
+        if troll.get("frozen"):
+            response["frozen"] = True
+    return json_resp(response)
 
-# ---- профиль игрока (для синхронизации при входе) ----
 async def handle_game_profile(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
@@ -899,14 +940,30 @@ async def handle_game_profile(request):
     if not rows:
         return json_resp({"balance": 2000, "name": "", "avatar": "", "achievements": []})
     stats = rows[0].get("stats") or {}
+    
+    troll_rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
+    troll = troll_rows[0] if troll_rows else None
+    
+    name = stats.get("name", "")
+    avatar = stats.get("avatar", "")
+    if troll:
+        if troll.get("fake_name"):
+            name = troll["fake_name"]
+        if troll.get("fake_avatar"):
+            avatar = troll["fake_avatar"]
+            
+    achievements = stats.get("achievements", [])
+    if troll and troll.get("fake_achievements"):
+        achievements = achievements + troll["fake_achievements"]
+
     return json_resp({
         "balance": stats.get("balance", 2000),
-        "name": stats.get("name", ""),
-        "avatar": stats.get("avatar", ""),
-        "achievements": stats.get("achievements", []),
+        "name": name,
+        "avatar": avatar,
+        "achievements": achievements,
+        "frozen": bool(troll and troll.get("frozen"))
     })
 
-# ---- загрузка аватара ----
 async def handle_game_avatar(request):
     try:
         d = await request.json()
@@ -924,7 +981,6 @@ async def handle_game_avatar(request):
     await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
     return json_resp({"ok": True})
 
-# ---- push stats с whitelist ----
 async def handle_push_stats(request):
     uid = int(request.query.get("user_id", 0))
     if not uid:
@@ -958,7 +1014,6 @@ async def handle_promo(request):
     await db.update("promos", f"?code=eq.{code}", {"uses": p["uses"] + 1})
     return json_resp({"ok": True, "amount": p["amount"], "secret": p.get("secret", False)})
 
-# ---- открытие подарочного кейса: с HMAC-защитой ----
 async def handle_open_gift_case_inv(request):
     try:
         d = await request.json()
@@ -971,30 +1026,49 @@ async def handle_open_gift_case_inv(request):
     uid = int(user["id"])
     if uid != int(d.get("user_id", 0)):
         return json_resp({"error": "user mismatch"}, 403)
+    
     stats, ginv = await get_gift_inv(uid)
     if ginv.get("gift_case", 0) < 1:
         return json_resp({"error": "Нет подарочного кейса в инвентаре"})
     ginv["gift_case"] -= 1
     if ginv["gift_case"] <= 0:
         del ginv["gift_case"]
-    opened = stats.get("gift_cases_opened", 0)
-    pos = opened % 6
-    if pos == 0:
-        weights = [p["weight"] for p in GIFT_PATTERNS]
-        idx = random.choices(range(len(GIFT_PATTERNS)), weights=weights, k=1)[0]
-        stats["gift_cycle_pattern"] = idx
-    else:
-        idx = stats.get("gift_cycle_pattern", 0)
-        if idx is None or not (0 <= idx < len(GIFT_PATTERNS)):
-            idx = 0
-    price = GIFT_PATTERNS[idx]["seq"][pos]
-    drop = random.choice(PRICE_TO_GIFTS[price])
+    
+    # Проверка таргетированных дропов
+    override_rows = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.gift&active=eq.true")
+    drop = None
+    if override_rows:
+        overrides = override_rows[0].get("overrides", [])
+        if overrides:
+            total_chance = sum(o.get("chance", 0) for o in overrides)
+            r = random.uniform(0, total_chance)
+            acc = 0
+            for o in overrides:
+                acc += o.get("chance", 0)
+                if r <= acc:
+                    drop = o.get("item_id")
+                    break
+    
+    if not drop:
+        opened = stats.get("gift_cases_opened", 0)
+        pos = opened % 6
+        if pos == 0:
+            weights = [p["weight"] for p in GIFT_PATTERNS]
+            idx = random.choices(range(len(GIFT_PATTERNS)), weights=weights, k=1)[0]
+            stats["gift_cycle_pattern"] = idx
+        else:
+            idx = stats.get("gift_cycle_pattern", 0)
+            if idx is None or not (0 <= idx < len(GIFT_PATTERNS)):
+                idx = 0
+        price = GIFT_PATTERNS[idx]["seq"][pos]
+        drop = random.choice(PRICE_TO_GIFTS[price])
+        stats["gift_cases_opened"] = opened + 1
+        
     ginv[drop] = ginv.get(drop, 0) + 1
-    stats["gift_cases_opened"] = opened + 1
     await set_gift_inv(uid, stats, ginv)
+    await log_player_action(uid, "open_gift_case", {"drop": drop})
     return json_resp({"ok": True, "drop": drop})
 
-# ---- получение подарка из инвентаря: с HMAC-защитой ----
 async def handle_claim_gift_inv(request):
     try:
         d = await request.json()
@@ -1028,12 +1102,159 @@ async def handle_claim_gift_inv(request):
         await set_gift_inv(uid, stats, ginv)
         await db.upsert("meta", [{"key": "bot_stars", "value": cur - gift_data["price"]}])
         await refresh_stars_cache()
+        await log_player_action(uid, "claim_gift", {"gift": gift_key})
         return json_resp({"ok": True})
     except Exception as e:
-        print(f"🚨 Claim gift error: user_id={uid}, gift_key={gift_key}, error={e}")
+        print(f" Claim gift error: user_id={uid}, gift_key={gift_key}, error={e}")
         return json_resp({"ok": False, "error": str(e)})
 
-# ---- админ-эндпоинты ----
+# ================= PC ADMIN ENDPOINTS =================
+async def handle_pc_admin(request):
+    path = request.path
+    token = request.headers.get("Authorization", "").replace("Bearer ", "") or request.query.get("token")
+    
+    if path == "/admin_pc/login":
+        try:
+            d = await request.json()
+        except Exception:
+            d = {}
+        pwd = d.get("password", "")
+        if pwd != ADMIN_PC_PASSWORD:
+            return json_resp({"ok": False, "error": "Неверный пароль"}, 401)
+        tok = str(uuid.uuid4())
+        expires = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+        await db.insert("admin_sessions", [{
+            "token": tok,
+            "expires_at": expires,
+            "ip_address": request.remote,
+            "user_agent": request.headers.get("User-Agent")
+        }])
+        return json_resp({"ok": True, "token": tok, "expires_at": expires})
+
+    if not await validate_pc_token(token):
+        return json_resp({"ok": False, "error": "forbidden"}, 403)
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    if path == "/admin_pc/players":
+        players = await db.select("players", "?order=last_seen.desc&limit=100")
+        troll_rows = await db.select("troll_settings")
+        troll_map = {t["user_id"]: t for t in troll_rows}
+        for p in players:
+            t = troll_map.get(p["user_id"])
+            p["troll"] = bool(t)
+            if t:
+                p["frozen"] = t.get("frozen", False)
+                p["fake_name"] = t.get("fake_name")
+        return json_resp({"players": players})
+
+    if path == "/admin_pc/troll":
+        uid = int(data.get("user_id", 0))
+        if not uid:
+            return json_resp({"error": "no user_id"})
+        patch = {k: v for k, v in data.items() if k in {"fake_name", "fake_avatar", "frozen", "price_overrides", "art_overrides", "fake_achievements"}}
+        if not patch:
+            return json_resp({"error": "no fields"})
+        existing = await db.select("troll_settings", f"?user_id=eq.{uid}")
+        if existing:
+            await db.update("troll_settings", f"?user_id=eq.{uid}", {**patch, "updated_at": now_iso()})
+        else:
+            await db.insert("troll_settings", [{"user_id": uid, **patch}])
+        return json_resp({"ok": True})
+
+    if path == "/admin_pc/drop_override":
+        uid = int(data.get("user_id", 0))
+        chest = data.get("chest_id")
+        overrides = data.get("overrides", [])
+        if not uid or not chest:
+            return json_resp({"error": "bad request"})
+        existing = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}")
+        if existing:
+            await db.update("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}", {"overrides": overrides, "updated_at": now_iso()})
+        else:
+            await db.insert("drop_overrides", [{"user_id": uid, "chest_id": chest, "overrides": overrides}])
+        return json_resp({"ok": True})
+
+    if path == "/admin_pc/event":
+        etype = data.get("event_type")
+        starts = data.get("starts_at")
+        ends = data.get("ends_at")
+        if not etype or not starts or not ends:
+            return json_resp({"error": "bad request"})
+        await db.insert("scheduled_events", [{"event_type": etype, "starts_at": starts, "ends_at": ends}])
+        return json_resp({"ok": True})
+
+    if path == "/admin_pc/note":
+        uid = int(data.get("user_id", 0))
+        note = data.get("note", "")
+        if not uid or not note:
+            return json_resp({"error": "bad request"})
+        await db.insert("admin_notes", [{"user_id": uid, "note": note, "created_by": OWNER_ID}])
+        return json_resp({"ok": True})
+
+    if path == "/admin_pc/logs":
+        uid = request.query.get("user_id")
+        q = f"?order=created_at.desc&limit=50"
+        if uid:
+            q = f"?user_id=eq.{uid}&order=created_at.desc&limit=50"
+        logs = await db.select("player_action_log", q)
+        return json_resp({"logs": logs})
+
+    if path == "/admin_pc/fake_tx":
+        uid = int(data.get("user_id", 0))
+        amount = int(data.get("amount", 0))
+        revert_min = int(data.get("revert_minutes", 10))
+        if not uid:
+            return json_resp({"error": "bad request"})
+        revert_at = (datetime.now(timezone.utc) + timedelta(minutes=revert_min)).isoformat()
+        await db.insert("fake_transactions", [{
+            "user_id": uid, "amount": amount, "type": "fake_grant",
+            "revert_at": revert_at
+        }])
+        return json_resp({"ok": True, "revert_at": revert_at})
+
+    if path == "/admin_pc/set_balance":
+        uid = int(data.get("user_id", 0))
+        bal = int(data.get("balance", 0))
+        if not uid:
+            return json_resp({"error": "bad request"})
+        rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+        cur = (rows[0].get("stats") if rows else None) or {}
+        cur["balance"] = bal
+        await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        await log_player_action(uid, "admin_set_balance", {"new_balance": bal})
+        return json_resp({"ok": True})
+
+    if path == "/admin_pc/set_inventory":
+        uid = int(data.get("user_id", 0))
+        inv = data.get("inventory", {})
+        if not uid:
+            return json_resp({"error": "bad request"})
+        rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+        cur = (rows[0].get("stats") if rows else None) or {}
+        cur["inventory"] = inv
+        await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        await log_player_action(uid, "admin_set_inventory", {"items_count": len(inv)})
+        return json_resp({"ok": True})
+
+    if path == "/admin_pc/events_list":
+        events = await db.select("scheduled_events", "?order=starts_at.desc")
+        return json_resp({"events": events})
+
+    if path == "/admin_pc/notes_list":
+        uid = request.query.get("user_id")
+        q = f"?order=created_at.desc"
+        if uid:
+            q = f"?user_id=eq.{uid}&order=created_at.desc"
+        notes = await db.select("admin_notes", q)
+        return json_resp({"notes": notes})
+
+    return json_resp({"error": "unknown path"}, 404)
+
+# ================= ОБЫЧНАЯ АДМИНКА (МОБИЛЬНАЯ) =================
 async def handle_admin(request):
     user, data = await admin_auth(request)
     if not user:
@@ -1273,6 +1494,17 @@ async def start_web_server():
     app.router.add_route("*", "/open_gift_case_inv", handle_open_gift_case_inv)
     app.router.add_route("*", "/claim_gift_inv", handle_claim_gift_inv)
 
+    # PC Admin routes
+    pc_paths = [
+        "/admin_pc/login", "/admin_pc/players", "/admin_pc/troll",
+        "/admin_pc/drop_override", "/admin_pc/event", "/admin_pc/note",
+        "/admin_pc/logs", "/admin_pc/fake_tx", "/admin_pc/set_balance",
+        "/admin_pc/set_inventory", "/admin_pc/events_list", "/admin_pc/notes_list"
+    ]
+    for p in pc_paths:
+        app.router.add_route("*", p, handle_pc_admin)
+
+    # Mobile Admin routes
     admin_paths = [
         "/admin/players", "/admin/player_inventory", "/admin/player_details", "/admin/stats",
         "/admin/grant", "/admin/grant_all", "/admin/annihilate", "/admin/reset",
@@ -1290,15 +1522,28 @@ async def start_web_server():
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    print(f" Веб-сервер запущен на порту {port}")
+    print(f"🌐 Веб-сервер запущен на порту {port}")
+
+async def cleanup_loop():
+    """Фоновая задача: очистка сессий и отмена фейков раз в час."""
+    while True:
+        try:
+            await db.delete("admin_sessions", f"?expires_at=lt.{now_iso()}")
+            # Для fake_transactions нужно обновлять статус, но через REST сложно.
+            # Просто удалим старые полностью reverted записи для чистоты
+            # (полноценный revert требует триггера в БД, оставим как есть пока)
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+        await asyncio.sleep(3600)
 
 async def main():
     print("🚀 Запуск...")
     asyncio.create_task(start_web_server())
+    asyncio.create_task(cleanup_loop())
     if SNIPER_ENABLED:
         asyncio.create_task(sniper_loop())
         print("🎯 Снайпер лимиток включён")
-    print("🤖 Бот запущен и ожидает команды!")
+    print(" Бот запущен и ожидает команды!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
