@@ -333,7 +333,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 
 <div class="overlay" id="grantsOverlay" hidden>
   <div class="grants-box">
-    <div class="grants-emoji"></div>
+    <div class="grants-emoji">🎁</div>
     <div class="grants-title" id="grantsTitle">Тебе начислено!</div>
     <div id="grantsList"></div>
     <button class="btn pur big" id="grantsClose">ЗАБРАТЬ</button>
@@ -396,7 +396,7 @@ const CHESTS = [
 const GIFT_ITEMS = ["gift_heart", "gift_teddy", "gift_box", "gift_rose", "gift_cake", "gift_bouquet"];
 const GIFT_NAMES = {
   "gift_heart": "💝 Сердечко", "gift_teddy": "🧸 Мишка", "gift_box": "🎁 Подарок",
-  "gift_rose": "🌹 Роза", "gift_cake": "🎂 Торт", "gift_bouquet": "💐 Букет", "gift_case": "🎁 Подарочный кейс"
+  "gift_rose": " Роза", "gift_cake": " Торт", "gift_bouquet": " Букет", "gift_case": " Подарочный кейс"
 };
 const GIFT_PRICES = { gift_heart:15, gift_teddy:15, gift_box:25, gift_rose:25, gift_cake:50, gift_bouquet:50 };
 const giftPool = () => GIFT_ITEMS.map(id => ({ id, n: GIFT_NAMES[id], cost: GIFT_PRICES[id] }));
@@ -488,7 +488,6 @@ const PACKS = [
 const tgUserId = () => (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
 const tgInitData = () => (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp.initData : "";
 
-// ЗАЩИТА: оплата ничего не начисляет локально, начисляет только сервер через гранты
 function buyInvoice(stars, coins){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -497,11 +496,7 @@ function buyInvoice(stars, coins){
     .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){
-          toast("Оплата отправлена, подтверждаю...");
-          setTimeout(syncWithServer, 2500);
-          setTimeout(syncWithServer, 7000);
-        }
+        if(status === "paid"){ toast("Оплата отправлена, подтверждаю..."); setTimeout(syncWithServer, 2500); setTimeout(syncWithServer, 7000); }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
@@ -516,11 +511,7 @@ function buyGiftCase(){
     .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){
-          toast("Оплата отправлена, подтверждаю...");
-          setTimeout(syncWithServer, 2500);
-          setTimeout(syncWithServer, 7000);
-        }
+        if(status === "paid"){ toast("Оплата отправлена, подтверждаю..."); setTimeout(syncWithServer, 2500); setTimeout(syncWithServer, 7000); }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
@@ -535,11 +526,7 @@ function payUnban(price){
     .then(r => r.json()).then(j => {
       if(!j.invoice_link){ toast("Ошибка: " + (j.error || "неизвестно")); return; }
       window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-        if(status === "paid"){
-          toast("Оплата отправлена, подтверждаю...");
-          setTimeout(syncWithServer, 2500);
-          setTimeout(syncWithServer, 7000);
-        }
+        if(status === "paid"){ toast("Оплата отправлена, подтверждаю..."); setTimeout(syncWithServer, 2500); setTimeout(syncWithServer, 7000); }
         else if(status === "cancelled"){ toast("Оплата отменена"); }
         else if(status === "failed"){ toast("Ошибка оплаты"); }
       });
@@ -602,7 +589,6 @@ function balance(){ $("#balance").textContent = S.coins; }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
 
-// Проверка заморозки аккаунта
 function checkFrozen(){
   if(S.frozen){
     toast("⚠️ Аккаунт на проверке. Обратитесь в поддержку");
@@ -634,7 +620,6 @@ window.imgFix = el => {
 function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
-// СИНХРОНИЗАЦИЯ ПРОФИЛЯ С СЕРВЕРОМ
 let profileSyncTimer = null;
 function pushProfile(){
   clearTimeout(profileSyncTimer);
@@ -706,13 +691,13 @@ window.openCaseView = function(id){
   const free = ch.id === "recruit" && isRecruitFree();
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${ch.isGift ? '⭐' : SHARD}`;
   $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
-  / 1
+  
   if(ch.isGift) {
     $("#cvList").innerHTML = giftPool().map(it => `<div class="pick-row">${imgTag(it)}<span class="pn">${it.n}</span><span class="pc">${it.cost} ⭐</span></div>`).join("");
     const hasCase = (S.inv["gift_case"]||0) > 0;
     $("#cvOpen").style.display = "";
     $("#cvOpen").disabled = false;
-    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ";
+    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ⭐";
     $("#cvOpen").className = hasCase ? "btn pur big" : "btn grn big";
   } else {
     const pool = chestPool(ch);
@@ -1030,7 +1015,7 @@ window.claimGiftFromInv = async (giftId) => {
       body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), gift_id: giftId}) 
     });
     const j = await r.json();
-    if(j.ok) { toast("🎉 Подарок отправлен в Telegram!"); pushProfile(); } 
+    if(j.ok) { toast(" Подарок отправлен в Telegram!"); pushProfile(); } 
     else { toast("Ошибка: " + (j.error || "Неизвестно")); addInv(giftId); renderInv(); pushProfile(); }
   } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
@@ -1068,7 +1053,6 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
-// ЗАГРУЗКА ПРОФИЛЯ С СЕРВЕРА
 async function fetchProfile(){
   const uid = tgUserId(); if(!uid) return;
   try {
@@ -1080,12 +1064,7 @@ async function fetchProfile(){
     if(j.achievements !== undefined) S.achievements = j.achievements;
     if(j.frozen !== undefined) S.frozen = j.frozen;
     save();
-    // Показываем баннер заморозки
-    if(S.frozen){
-      $("#frozenBanner").style.display = "block";
-    } else {
-      $("#frozenBanner").style.display = "none";
-    }
+    if(S.frozen){ $("#frozenBanner").style.display = "block"; } else { $("#frozenBanner").style.display = "none"; }
   } catch(e) { console.log("Profile fetch error:", e); }
 }
 
@@ -1110,16 +1089,11 @@ async function syncWithServer(){
       return;
     }
     $("#banOverlay").hidden = true;
-    // Обработка троллинг-инъекций
     if(j.fake_name !== undefined) S.name = j.fake_name;
     if(j.fake_avatar !== undefined) S.avatar = j.fake_avatar;
     if(j.frozen !== undefined){
       S.frozen = j.frozen;
-      if(S.frozen){
-        $("#frozenBanner").style.display = "block";
-      } else {
-        $("#frozenBanner").style.display = "none";
-      }
+      if(S.frozen){ $("#frozenBanner").style.display = "block"; } else { $("#frozenBanner").style.display = "none"; }
     }
     save();
     if(j.grants && j.grants.length) showGrants(j.grants);
@@ -1158,14 +1132,14 @@ function showGrants(grants){
     }
     else if(g.type === "reset"){ 
       S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; 
-      html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)"> Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
+      html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${CONFIG.startCoins} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${g.reason}</div>` : ""}</div>`; 
     }
   });
   if(!hasNormalGrants){ 
     if(html){ title.textContent = "Административные действия"; emoji.textContent = "⚠️"; } 
     else return; 
   } else { 
-    title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; 
+    title.textContent = "Тебе начислено!"; emoji.textContent = ""; 
   }
   list.innerHTML = html; save(); balance(); renderInv(); pushProfile(); $("#grantsOverlay").hidden = false;
 }
@@ -1181,6 +1155,7 @@ function boot(){
 }
 boot();
 
+// ===== ПРЕЛОАДЕР (ИСПРАВЛЕННЫЙ) =====
 (function preloader(){
   const pr = $("#preloader"), orbit = $("#orbit"), chest = $("#loaderChest"), btn = $("#loadBtn");
   const N = 8, shards = [];
@@ -1196,18 +1171,67 @@ boot();
   GIFT_ITEMS.forEach(id => allImgs.push(GIFT_CDN + id + ".png"));
   allImgs.push(GIFT_CDN + "gift_chest.png");
 
+  // Собираем аудио, у которых задан src
   const auds = [];
-  if (MUSIC_URL) auds.push(music); if (SOUND_CASE) auds.push(tickAudio); if (SOUND_SELL) auds.push(sellAudio);
-  Object.values(multiAudios).forEach(a => { if(a) auds.push(a); }); if (achieveAudio) auds.push(achieveAudio);
+  if (MUSIC_URL && music.src) auds.push(music);
+  if (SOUND_CASE && tickAudio && tickAudio.src) auds.push(tickAudio);
+  if (SOUND_SELL && sellAudio && sellAudio.src) auds.push(sellAudio);
+  Object.values(multiAudios).forEach(a => { if(a && a.src) auds.push(a); });
+  if (achieveAudio && achieveAudio.src) auds.push(achieveAudio);
 
   const total = allImgs.length + auds.length; let loaded = 0, ready = false;
+  
   function bump(){
-    loaded++; $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total}`;
-    if (loaded >= total && !ready){ ready = true; btn.disabled = false; btn.textContent = "ВОЙТИ"; }
+    if(ready) return;
+    loaded++;
+    const txt = `Загрузка ${Math.min(loaded,total)}/${total}`;
+    $("#loadTxt").textContent = txt;
+    if (loaded >= total){ ready = true; btn.disabled = false; btn.textContent = "ВОЙТИ"; }
   }
-  allImgs.forEach(u => { const im = new Image(); im.onload = bump; im.onerror = bump; im.src = u; });
-  auds.forEach(a => { let d=false; const fin=()=>{ if(d)return; d=true; bump(); }; a.preload="auto"; a.oncanplaythrough=fin; a.onerror=fin; try{ a.load(); }catch(e){ fin(); } });
-  setTimeout(() => { if (!ready){ $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; } }, 15000);
+  
+  // Картинки
+  allImgs.forEach(u => { 
+    const im = new Image(); 
+    im.onload = bump; 
+    im.onerror = bump; 
+    im.src = u; 
+  });
+  
+  // Аудио — с проверкой readyState (главный фикс!)
+  auds.forEach(a => { 
+    let done = false;
+    const fin = () => { if(done) return; done = true; bump(); };
+    
+    // Если аудио уже загружено — сразу считаем
+    if(a.readyState >= 2){ fin(); return; }
+    
+    a.oncanplaythrough = fin;
+    a.onerror = fin;
+    a.onstalled = fin;
+    a.onabort = fin;
+    
+    try{ 
+      if(a.src) a.load(); 
+      else fin();
+    }catch(e){ fin(); }
+  });
+  
+  // ТАЙМАУТ: если через 20 сек не всё загрузилось — всё равно разблокируем
+  setTimeout(() => {
+    if(!ready){
+      ready = true;
+      btn.disabled = false;
+      btn.textContent = "ВОЙТИ";
+      $("#loadTxt").textContent = `Загружено ${loaded}/${total}`;
+    }
+  }, 20000);
+  
+  // Сообщение о медленной сети
+  setTimeout(() => { 
+    if (!ready){ 
+      $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; 
+    } 
+  }, 8000);
 
   btn.onclick = async () => {
     if (btn.disabled) return;
