@@ -71,7 +71,7 @@ GIFT_CATALOG = {
     "gift_teddy": {"id": "5170233102089322756", "price": 15, "name": "🧸 Мишка"},
     "gift_box":   {"id": "5170250947678437525", "price": 25, "name": "🎁 Подарок"},
     "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
-    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
+    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": " Торт"},
     "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
 }
 
@@ -226,14 +226,14 @@ async def log_player_action(user_id, action, details=None):
 
 # ================= КЛАВИАТУРЫ =================
 def play_kb(user_id):
-    rows = [[InlineKeyboardButton(text="🎮 ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
+    rows = [[InlineKeyboardButton(text=" ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
     if user_id == OWNER_ID:
         rows.append([
             InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL)),
             InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift"),
         ])
         rows.append([InlineKeyboardButton(text="📢 РАССЫЛКА", callback_data="admin_broadcast")])
-        rows.append([InlineKeyboardButton(text="🎯 СКАН ЛИМИТОК", callback_data="admin_sniper_scan")])
+        rows.append([InlineKeyboardButton(text=" СКАН ЛИМИТОК", callback_data="admin_sniper_scan")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
@@ -300,7 +300,7 @@ async def cb_check_sub(cb: CallbackQuery):
             reply_markup=play_kb(uid))
         await cb.answer("Подписка подтверждена!")
     else:
-        await cb.answer("⚠️ Ты всё ещё не подписан!", show_alert=True)
+        await cb.answer("️ Ты всё ещё не подписан!", show_alert=True)
 
 # ================= INLINE-РЕЖИМ =================
 @dp.inline_query()
@@ -342,7 +342,7 @@ async def handle_inline(iq: InlineQuery):
         await iq.answer([], cache_time=0, is_personal=True)
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"💳 Спонсировать {n} ⭐", url=link)]
+        [InlineKeyboardButton(text=f" Спонсировать {n} ⭐", url=link)]
     ])
     result = InlineQueryResultPhoto(
         id=f"sponsor_{n}",
@@ -413,7 +413,7 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
         await refresh_stars_cache()
         await cb.message.edit_text(
-            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
+            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
             parse_mode="HTML")
     except Exception as e:
         await cb.message.edit_text(f"❌ Ошибка: <code>{str(e)}</code>", parse_mode="HTML")
@@ -434,7 +434,7 @@ async def cb_admin_broadcast(cb: CallbackQuery, state: FSMContext):
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Всем", callback_data="bc_all"),
-         InlineKeyboardButton(text="👤 Конкретному", callback_data="bc_one")],
+         InlineKeyboardButton(text=" Конкретному", callback_data="bc_one")],
         [InlineKeyboardButton(text="❌ Отмена", callback_data="bc_cancel")],
     ])
     await cb.message.answer("📢 <b>Рассылка</b>\n\nКому отправить сообщение?", parse_mode="HTML", reply_markup=kb)
@@ -488,7 +488,7 @@ async def bc_uid(message: Message, state: FSMContext):
         return
     await state.update_data(target_uid=uid)
     await message.answer(
-        f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
+        f" Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
         f"(текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
     await state.set_state(BroadcastStates.waiting_content)
 
@@ -503,7 +503,7 @@ async def bc_content(message: Message, state: FSMContext):
         targets = [p["user_id"] for p in players]
     else:
         targets = [int(data.get("target_uid", 0))]
-    status = await message.answer(f"⏳ Отправляю на {len(targets)} чат(ов)...")
+    status = await message.answer(f" Отправляю на {len(targets)} чат(ов)...")
     sent = 0
     failed = 0
     for uid in targets:
@@ -554,7 +554,7 @@ async def sniper_notify(g):
     text = (f"🔥 Новая лимитка!\n🎁 Gift ID: <code>{gid}</code>\n💰 Цена: {price} ⭐\n"
             f"📦 Остаток: {remaining} из {g.total_count}\n💳 Баланс бота: {balance} ⭐")
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"💳 Купить за {price}⭐", callback_data=f"sniper_buy_{gid}")],
+        [InlineKeyboardButton(text=f" Купить за {price}⭐", callback_data=f"sniper_buy_{gid}")],
         [InlineKeyboardButton(text="❌ Не интересно", callback_data=f"sniper_skip_{gid}"),
          InlineKeyboardButton(text=f"💎 Пополнить {price}⭐", callback_data=f"sniper_topup_{gid}_{price}")],
     ])
@@ -631,7 +631,7 @@ async def cb_sniper_scan(cb: CallbackQuery):
     try:
         new_found, total = await sniper_scan_once()
         await status.edit_text(
-            f"🎯 Сканирование завершено\n🔥 Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
+            f"🎯 Сканирование завершено\n Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
     except Exception as e:
         await status.edit_text(f"❌ Ошибка сканирования: {e}")
 
@@ -738,7 +738,7 @@ async def on_payment(message: Message):
                 return
             bans = await db.select("bans", f"?user_id=eq.{target_uid}")
             if not bans or int(bans[0].get("ban_price", 0)) != price:
-                await message.answer("⚠️ Ошибка оплаты разбана.")
+                await message.answer("️ Ошибка оплаты разбана.")
                 return
             await db.delete("bans", f"?user_id=eq.{target_uid}")
             await db.insert("payments", [{"user_id": target_uid, "stars": stars, "coins": 0}])
@@ -756,7 +756,7 @@ async def on_payment(message: Message):
                 await message.answer("⚠️ Ошибка данных платежа.")
                 return
             if not await stars_delta_ok(stars):
-                await message.answer("⚠️ Платёж не подтверждён сервером.")
+                await message.answer("️ Платёж не подтверждён сервером.")
                 return
             await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": 0}])
             await db.insert("grants", [{
@@ -1237,7 +1237,7 @@ async def handle_pc_admin(request):
         await log_player_action(uid, "admin_set_inventory", {"items_count": len(inv)})
         return json_resp({"ok": True})
 
-    # НОВЫЙ ЭНДПОИНТ: Перенос предмета между игроками
+    # ✅ ИСПРАВЛЕННЫЙ ЭНДПОИНТ: Перенос предмета между игроками
     if path == "/admin_pc/transfer_item":
         from_uid = int(data.get("from_user_id", 0))
         to_uid = int(data.get("to_user_id", 0))
@@ -1245,35 +1245,60 @@ async def handle_pc_admin(request):
         amount = int(data.get("amount", 1))
 
         if not from_uid or not to_uid or not item_id:
-            return json_resp({"error": "bad request"})
+            return json_resp({"error": "bad request", "details": "missing params"})
 
-        p1 = await db.select("players", f"?user_id=eq.{from_uid}&select=stats")
-        p2 = await db.select("players", f"?user_id=eq.{to_uid}&select=stats")
+        # Получаем обоих игроков
+        p1_rows = await db.select("players", f"?user_id=eq.{from_uid}")
+        p2_rows = await db.select("players", f"?user_id=eq.{to_uid}")
 
-        inv1 = (p1[0].get("stats") or {}).get("inventory", {}) if p1 else {}
-        inv2 = (p2[0].get("stats") or {}).get("inventory", {}) if p2 else {}
+        if not p1_rows:
+            return json_resp({"error": "Игрок-отправитель не найден", "user_id": from_uid})
+        if not p2_rows:
+            return json_resp({"error": "Игрок-получатель не найден", "user_id": to_uid})
 
-        if inv1.get(item_id, 0) < amount:
-            return json_resp({"error": "Недостаточно предметов у отправителя"})
+        # Безопасно получаем stats (не теряем другие поля!)
+        stats1 = (p1_rows[0].get("stats") or {}).copy()
+        stats2 = (p2_rows[0].get("stats") or {}).copy()
 
-        inv1[item_id] -= amount
+        inv1 = stats1.get("inventory", {})
+        inv2 = stats2.get("inventory", {})
+
+        # Проверяем наличие предмета
+        current_count = inv1.get(item_id, 0)
+        if current_count < amount:
+            return json_resp({"error": f"Недостаточно предметов у отправителя. Есть: {current_count}, нужно: {amount}"})
+
+        # Уменьшаем у отправителя
+        inv1[item_id] = current_count - amount
         if inv1[item_id] <= 0:
             del inv1[item_id]
 
+        # Добавляем получателю
         inv2[item_id] = inv2.get(item_id, 0) + amount
 
-        stats1 = (p1[0].get("stats") if p1 else {}) or {}
+        # Записываем обратно, сохраняя ВСЕ остальные поля stats
         stats1["inventory"] = inv1
-        await db.update("players", f"?user_id=eq.{from_uid}", {"stats": stats1})
-
-        stats2 = (p2[0].get("stats") if p2 else {}) or {}
         stats2["inventory"] = inv2
+
+        await db.update("players", f"?user_id=eq.{from_uid}", {"stats": stats1})
         await db.update("players", f"?user_id=eq.{to_uid}", {"stats": stats2})
 
+        # Логируем
         await log_player_action(from_uid, "transfer_item_out", {"item": item_id, "to": to_uid, "amount": amount})
         await log_player_action(to_uid, "transfer_item_in", {"item": item_id, "from": from_uid, "amount": amount})
 
-        return json_resp({"ok": True})
+        print(f"✅ TRANSFER: {item_id} x{amount} from {from_uid} to {to_uid}")
+
+        # Возвращаем обновлённые инвентари, чтобы клиент не делал лишний запрос
+        return json_resp({
+            "ok": True,
+            "from_inventory": inv1,
+            "to_inventory": inv2,
+            "item": item_id,
+            "amount": amount,
+            "from_uid": from_uid,
+            "to_uid": to_uid
+        })
 
     if path == "/admin_pc/events_list":
         events = await db.select("scheduled_events", "?order=starts_at.desc")
@@ -1401,7 +1426,7 @@ async def handle_admin(request):
             "ban_price": int(data.get("ban_price", 0))
         }])
         if not isinstance(res, list):
-            print(f"🚨 BAN DB ERROR: {res}")
+            print(f" BAN DB ERROR: {res}")
             return json_resp({"ok": False, "error": str(res)})
         return json_resp({"ok": True})
 
