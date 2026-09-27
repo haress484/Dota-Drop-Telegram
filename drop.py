@@ -142,9 +142,6 @@ class DB:
                 except Exception:
                     return 0
 
-    async def rpc(self, func_name, params=None):
-        return await self._req("POST", f"/rpc/{func_name}", params)
-
 db = DB()
 
 async def touch_player(user_id, username=None, first_name=None):
@@ -829,22 +826,18 @@ def validate_init_data(init_data):
         return None
     return user
 
-# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ: принимает И токен PC, И initData мобильной админки
 async def admin_auth(request):
     try:
         data = await request.json()
     except Exception:
         data = {}
     
-    # 1. Проверяем токен PC-админки (из заголовка или query)
     token = request.headers.get("Authorization", "").replace("Bearer ", "") or request.query.get("token")
     if token:
         sess = await validate_pc_token(token)
         if sess:
-            # Токен валиден, даём доступ как OWNER
             return {"id": OWNER_ID}, data
 
-    # 2. Проверяем initData (для мобильной админки Telegram)
     init = data.get("initData") or request.query.get("initData") or ""
     user = validate_init_data(init)
     if user and user.get("id") == OWNER_ID:
@@ -934,12 +927,9 @@ async def handle_sync(request):
     troll = troll_rows[0] if troll_rows else None
     response = {"banned": False, "grants": grants}
     if troll:
-        if troll.get("fake_name"):
-            response["fake_name"] = troll["fake_name"]
-        if troll.get("fake_avatar"):
-            response["fake_avatar"] = troll["fake_avatar"]
-        if troll.get("frozen"):
-            response["frozen"] = True
+        if troll.get("fake_name"): response["fake_name"] = troll["fake_name"]
+        if troll.get("fake_avatar"): response["fake_avatar"] = troll["fake_avatar"]
+        if troll.get("frozen"): response["frozen"] = True
     return json_resp(response)
 
 async def handle_game_profile(request):
@@ -957,10 +947,8 @@ async def handle_game_profile(request):
     name = stats.get("name", "")
     avatar = stats.get("avatar", "")
     if troll:
-        if troll.get("fake_name"):
-            name = troll["fake_name"]
-        if troll.get("fake_avatar"):
-            avatar = troll["fake_avatar"]
+        if troll.get("fake_name"): name = troll["fake_name"]
+        if troll.get("fake_avatar"): avatar = troll["fake_avatar"]
             
     achievements = stats.get("achievements", [])
     if troll and troll.get("fake_achievements"):
@@ -1249,6 +1237,44 @@ async def handle_pc_admin(request):
         await log_player_action(uid, "admin_set_inventory", {"items_count": len(inv)})
         return json_resp({"ok": True})
 
+    # НОВЫЙ ЭНДПОИНТ: Перенос предмета между игроками
+    if path == "/admin_pc/transfer_item":
+        from_uid = int(data.get("from_user_id", 0))
+        to_uid = int(data.get("to_user_id", 0))
+        item_id = data.get("item_id")
+        amount = int(data.get("amount", 1))
+
+        if not from_uid or not to_uid or not item_id:
+            return json_resp({"error": "bad request"})
+
+        p1 = await db.select("players", f"?user_id=eq.{from_uid}&select=stats")
+        p2 = await db.select("players", f"?user_id=eq.{to_uid}&select=stats")
+
+        inv1 = (p1[0].get("stats") or {}).get("inventory", {}) if p1 else {}
+        inv2 = (p2[0].get("stats") or {}).get("inventory", {}) if p2 else {}
+
+        if inv1.get(item_id, 0) < amount:
+            return json_resp({"error": "Недостаточно предметов у отправителя"})
+
+        inv1[item_id] -= amount
+        if inv1[item_id] <= 0:
+            del inv1[item_id]
+
+        inv2[item_id] = inv2.get(item_id, 0) + amount
+
+        stats1 = (p1[0].get("stats") if p1 else {}) or {}
+        stats1["inventory"] = inv1
+        await db.update("players", f"?user_id=eq.{from_uid}", {"stats": stats1})
+
+        stats2 = (p2[0].get("stats") if p2 else {}) or {}
+        stats2["inventory"] = inv2
+        await db.update("players", f"?user_id=eq.{to_uid}", {"stats": stats2})
+
+        await log_player_action(from_uid, "transfer_item_out", {"item": item_id, "to": to_uid, "amount": amount})
+        await log_player_action(to_uid, "transfer_item_in", {"item": item_id, "from": from_uid, "amount": amount})
+
+        return json_resp({"ok": True})
+
     if path == "/admin_pc/events_list":
         events = await db.select("scheduled_events", "?order=starts_at.desc")
         return json_resp({"events": events})
@@ -1507,7 +1533,8 @@ async def start_web_server():
         "/admin_pc/login", "/admin_pc/players", "/admin_pc/troll",
         "/admin_pc/drop_override", "/admin_pc/event", "/admin_pc/note",
         "/admin_pc/logs", "/admin_pc/fake_tx", "/admin_pc/set_balance",
-        "/admin_pc/set_inventory", "/admin_pc/events_list", "/admin_pc/notes_list"
+        "/admin_pc/set_inventory", "/admin_pc/transfer_item", 
+        "/admin_pc/events_list", "/admin_pc/notes_list"
     ]
     for p in pc_paths:
         app.router.add_route("*", p, handle_pc_admin)
