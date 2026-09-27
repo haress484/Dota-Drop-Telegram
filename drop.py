@@ -71,7 +71,7 @@ GIFT_CATALOG = {
     "gift_teddy": {"id": "5170233102089322756", "price": 15, "name": "🧸 Мишка"},
     "gift_box":   {"id": "5170250947678437525", "price": 25, "name": "🎁 Подарок"},
     "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
-    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": " Торт"},
+    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
     "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
 }
 
@@ -226,14 +226,14 @@ async def log_player_action(user_id, action, details=None):
 
 # ================= КЛАВИАТУРЫ =================
 def play_kb(user_id):
-    rows = [[InlineKeyboardButton(text=" ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
+    rows = [[InlineKeyboardButton(text="🎮 ИГРАТЬ", web_app=WebAppInfo(url=WEB_APP_URL))]]
     if user_id == OWNER_ID:
         rows.append([
             InlineKeyboardButton(text="🛠 АДМИНКА", web_app=WebAppInfo(url=ADMIN_URL)),
             InlineKeyboardButton(text="🎁 ПОДАРОК", callback_data="admin_gift"),
         ])
         rows.append([InlineKeyboardButton(text="📢 РАССЫЛКА", callback_data="admin_broadcast")])
-        rows.append([InlineKeyboardButton(text=" СКАН ЛИМИТОК", callback_data="admin_sniper_scan")])
+        rows.append([InlineKeyboardButton(text="🎯 СКАН ЛИМИТОК", callback_data="admin_sniper_scan")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
@@ -300,7 +300,7 @@ async def cb_check_sub(cb: CallbackQuery):
             reply_markup=play_kb(uid))
         await cb.answer("Подписка подтверждена!")
     else:
-        await cb.answer("️ Ты всё ещё не подписан!", show_alert=True)
+        await cb.answer("⚠️ Ты всё ещё не подписан!", show_alert=True)
 
 # ================= INLINE-РЕЖИМ =================
 @dp.inline_query()
@@ -342,7 +342,7 @@ async def handle_inline(iq: InlineQuery):
         await iq.answer([], cache_time=0, is_personal=True)
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f" Спонсировать {n} ⭐", url=link)]
+        [InlineKeyboardButton(text=f"💳 Спонсировать {n} ⭐", url=link)]
     ])
     result = InlineQueryResultPhoto(
         id=f"sponsor_{n}",
@@ -413,7 +413,7 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
         await refresh_stars_cache()
         await cb.message.edit_text(
-            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
+            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
             parse_mode="HTML")
     except Exception as e:
         await cb.message.edit_text(f"❌ Ошибка: <code>{str(e)}</code>", parse_mode="HTML")
@@ -434,7 +434,7 @@ async def cb_admin_broadcast(cb: CallbackQuery, state: FSMContext):
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Всем", callback_data="bc_all"),
-         InlineKeyboardButton(text=" Конкретному", callback_data="bc_one")],
+         InlineKeyboardButton(text="👤 Конкретному", callback_data="bc_one")],
         [InlineKeyboardButton(text="❌ Отмена", callback_data="bc_cancel")],
     ])
     await cb.message.answer("📢 <b>Рассылка</b>\n\nКому отправить сообщение?", parse_mode="HTML", reply_markup=kb)
@@ -488,7 +488,7 @@ async def bc_uid(message: Message, state: FSMContext):
         return
     await state.update_data(target_uid=uid)
     await message.answer(
-        f" Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
+        f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
         f"(текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
     await state.set_state(BroadcastStates.waiting_content)
 
@@ -503,7 +503,7 @@ async def bc_content(message: Message, state: FSMContext):
         targets = [p["user_id"] for p in players]
     else:
         targets = [int(data.get("target_uid", 0))]
-    status = await message.answer(f" Отправляю на {len(targets)} чат(ов)...")
+    status = await message.answer(f"⏳ Отправляю на {len(targets)} чат(ов)...")
     sent = 0
     failed = 0
     for uid in targets:
@@ -554,7 +554,7 @@ async def sniper_notify(g):
     text = (f"🔥 Новая лимитка!\n🎁 Gift ID: <code>{gid}</code>\n💰 Цена: {price} ⭐\n"
             f"📦 Остаток: {remaining} из {g.total_count}\n💳 Баланс бота: {balance} ⭐")
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f" Купить за {price}⭐", callback_data=f"sniper_buy_{gid}")],
+        [InlineKeyboardButton(text=f"💳 Купить за {price}⭐", callback_data=f"sniper_buy_{gid}")],
         [InlineKeyboardButton(text="❌ Не интересно", callback_data=f"sniper_skip_{gid}"),
          InlineKeyboardButton(text=f"💎 Пополнить {price}⭐", callback_data=f"sniper_topup_{gid}_{price}")],
     ])
@@ -631,7 +631,7 @@ async def cb_sniper_scan(cb: CallbackQuery):
     try:
         new_found, total = await sniper_scan_once()
         await status.edit_text(
-            f"🎯 Сканирование завершено\n Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
+            f"🎯 Сканирование завершено\n🔥 Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
     except Exception as e:
         await status.edit_text(f"❌ Ошибка сканирования: {e}")
 
@@ -738,7 +738,7 @@ async def on_payment(message: Message):
                 return
             bans = await db.select("bans", f"?user_id=eq.{target_uid}")
             if not bans or int(bans[0].get("ban_price", 0)) != price:
-                await message.answer("️ Ошибка оплаты разбана.")
+                await message.answer("⚠️ Ошибка оплаты разбана.")
                 return
             await db.delete("bans", f"?user_id=eq.{target_uid}")
             await db.insert("payments", [{"user_id": target_uid, "stars": stars, "coins": 0}])
@@ -756,7 +756,7 @@ async def on_payment(message: Message):
                 await message.answer("⚠️ Ошибка данных платежа.")
                 return
             if not await stars_delta_ok(stars):
-                await message.answer("️ Платёж не подтверждён сервером.")
+                await message.answer("⚠️ Платёж не подтверждён сервером.")
                 return
             await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": 0}])
             await db.insert("grants", [{
@@ -978,6 +978,67 @@ async def handle_game_avatar(request):
     cur["avatar"] = avatar
     await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
     return json_resp({"ok": True})
+
+# ---- НОВОЕ: таргетированный дроп для ОБЫЧНЫХ кейсов ----
+async def handle_game_case_drop(request):
+    try:
+        d = await request.json()
+    except Exception:
+        d = {}
+    init = d.get("initData") or ""
+    user = validate_init_data(init)
+    if not user:
+        return json_resp({"override": None})
+    uid = int(user["id"])
+    chest = d.get("chest_id", "")
+    if not chest:
+        return json_resp({"override": None})
+    rows = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}&active=eq.true")
+    if not rows:
+        return json_resp({"override": None})
+    overrides = rows[0].get("overrides") or []
+    if not overrides:
+        return json_resp({"override": None})
+    total = sum(o.get("chance", 0) for o in overrides)
+    if total <= 0:
+        return json_resp({"override": None})
+    r = random.uniform(0, total)
+    acc = 0
+    pick = None
+    for o in overrides:
+        acc += o.get("chance", 0)
+        if r <= acc:
+            pick = o.get("item_id")
+            break
+    return json_resp({"override": pick})
+
+# ---- НОВОЕ: топ-100 игроков по балансу ----
+async def handle_game_top100(request):
+    rows = await db.select("players", "?select=user_id,first_name,username,balance:stats->>balance,avatar:stats->>avatar&limit=5000")
+    for r in rows:
+        try:
+            r["balance"] = int(r.get("balance") or 0)
+        except Exception:
+            r["balance"] = 0
+    rows.sort(key=lambda r: r["balance"], reverse=True)
+    rows = rows[:100]
+    uids = [r["user_id"] for r in rows]
+    troll_map = {}
+    if uids:
+        uids_str = ",".join(str(u) for u in uids)
+        trolls = await db.select("troll_settings", f"?user_id=in.({uids_str})")
+        troll_map = {t["user_id"]: t for t in trolls}
+    out = []
+    for i, r in enumerate(rows):
+        t = troll_map.get(r["user_id"]) or {}
+        out.append({
+            "place": i + 1,
+            "user_id": r["user_id"],
+            "name": t.get("fake_name") or r.get("first_name") or "Игрок",
+            "avatar": t.get("fake_avatar") or r.get("avatar") or "",
+            "balance": r["balance"]
+        })
+    return json_resp({"top": out})
 
 async def handle_push_stats(request):
     uid = int(request.query.get("user_id", 0))
@@ -1237,7 +1298,6 @@ async def handle_pc_admin(request):
         await log_player_action(uid, "admin_set_inventory", {"items_count": len(inv)})
         return json_resp({"ok": True})
 
-    # ✅ ИСПРАВЛЕННЫЙ ЭНДПОИНТ: Перенос предмета между игроками
     if path == "/admin_pc/transfer_item":
         from_uid = int(data.get("from_user_id", 0))
         to_uid = int(data.get("to_user_id", 0))
@@ -1247,7 +1307,6 @@ async def handle_pc_admin(request):
         if not from_uid or not to_uid or not item_id:
             return json_resp({"error": "bad request", "details": "missing params"})
 
-        # Получаем обоих игроков
         p1_rows = await db.select("players", f"?user_id=eq.{from_uid}")
         p2_rows = await db.select("players", f"?user_id=eq.{to_uid}")
 
@@ -1256,40 +1315,33 @@ async def handle_pc_admin(request):
         if not p2_rows:
             return json_resp({"error": "Игрок-получатель не найден", "user_id": to_uid})
 
-        # Безопасно получаем stats (не теряем другие поля!)
         stats1 = (p1_rows[0].get("stats") or {}).copy()
         stats2 = (p2_rows[0].get("stats") or {}).copy()
 
         inv1 = stats1.get("inventory", {})
         inv2 = stats2.get("inventory", {})
 
-        # Проверяем наличие предмета
         current_count = inv1.get(item_id, 0)
         if current_count < amount:
             return json_resp({"error": f"Недостаточно предметов у отправителя. Есть: {current_count}, нужно: {amount}"})
 
-        # Уменьшаем у отправителя
         inv1[item_id] = current_count - amount
         if inv1[item_id] <= 0:
             del inv1[item_id]
 
-        # Добавляем получателю
         inv2[item_id] = inv2.get(item_id, 0) + amount
 
-        # Записываем обратно, сохраняя ВСЕ остальные поля stats
         stats1["inventory"] = inv1
         stats2["inventory"] = inv2
 
         await db.update("players", f"?user_id=eq.{from_uid}", {"stats": stats1})
         await db.update("players", f"?user_id=eq.{to_uid}", {"stats": stats2})
 
-        # Логируем
         await log_player_action(from_uid, "transfer_item_out", {"item": item_id, "to": to_uid, "amount": amount})
         await log_player_action(to_uid, "transfer_item_in", {"item": item_id, "from": from_uid, "amount": amount})
 
         print(f"✅ TRANSFER: {item_id} x{amount} from {from_uid} to {to_uid}")
 
-        # Возвращаем обновлённые инвентари, чтобы клиент не делал лишний запрос
         return json_resp({
             "ok": True,
             "from_inventory": inv1,
@@ -1426,7 +1478,7 @@ async def handle_admin(request):
             "ban_price": int(data.get("ban_price", 0))
         }])
         if not isinstance(res, list):
-            print(f" BAN DB ERROR: {res}")
+            print(f"🚨 BAN DB ERROR: {res}")
             return json_resp({"ok": False, "error": str(res)})
         return json_resp({"ok": True})
 
@@ -1547,6 +1599,8 @@ async def start_web_server():
     app.router.add_get("/create_invoice", handle_create_invoice)
     app.router.add_get("/create_unban_invoice", handle_create_unban_invoice)
     app.router.add_get("/game/profile", handle_game_profile)
+    app.router.add_route("*", "/game/case_drop", handle_game_case_drop)
+    app.router.add_get("/game/top100", handle_game_top100)
     app.router.add_route("*", "/game/avatar", handle_game_avatar)
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/push_stats", handle_push_stats)
