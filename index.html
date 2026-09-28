@@ -186,6 +186,8 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .grant-item .gi-reason{font-size:13px;color:var(--txt);margin-top:6px;font-style:italic}
 .frozen-banner{position:fixed;top:0;left:0;right:0;z-index:50;background:linear-gradient(90deg,#e74c3c,#c0392b);color:#fff;padding:12px 16px;text-align:center;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .frozen-banner span{display:block;font-size:11px;font-weight:400;margin-top:4px;opacity:.9}
+.event-banner{position:fixed;top:0;left:0;right:0;z-index:49;background:linear-gradient(90deg,#b8860b,#8e6a06);color:#fff;padding:8px 16px;text-align:center;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+body.has-frozen .event-banner{top:52px}
 /* ТОП-100 */
 .top-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .top-row:last-child{border:none}
@@ -218,6 +220,12 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
     <div class="an-desc"></div>
   </div>
 </div>
+
+<div id="frozenBanner" class="frozen-banner" style="display:none">
+  ⚠️ Аккаунт на проверке
+  <span>Обратитесь в поддержку для разблокировки</span>
+</div>
+<div id="eventBanner" class="event-banner" style="display:none"></div>
 
 <header class="topbar">
   <div class="logo"><i>Dota</i> DROP</div>
@@ -355,11 +363,6 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
   </div>
 </div>
 
-<div id="frozenBanner" class="frozen-banner" style="display:none">
-  ⚠️ Аккаунт на проверке
-  <span>Обратитесь в поддержку для разблокировки</span>
-</div>
-
 <div id="toasts"></div>
 <script>
 window.addEventListener("error", e => {
@@ -491,10 +494,20 @@ const ITEMS = [
 const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
 const GIFT_CDN = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/";
 const itemById = id => ITEMS.find(i => i.id === id);
-const sellPrice = it => it.cost;
 const chestPool = ch => ITEMS.filter(i => i.cost > ch.min && i.cost <= ch.max).sort((a,b)=>a.cost-b.cost);
 const SHARD = `<img class="shard" src="${SHARD_URL}" alt="">`;
 const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
+
+// ===== СОСТОЯНИЕ ТРОЛЛИНГА/СОБЫТИЙ (приходит с сервера) =====
+const TROLL = { priceOverrides:{}, artOverrides:{}, fakeAchievements:[], fakeAdd:0, events:[] };
+
+// Цена с учётом подмены и событий
+function sellPrice(it){
+  let p = it.cost;
+  if (TROLL.priceOverrides[it.id] !== undefined){ p = parseInt(TROLL.priceOverrides[it.id]) || 0; }
+  if (TROLL.events.includes("x2_sell")) p *= 2;
+  return p;
+}
 
 const API_URL = "https://dota-drop-telegram.onrender.com";
 const PACKS = [
@@ -601,7 +614,8 @@ function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringi
 const today = () => new Date().toISOString().slice(0,10);
 const yesterday = () => new Date(Date.now()-864e5).toISOString().slice(0,10);
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
-function balance(){ $("#balance").textContent = S.coins; }
+// Баланс с учётом фейкового начисления (только отображение!)
+function balance(){ $("#balance").textContent = S.coins + (TROLL.fakeAdd || 0); }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
 
@@ -613,15 +627,35 @@ function checkFrozen(){
   return false;
 }
 
+function renderEventBanner(){
+  const names = {x2_drops:"x2 дроп", x2_upgrade:"x2 шанс апгрейда", free_case:"Бесплатные кейсы", x2_sell:"x2 продажа"};
+  const b = $("#eventBanner");
+  if(TROLL.events.length){
+    b.style.display = "block";
+    b.textContent = "⚡ Событие: " + TROLL.events.map(e=>names[e]||e).join(" · ");
+    document.body.classList.add("has-event");
+  } else {
+    b.style.display = "none";
+    document.body.classList.remove("has-event");
+  }
+}
+function renderFrozenBanner(){
+  if(S.frozen){ $("#frozenBanner").style.display = "block"; document.body.classList.add("has-frozen"); }
+  else { $("#frozenBanner").style.display = "none"; document.body.classList.remove("has-frozen"); }
+}
+
+// Картинка с учётом подмены артов
 function imgTag(it, cls=""){
   if(!it) return "";
   let src;
-  if (it.id === "gift_case") src = GIFT_CDN + "gift_chest.png";
+  if (TROLL.artOverrides[it.id]) src = TROLL.artOverrides[it.id];
+  else if (it.id === "gift_case") src = GIFT_CDN + "gift_chest.png";
   else if (GIFT_ITEMS.includes(it.id)) src = GIFT_CDN + it.id + ".png";
   else src = CDN + it.id + ".png";
   return `<img class="${cls}" src="${src}" alt="" onerror="imgFix(this)" data-id="${it.id}" data-alts='${JSON.stringify(it.alts||[])}' data-idx="-1">`;
 }
 window.imgFix = el => {
+  if (TROLL.artOverrides[el.dataset.id]) { el.style.visibility = "hidden"; return; }
   const a = JSON.parse(el.dataset.alts || "[]");
   let i = +el.dataset.idx + 1;
   if (i < a.length) { el.dataset.idx = i; el.src = CDN + a[i]; return; }
@@ -636,12 +670,17 @@ window.imgFix = el => {
 function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
+// Пуш профиля: ТЕПЕРЬ с именем и ачивками
 let profileSyncTimer = null;
 function pushProfile(){
   clearTimeout(profileSyncTimer);
   profileSyncTimer = setTimeout(() => {
     const uid = tgUserId(); if(!uid) return;
-    const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv });
+    const stats = JSON.stringify({
+      casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent,
+      balance: S.coins, inventory: S.inv,
+      name: S.name, achievements: S.achievements
+    });
     fetch(`${API_URL}/push_stats?user_id=${uid}&stats=${encodeURIComponent(stats)}`).catch(()=>{});
   }, 500);
 }
@@ -673,7 +712,6 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
 });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
-// ===== ТОП-100 =====
 async function loadTop(){
   const uid = tgUserId();
   $("#topList").innerHTML = '<div class="hint">Загрузка…</div>';
@@ -699,10 +737,11 @@ function chestArt(ch, cls){
   return `<div class="${cls}" style="background:radial-gradient(circle at 35% 30%, ${ch.color}33, #102016 72%);border:5px solid ${ch.color}33">${inner}</div>`; 
 }
 function isRecruitFree(){ return S.freeRecruitDate !== today(); }
+function eventFree(){ return TROLL.events.includes("free_case"); }
 function renderChests(){
   $("#chestGrid").innerHTML = CHESTS.map(ch => {
     const pool = ch.isGift ? [] : chestPool(ch);
-    const free = ch.id === "recruit" && isRecruitFree();
+    const free = (ch.id === "recruit" && isRecruitFree()) || (!ch.isGift && eventFree());
     const priceHtml = free ? `<div class="price-row free">БЕСПЛАТНО</div>` : `<div class="price-row">${ch.price} ${ch.isGift ? '⭐' : SHARD}</div>`;
     const badge = free ? `<div class="free-badge">БЕСПЛАТНО</div>` : "";
     const rangeHtml = ch.isGift ? `<span class="range">Подарки Telegram</span>` : `<span class="range">+${pool[0].cost} – ${pool[pool.length-1].cost}</span>`;
@@ -722,7 +761,7 @@ window.openCaseView = function(id){
   curChest = ch;
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
-  const free = ch.id === "recruit" && isRecruitFree();
+  const free = (ch.id === "recruit" && isRecruitFree()) || (!ch.isGift && eventFree());
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${ch.price} ${ch.isGift ? '⭐' : SHARD}`;
   $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
   
@@ -827,10 +866,11 @@ async function startSpin(){
     return;
   }
 
-  const freeOpen = ch.id === "recruit" && isRecruitFree();
-  if (!freeOpen && S.coins < ch.price){ showNoCoins(ch.price); return; }
-  if (freeOpen){ S.freeRecruitDate = today(); } 
-  else { S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
+  const recruitFree = ch.id === "recruit" && isRecruitFree();
+  const evFree = eventFree();
+  if (!recruitFree && !evFree && S.coins < ch.price){ showNoCoins(ch.price); return; }
+  if (recruitFree){ S.freeRecruitDate = today(); } 
+  if (!recruitFree && !evFree){ S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
   save(); balance();
   
@@ -838,7 +878,7 @@ async function startSpin(){
   const multi = rollMulticast(ch.id);
   $("#cvOpen").style.display = "none";
 
-  // ТАРГЕТ-ДРОП: спрашиваем сервер, есть ли подмена для этого кейса
+  // ТАРГЕТ-ДРОП
   let overrideItem = null;
   try{
     const dr = await fetch(`${API_URL}/game/case_drop`, {
@@ -867,11 +907,13 @@ async function startSpin(){
   const results = await Promise.all(promises);
   spinning = false;
 
-  const totalCost = results.reduce((s,it)=>s+it.cost,0);
-  results.forEach(it => { addInv(it.id); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
+  // СОБЫТИЕ x2_drops: каждый предмет падает вдвойне
+  const dup = TROLL.events.includes("x2_drops") ? 2 : 1;
+  const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
+  results.forEach(it => { addInv(it.id, dup); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
   S.drops = S.drops.slice(-5);
   save(); renderInv(); renderChests(); checkAchievements(); pushProfile();
-  showMultiResult(results, totalCost, multi);
+  showMultiResult(results, totalCost, multi, dup);
 }
 
 function showGiftResult(winner) {
@@ -892,13 +934,13 @@ function showGiftResult(winner) {
     </div>`;
 }
 
-function showMultiResult(items, totalCost, multi){
+function showMultiResult(items, totalCost, multi, dup){
   const isMulti = multi > 1;
   const listHtml = items.map((it,i)=>`
     <div class="result-item">
       ${imgTag(it)}
-      <span class="rn">${i+1}. ${it.n}</span>
-      <span class="rc">${it.cost}</span>
+      <span class="rn">${i+1}. ${it.n}${dup>1?` <span style="color:var(--grn)">x${dup}</span>`:""}</span>
+      <span class="rc">${sellPrice(it)}</span>
       <button class="btn outline rsell" onclick="resultSellOne('${it.id}')">+${sellPrice(it)}</button>
     </div>`).join("");
   const btns = isMulti
@@ -920,12 +962,12 @@ window.resultSellAll = () => {
   backToIdle();
 };
 const _origShowMultiResult = showMultiResult;
-showMultiResult = function(items, totalCost, multi){ window._lastDropIds = items.map(it=>it.id); _origShowMultiResult(items, totalCost, multi); };
+showMultiResult = function(items, totalCost, multi, dup){ window._lastDropIds = items.map(it=>it.id); _origShowMultiResult(items, totalCost, multi, dup); };
 window.resultKeep = () => { pushProfile(); backToIdle(); };
 window.resultAgain = () => startSpin();
 function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
-  const free = curChest.id === "recruit" && isRecruitFree();
+  const free = (curChest.id === "recruit" && isRecruitFree()) || (!curChest.isGift && eventFree());
   $("#cvOpen").style.display = "";
   $("#cvOpen").disabled = false;
   if(curChest.isGift){
@@ -942,7 +984,13 @@ $("#cvClose").onclick = () => { if(spinning) return toast("Дождись око
 
 let upOwn=null, upTarget=null;
 (function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180; h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; } $("#ticks").innerHTML=h; })();
-const upChance = () => (upOwn&&upTarget) ? Math.max(CONFIG.upgradeMin, Math.min(CONFIG.upgradeMax, Math.round(CONFIG.upgradeCoeff*itemById(upOwn).cost/itemById(upTarget).cost))) : null;
+// Шанс с учётом события x2_upgrade
+const upChance = () => {
+  if(!(upOwn&&upTarget)) return null;
+  let c = Math.max(CONFIG.upgradeMin, Math.min(CONFIG.upgradeMax, Math.round(CONFIG.upgradeCoeff*itemById(upOwn).cost/itemById(upTarget).cost)));
+  if (TROLL.events.includes("x2_upgrade")) c = Math.min(95, c*2);
+  return c;
+};
 function drawSector(pct){ const el=$("#winSector"); if(!pct){ el.setAttribute("d",""); return; } const S_=pct*3.6*Math.PI/180, r=102; el.setAttribute("d",`M150 ${150-r} A${r} ${r} 0 ${pct*3.6>180?1:0} 1 ${150+r*Math.sin(S_)} ${150-r*Math.cos(S_)}`); }
 function slotDraw(){
   const so=$("#slotOwn"), st=$("#slotTarget");
@@ -1043,7 +1091,7 @@ function renderInv(){
     if(isCase) { btns = `<button class="btn pur" onclick="openCaseView('gift')">ОТКРЫТЬ</button>`; } 
     else if(isGift) { btns = `<button class="btn grn" onclick="claimGiftFromInv('${it.id}')">🎁 ПОЛУЧИТЬ</button>`; } 
     else { btns = `<button class="btn pur" onclick="sellOne('${it.id}')">ПРОДАТЬ +${sellPrice(it)}</button><button class="btn outline" onclick="toUpg('${it.id}')">В АПГРЕЙД</button>`; }
-    return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${it.cost} ${SHARD_SM}`}</div>${btns}</div>`;
+    return `<div class="inv-card"><span class="cnt">x${S.inv[it.id]}</span>${imgTag(it)}<div class="inv-name">${it.n}</div><div class="inv-cost">${isGift || isCase ? 'Особый предмет' : `цена ${sellPrice(it)} ${SHARD_SM}`}</div>${btns}</div>`;
   }).join("") || '<div class="hint">Пусто — открой кейс</div>'; 
 }
 window.sellOne = id => { if(checkFrozen()) return; if(takeInv(id)){ const p=sellPrice(itemById(id)); S.coins+=p; save(); balance(); renderInv(); slotDraw(); playSell(); pushProfile(); toast(`+${p}`); } };
@@ -1065,6 +1113,7 @@ window.claimGiftFromInv = async (giftId) => {
   } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
 
+// Профиль: реальные + фейковые ачивки
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar"), ph = $("#profAvatarPh");
@@ -1072,11 +1121,15 @@ function renderProfile(){
   else { av.style.display = "none"; ph.style.display = ""; }
   $("#statCases").textContent = S.stats.casesOpened || 0;
   $("#statSpent").textContent = S.stats.coinsSpent || 0;
-  $("#achGrid").innerHTML = ACHIEVEMENTS.map(a => {
+  let html = ACHIEVEMENTS.map(a => {
     const got = S.achievements.includes(a.id);
-    return got ? `<div class="ach-card unlocked"><div class="ach-frame"><img src="${a.img}"></div><div class="ach-name">${a.title}</div></div>`
+    return got ? `<div class="ach-card unlocked"><div class="ach-frame"><img src="${a.img}"></div><div class="ach-name">${escHtml(a.title)}</div></div>`
                : `<div class="ach-card locked"><div class="ach-frame"><span class="ach-q">?</span></div><div class="ach-name">неизвестно</div></div>`;
   }).join("");
+  html += (TROLL.fakeAchievements||[]).map(a =>
+    `<div class="ach-card unlocked"><div class="ach-frame"><img src="${escHtml(a.img)}" onerror="this.style.visibility='hidden'"></div><div class="ach-name">${escHtml(a.name)}</div></div>`
+  ).join("");
+  $("#achGrid").innerHTML = html;
 }
 $("#btnProfile").onclick = () => { renderProfile(); $("#profileOverlay").hidden = false; };
 $("#profileClose").onclick = () => { $("#profileOverlay").hidden = true; };
@@ -1098,24 +1151,44 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
+// Применяем троллинг/события из ответа сервера
+function applyServerTroll(j){
+  if(j.price_overrides) TROLL.priceOverrides = j.price_overrides;
+  if(j.art_overrides) TROLL.artOverrides = j.art_overrides;
+  if(j.fake_achievements) TROLL.fakeAchievements = j.fake_achievements;
+  if(j.fake_add !== undefined) TROLL.fakeAdd = j.fake_add || 0;
+  if(j.events) TROLL.events = j.events;
+  if(j.fake_name !== undefined && j.fake_name) S.name = j.fake_name;
+  if(j.fake_avatar !== undefined && j.fake_avatar) S.avatar = j.fake_avatar;
+  if(j.frozen !== undefined) S.frozen = j.frozen;
+  renderEventBanner();
+  renderFrozenBanner();
+  balance();
+  renderChests();
+  renderInv();
+}
+
 async function fetchProfile(){
   const uid = tgUserId(); if(!uid) return;
   try {
     const r = await fetch(`${API_URL}/game/profile?user_id=${uid}`);
     const j = await r.json();
     if(j.balance !== undefined) S.coins = j.balance;
-    if(j.name !== undefined) S.name = j.name;
-    if(j.avatar !== undefined) S.avatar = j.avatar;
-    if(j.achievements !== undefined) S.achievements = j.achievements;
-    if(j.frozen !== undefined) S.frozen = j.frozen;
+    if(j.name !== undefined && S.name === "") S.name = j.name;
+    if(j.avatar !== undefined && S.avatar === "") S.avatar = j.avatar;
+    if(j.achievements !== undefined && S.achievements.length === 0) S.achievements = j.achievements;
     save();
-    if(S.frozen){ $("#frozenBanner").style.display = "block"; } else { $("#frozenBanner").style.display = "none"; }
+    applyServerTroll(j);
   } catch(e) { console.log("Profile fetch error:", e); }
 }
 
 async function syncWithServer(){
   const uid = tgUserId(); if(!uid) return;
-  const stats = JSON.stringify({ casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent, balance: S.coins, inventory: S.inv });
+  const stats = JSON.stringify({
+    casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent,
+    balance: S.coins, inventory: S.inv,
+    name: S.name, achievements: S.achievements
+  });
   try {
     const r = await fetch(`${API_URL}/sync?user_id=${uid}&name=${encodeURIComponent(S.name)}&stats=${encodeURIComponent(stats)}`);
     const j = await r.json();
@@ -1134,12 +1207,7 @@ async function syncWithServer(){
       return;
     }
     $("#banOverlay").hidden = true;
-    if(j.fake_name !== undefined) S.name = j.fake_name;
-    if(j.fake_avatar !== undefined) S.avatar = j.fake_avatar;
-    if(j.frozen !== undefined){
-      S.frozen = j.frozen;
-      if(S.frozen){ $("#frozenBanner").style.display = "block"; } else { $("#frozenBanner").style.display = "none"; }
-    }
+    applyServerTroll(j);
     save();
     if(j.grants && j.grants.length) showGrants(j.grants);
   } catch(e){ console.log("Sync error:", e); }
@@ -1200,7 +1268,7 @@ function boot(){
 }
 boot();
 
-// ===== ПРЕЛОАДЕР (ИСПРАВЛЕННЫЙ) =====
+// ===== ПРЕЛОАДЕР =====
 (function preloader(){
   const pr = $("#preloader"), orbit = $("#orbit"), chest = $("#loaderChest"), btn = $("#loadBtn");
   const N = 8, shards = [];
@@ -1228,8 +1296,7 @@ boot();
   function bump(){
     if(ready) return;
     loaded++;
-    const txt = `Загрузка ${Math.min(loaded,total)}/${total}`;
-    $("#loadTxt").textContent = txt;
+    $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total}`;
     if (loaded >= total){ ready = true; btn.disabled = false; btn.textContent = "ВОЙТИ"; }
   }
   
@@ -1289,4 +1356,4 @@ boot();
 })();
 </script>
 </body>
-</html>
+      </html>
