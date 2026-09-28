@@ -153,6 +153,8 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .ach-card{text-align:center;cursor:pointer;transition:transform .1s}
 .ach-card:active{transform:scale(.95)}
+.ach-card.locked{cursor:default}
+.ach-card.locked:active{transform:none}
 .ach-frame{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px}
 .ach-card.unlocked .ach-frame{border-color:var(--gold);box-shadow:0 0 12px rgba(247,201,72,.4)}
 .ach-frame img{width:100%;height:100%;object-fit:cover}
@@ -201,7 +203,7 @@ body.has-frozen .event-banner{top:52px}
 .top-row .bl{color:var(--gold);font-weight:800;font-size:13px;white-space:nowrap}
 .top-row.me{background:rgba(247,201,72,.07);border-radius:10px;padding:8px 6px}
 /* ПРОФИЛЬ ИГРОКА ИЗ ТОПА */
-.top-profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 20px;max-width:340px;width:100%;text-align:center;position:relative}
+.top-profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 20px;max-width:340px;width:100%;text-align:center;position:relative;max-height:85vh;overflow-y:auto}
 .top-profile-box .x{position:absolute;top:10px;right:12px}
 .top-profile-box .tp-ava{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 0 18px rgba(247,201,72,.3);margin:0 auto 12px;display:block}
 .top-profile-box .tp-ava-ph{width:96px;height:96px;border-radius:50%;background:var(--panel2);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--mut);margin:0 auto 12px}
@@ -211,6 +213,11 @@ body.has-frozen .event-banner{top:52px}
 .top-profile-box .tp-row:last-child{border:none}
 .top-profile-box .tp-row .l{color:var(--mut)}
 .top-profile-box .tp-row .v{font-weight:700}
+.tp-ach-title{font-size:13px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:1px;margin:14px 0 10px}
+.tp-ach-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.tp-ach{width:64px;text-align:center}
+.tp-ach img{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 8px rgba(247,201,72,.3)}
+.tp-ach span{display:block;font-size:9px;color:var(--mut);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ДЕТАЛИ ДОСТИЖЕНИЯ */
 .ach-detail-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 20px 20px;max-width:320px;width:100%;text-align:center;position:relative}
 .ach-detail-box .x{position:absolute;top:10px;right:12px}
@@ -388,7 +395,6 @@ body.has-frozen .event-banner{top:52px}
   </div>
 </div>
 
-<!-- НОВОЕ: профиль игрока из топа -->
 <div class="overlay" id="topProfileOverlay" hidden>
   <div class="top-profile-box">
     <button class="x" id="topProfileClose">✕</button>
@@ -396,7 +402,6 @@ body.has-frozen .event-banner{top:52px}
   </div>
 </div>
 
-<!-- НОВОЕ: детали достижения -->
 <div class="overlay" id="achDetailOverlay" hidden>
   <div class="ach-detail-box">
     <button class="x" id="achDetailClose">✕</button>
@@ -746,7 +751,7 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
 });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
-// ===== ТОП-100 + ПРОФИЛЬ ИГРОКА =====
+// ===== ТОП-100 + ПРОФИЛЬ ИГРОКА С ДОСТИЖЕНИЯМИ =====
 let _topList = [];
 async function loadTop(){
   const uid = tgUserId();
@@ -762,7 +767,7 @@ async function loadTop(){
     }).join("") : '<div class="hint">Пока пусто</div>';
   }catch(e){ $("#topList").innerHTML = '<div class="hint">Ошибка загрузки топа</div>'; }
 }
-window.showTopProfile = function(i){
+window.showTopProfile = async function(i){
   const p = _topList[i]; if(!p) return;
   const medal = p.place===1?"🥇 1 место":p.place===2?"🥈 2 место":p.place===3?"🥉 3 место":`#${p.place} место`;
   const ava = p.avatar ? `<img class="tp-ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;tp-ava-ph&quot;>?</div>'">` : `<div class="tp-ava-ph">?</div>`;
@@ -772,8 +777,23 @@ window.showTopProfile = function(i){
     <div class="tp-place">🏆 ${medal} в топе</div>
     <div class="tp-row"><span class="l">ID игрока</span><span class="v">${p.user_id}</span></div>
     <div class="tp-row"><span class="l">Баланс</span><span class="v" style="color:var(--gold)">${p.balance} ${SHARD_SM}</span></div>
+    <div class="tp-ach-title">🏆 Достижения</div>
+    <div id="tpAchList" class="tp-ach-grid"><div class="hint" style="margin:0">Загрузка…</div></div>
   `;
   $("#topProfileOverlay").hidden = false;
+  // Достижения игрока тянем отдельно
+  try{
+    const r = await fetch(`${API_URL}/game/profile?user_id=${p.user_id}`);
+    const j = await r.json();
+    const unlocked = (j.achievements||[]).map(id => ACHIEVEMENTS.find(a=>a.id===id)).filter(Boolean);
+    const fakes = j.fake_achievements || [];
+    let html = "";
+    html += unlocked.map(a => `<div class="tp-ach"><img src="${a.img}" onerror="this.style.visibility='hidden'"><span>${escHtml(a.title)}</span></div>`).join("");
+    html += fakes.map(a => `<div class="tp-ach"><img src="${escHtml(a.img)}" onerror="this.style.visibility='hidden'"><span>${escHtml(a.name)}</span></div>`).join("");
+    $("#tpAchList").innerHTML = html || '<div class="hint" style="margin:0">Пока нет достижений</div>';
+  }catch(e){
+    $("#tpAchList").innerHTML = '<div class="hint" style="margin:0">—</div>';
+  }
 };
 $("#topProfileClose").onclick = () => { $("#topProfileOverlay").hidden = true; };
 
@@ -795,7 +815,6 @@ window.showAchDetailFake = function(i){
     <img class="ad-img" src="${escHtml(a.img)}" onerror="this.outerHTML='<div class=&quot;ad-img-ph&quot;>🎭</div>'">
     <div class="ad-title">${escHtml(a.name)}</div>
     <div class="ad-status got">✅ Получено</div>
-    <div class="ad-desc"><span class="lbl">Условие получения</span>Выдано решением администратора 🎭</div>
   `;
   $("#achDetailOverlay").hidden = false;
 };
@@ -1184,7 +1203,7 @@ window.claimGiftFromInv = async (giftId) => {
   } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
 
-// Профиль: реальные (кликабельные) + фейковые (кликабельные) ачивки
+// Профиль: полученные ачивки кликабельны, заблокированные (?) — НЕТ
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar"), ph = $("#profAvatarPh");
@@ -1195,7 +1214,7 @@ function renderProfile(){
   let html = ACHIEVEMENTS.map(a => {
     const got = S.achievements.includes(a.id);
     return got ? `<div class="ach-card unlocked" onclick="showAchDetail('${a.id}')"><div class="ach-frame"><img src="${a.img}"></div><div class="ach-name">${escHtml(a.title)}</div></div>`
-               : `<div class="ach-card locked" onclick="showAchDetail('${a.id}')"><div class="ach-frame"><span class="ach-q">?</span></div><div class="ach-name">неизвестно</div></div>`;
+               : `<div class="ach-card locked"><div class="ach-frame"><span class="ach-q">?</span></div><div class="ach-name">неизвестно</div></div>`;
   }).join("");
   html += (TROLL.fakeAchievements||[]).map((a, fi) =>
     `<div class="ach-card unlocked" onclick="showAchDetailFake(${fi})"><div class="ach-frame"><img src="${escHtml(a.img)}" onerror="this.style.visibility='hidden'"></div><div class="ach-name">${escHtml(a.name)}</div></div>`
