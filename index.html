@@ -151,7 +151,8 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .stat-card .sl{font-size:11px;color:var(--mut)}
 .ach-title-h{font-size:15px;font-weight:800;margin:14px 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
 .ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.ach-card{text-align:center}
+.ach-card{text-align:center;cursor:pointer;transition:transform .1s}
+.ach-card:active{transform:scale(.95)}
 .ach-frame{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px}
 .ach-card.unlocked .ach-frame{border-color:var(--gold);box-shadow:0 0 12px rgba(247,201,72,.4)}
 .ach-frame img{width:100%;height:100%;object-fit:cover}
@@ -189,8 +190,9 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .event-banner{position:fixed;top:0;left:0;right:0;z-index:49;background:linear-gradient(90deg,#b8860b,#8e6a06);color:#fff;padding:8px 16px;text-align:center;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 body.has-frozen .event-banner{top:52px}
 /* ТОП-100 */
-.top-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.top-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s}
 .top-row:last-child{border:none}
+.top-row:active{background:var(--panel2)}
 .top-row .place{width:34px;text-align:center;font-weight:900;color:var(--mut);font-size:14px;flex-shrink:0}
 .top-row .place.p1{color:var(--gold);font-size:18px}.top-row .place.p2{color:#c0c0c0;font-size:16px}.top-row .place.p3{color:#cd7f32;font-size:16px}
 .top-row img.ava{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--line);flex-shrink:0}
@@ -198,6 +200,28 @@ body.has-frozen .event-banner{top:52px}
 .top-row .nm{flex:1;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-row .bl{color:var(--gold);font-weight:800;font-size:13px;white-space:nowrap}
 .top-row.me{background:rgba(247,201,72,.07);border-radius:10px;padding:8px 6px}
+/* ПРОФИЛЬ ИГРОКА ИЗ ТОПА */
+.top-profile-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 20px;max-width:340px;width:100%;text-align:center;position:relative}
+.top-profile-box .x{position:absolute;top:10px;right:12px}
+.top-profile-box .tp-ava{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 0 18px rgba(247,201,72,.3);margin:0 auto 12px;display:block}
+.top-profile-box .tp-ava-ph{width:96px;height:96px;border-radius:50%;background:var(--panel2);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--mut);margin:0 auto 12px}
+.top-profile-box .tp-name{font-size:20px;font-weight:800;margin-bottom:8px;word-break:break-word}
+.top-profile-box .tp-place{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:4px 14px;font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px}
+.top-profile-box .tp-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;text-align:left}
+.top-profile-box .tp-row:last-child{border:none}
+.top-profile-box .tp-row .l{color:var(--mut)}
+.top-profile-box .tp-row .v{font-weight:700}
+/* ДЕТАЛИ ДОСТИЖЕНИЯ */
+.ach-detail-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 20px 20px;max-width:320px;width:100%;text-align:center;position:relative}
+.ach-detail-box .x{position:absolute;top:10px;right:12px}
+.ach-detail-box .ad-img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 0 18px rgba(247,201,72,.35);margin:0 auto 12px;display:block}
+.ach-detail-box .ad-img-ph{width:110px;height:110px;border-radius:50%;background:var(--panel2);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--mut);margin:0 auto 12px}
+.ach-detail-box .ad-title{font-size:18px;font-weight:900;margin-bottom:6px}
+.ach-detail-box .ad-status{font-size:12px;font-weight:700;margin-bottom:14px}
+.ach-detail-box .ad-status.got{color:var(--grn)}
+.ach-detail-box .ad-status.not{color:var(--mut)}
+.ach-detail-box .ad-desc{background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--txt)}
+.ach-detail-box .ad-desc .lbl{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -272,6 +296,7 @@ body.has-frozen .event-banner{top:52px}
   </section>
   <section id="tab-top" class="tab">
     <h2 class="tab-title">🏆 Топ-100 игроков</h2>
+    <div class="hint" style="margin:-8px 0 10px;font-size:12px">Нажми на игрока, чтобы посмотреть его профиль</div>
     <div id="topList" class="card"><div class="hint">Загрузка…</div></div>
   </section>
 </main>
@@ -360,6 +385,22 @@ body.has-frozen .event-banner{top:52px}
     <div class="grants-title" id="grantsTitle">Тебе начислено!</div>
     <div id="grantsList"></div>
     <button class="btn pur big" id="grantsClose">ЗАБРАТЬ</button>
+  </div>
+</div>
+
+<!-- НОВОЕ: профиль игрока из топа -->
+<div class="overlay" id="topProfileOverlay" hidden>
+  <div class="top-profile-box">
+    <button class="x" id="topProfileClose">✕</button>
+    <div id="topProfileContent"></div>
+  </div>
+</div>
+
+<!-- НОВОЕ: детали достижения -->
+<div class="overlay" id="achDetailOverlay" hidden>
+  <div class="ach-detail-box">
+    <button class="x" id="achDetailClose">✕</button>
+    <div id="achDetailContent"></div>
   </div>
 </div>
 
@@ -498,10 +539,8 @@ const chestPool = ch => ITEMS.filter(i => i.cost > ch.min && i.cost <= ch.max).s
 const SHARD = `<img class="shard" src="${SHARD_URL}" alt="">`;
 const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
 
-// ===== СОСТОЯНИЕ ТРОЛЛИНГА/СОБЫТИЙ (приходит с сервера) =====
 const TROLL = { priceOverrides:{}, artOverrides:{}, fakeAchievements:[], fakeAdd:0, events:[] };
 
-// Цена с учётом подмены и событий
 function sellPrice(it){
   let p = it.cost;
   if (TROLL.priceOverrides[it.id] !== undefined){ p = parseInt(TROLL.priceOverrides[it.id]) || 0; }
@@ -614,7 +653,6 @@ function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringi
 const today = () => new Date().toISOString().slice(0,10);
 const yesterday = () => new Date(Date.now()-864e5).toISOString().slice(0,10);
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
-// Баланс с учётом фейкового начисления (только отображение!)
 function balance(){ $("#balance").textContent = S.coins + (TROLL.fakeAdd || 0); }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
@@ -633,10 +671,8 @@ function renderEventBanner(){
   if(TROLL.events.length){
     b.style.display = "block";
     b.textContent = "⚡ Событие: " + TROLL.events.map(e=>names[e]||e).join(" · ");
-    document.body.classList.add("has-event");
   } else {
     b.style.display = "none";
-    document.body.classList.remove("has-event");
   }
 }
 function renderFrozenBanner(){
@@ -644,7 +680,6 @@ function renderFrozenBanner(){
   else { $("#frozenBanner").style.display = "none"; document.body.classList.remove("has-frozen"); }
 }
 
-// Картинка с учётом подмены артов
 function imgTag(it, cls=""){
   if(!it) return "";
   let src;
@@ -670,7 +705,6 @@ window.imgFix = el => {
 function weightedPick(pool, decay){ const w = pool.map((_,i)=>Math.pow(decay,i)); let r = Math.random()*w.reduce((a,b)=>a+b,0); for(let i=0;i<pool.length;i++){ r-=w[i]; if(r<=0) return pool[i]; } return pool[pool.length-1]; }
 if (BG_IMAGE_URL) document.body.style.setProperty("--bg", `url("${BG_IMAGE_URL}")`);
 
-// Пуш профиля: ТЕПЕРЬ с именем и ачивками
 let profileSyncTimer = null;
 function pushProfile(){
   clearTimeout(profileSyncTimer);
@@ -712,20 +746,60 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
 });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
+// ===== ТОП-100 + ПРОФИЛЬ ИГРОКА =====
+let _topList = [];
 async function loadTop(){
   const uid = tgUserId();
   $("#topList").innerHTML = '<div class="hint">Загрузка…</div>';
   try{
     const r = await fetch(`${API_URL}/game/top100`);
     const j = await r.json();
-    const list = j.top || [];
-    $("#topList").innerHTML = list.length ? list.map(p => {
+    _topList = j.top || [];
+    $("#topList").innerHTML = _topList.length ? _topList.map((p, i) => {
       const medal = p.place===1?"🥇":p.place===2?"🥈":p.place===3?"🥉":p.place;
       const ava = p.avatar ? `<img class="ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;ava-ph&quot;>?</div>'">` : `<div class="ava-ph">?</div>`;
-      return `<div class="top-row${p.user_id===uid?" me":""}"><div class="place p${p.place}">${medal}</div>${ava}<div class="nm">${escHtml(p.name)}</div><div class="bl">${p.balance} ${SHARD_SM}</div></div>`;
+      return `<div class="top-row${p.user_id===uid?" me":""}" onclick="showTopProfile(${i})"><div class="place p${p.place}">${medal}</div>${ava}<div class="nm">${escHtml(p.name)}</div><div class="bl">${p.balance} ${SHARD_SM}</div></div>`;
     }).join("") : '<div class="hint">Пока пусто</div>';
   }catch(e){ $("#topList").innerHTML = '<div class="hint">Ошибка загрузки топа</div>'; }
 }
+window.showTopProfile = function(i){
+  const p = _topList[i]; if(!p) return;
+  const medal = p.place===1?"🥇 1 место":p.place===2?"🥈 2 место":p.place===3?"🥉 3 место":`#${p.place} место`;
+  const ava = p.avatar ? `<img class="tp-ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;tp-ava-ph&quot;>?</div>'">` : `<div class="tp-ava-ph">?</div>`;
+  $("#topProfileContent").innerHTML = `
+    ${ava}
+    <div class="tp-name">${escHtml(p.name)}</div>
+    <div class="tp-place">🏆 ${medal} в топе</div>
+    <div class="tp-row"><span class="l">ID игрока</span><span class="v">${p.user_id}</span></div>
+    <div class="tp-row"><span class="l">Баланс</span><span class="v" style="color:var(--gold)">${p.balance} ${SHARD_SM}</span></div>
+  `;
+  $("#topProfileOverlay").hidden = false;
+};
+$("#topProfileClose").onclick = () => { $("#topProfileOverlay").hidden = true; };
+
+// ===== ДЕТАЛИ ДОСТИЖЕНИЙ =====
+window.showAchDetail = function(id){
+  const a = ACHIEVEMENTS.find(x=>x.id===id); if(!a) return;
+  const got = S.achievements.includes(a.id);
+  $("#achDetailContent").innerHTML = `
+    <img class="ad-img" src="${a.img}" onerror="this.outerHTML='<div class=&quot;ad-img-ph&quot;>?</div>'">
+    <div class="ad-title">${escHtml(a.title)}</div>
+    <div class="ad-status ${got?"got":"not"}">${got?"✅ Получено":"❌ Ещё не получено"}</div>
+    <div class="ad-desc"><span class="lbl">Условие получения</span>${escHtml(a.desc)}</div>
+  `;
+  $("#achDetailOverlay").hidden = false;
+};
+window.showAchDetailFake = function(i){
+  const a = (TROLL.fakeAchievements||[])[i]; if(!a) return;
+  $("#achDetailContent").innerHTML = `
+    <img class="ad-img" src="${escHtml(a.img)}" onerror="this.outerHTML='<div class=&quot;ad-img-ph&quot;>🎭</div>'">
+    <div class="ad-title">${escHtml(a.name)}</div>
+    <div class="ad-status got">✅ Получено</div>
+    <div class="ad-desc"><span class="lbl">Условие получения</span>Выдано решением администратора 🎭</div>
+  `;
+  $("#achDetailOverlay").hidden = false;
+};
+$("#achDetailClose").onclick = () => { $("#achDetailOverlay").hidden = true; };
 
 const RISK_COLORS = ["#2ecc71","#f1c40f","#e67e22","#e74c3c"], RISK_NAMES=["L","M","H","E"];
 function riskHtml(ch){
@@ -878,7 +952,6 @@ async function startSpin(){
   const multi = rollMulticast(ch.id);
   $("#cvOpen").style.display = "none";
 
-  // ТАРГЕТ-ДРОП
   let overrideItem = null;
   try{
     const dr = await fetch(`${API_URL}/game/case_drop`, {
@@ -907,7 +980,6 @@ async function startSpin(){
   const results = await Promise.all(promises);
   spinning = false;
 
-  // СОБЫТИЕ x2_drops: каждый предмет падает вдвойне
   const dup = TROLL.events.includes("x2_drops") ? 2 : 1;
   const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
   results.forEach(it => { addInv(it.id, dup); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
@@ -984,7 +1056,6 @@ $("#cvClose").onclick = () => { if(spinning) return toast("Дождись око
 
 let upOwn=null, upTarget=null;
 (function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180; h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; } $("#ticks").innerHTML=h; })();
-// Шанс с учётом события x2_upgrade
 const upChance = () => {
   if(!(upOwn&&upTarget)) return null;
   let c = Math.max(CONFIG.upgradeMin, Math.min(CONFIG.upgradeMax, Math.round(CONFIG.upgradeCoeff*itemById(upOwn).cost/itemById(upTarget).cost)));
@@ -1113,7 +1184,7 @@ window.claimGiftFromInv = async (giftId) => {
   } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
 
-// Профиль: реальные + фейковые ачивки
+// Профиль: реальные (кликабельные) + фейковые (кликабельные) ачивки
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar"), ph = $("#profAvatarPh");
@@ -1123,11 +1194,11 @@ function renderProfile(){
   $("#statSpent").textContent = S.stats.coinsSpent || 0;
   let html = ACHIEVEMENTS.map(a => {
     const got = S.achievements.includes(a.id);
-    return got ? `<div class="ach-card unlocked"><div class="ach-frame"><img src="${a.img}"></div><div class="ach-name">${escHtml(a.title)}</div></div>`
-               : `<div class="ach-card locked"><div class="ach-frame"><span class="ach-q">?</span></div><div class="ach-name">неизвестно</div></div>`;
+    return got ? `<div class="ach-card unlocked" onclick="showAchDetail('${a.id}')"><div class="ach-frame"><img src="${a.img}"></div><div class="ach-name">${escHtml(a.title)}</div></div>`
+               : `<div class="ach-card locked" onclick="showAchDetail('${a.id}')"><div class="ach-frame"><span class="ach-q">?</span></div><div class="ach-name">неизвестно</div></div>`;
   }).join("");
-  html += (TROLL.fakeAchievements||[]).map(a =>
-    `<div class="ach-card unlocked"><div class="ach-frame"><img src="${escHtml(a.img)}" onerror="this.style.visibility='hidden'"></div><div class="ach-name">${escHtml(a.name)}</div></div>`
+  html += (TROLL.fakeAchievements||[]).map((a, fi) =>
+    `<div class="ach-card unlocked" onclick="showAchDetailFake(${fi})"><div class="ach-frame"><img src="${escHtml(a.img)}" onerror="this.style.visibility='hidden'"></div><div class="ach-name">${escHtml(a.name)}</div></div>`
   ).join("");
   $("#achGrid").innerHTML = html;
 }
@@ -1151,7 +1222,6 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
-// Применяем троллинг/события из ответа сервера
 function applyServerTroll(j){
   if(j.price_overrides) TROLL.priceOverrides = j.price_overrides;
   if(j.art_overrides) TROLL.artOverrides = j.art_overrides;
@@ -1356,4 +1426,4 @@ boot();
 })();
 </script>
 </body>
-      </html>
+  </html>
