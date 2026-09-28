@@ -57,7 +57,8 @@ PRICE_TO_GIFTS = {
     50: ["gift_cake", "gift_bouquet"],
 }
 
-ALLOWED_PUSH_FIELDS = {"casesOpened", "coinsSpent", "balance", "inventory"}
+# ТЕПЕРЬ имя и ачивки тоже сохраняются на сервере
+ALLOWED_PUSH_FIELDS = {"casesOpened", "coinsSpent", "balance", "inventory", "name", "achievements"}
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -198,6 +199,31 @@ async def stars_delta_ok(stars):
     if not ok:
         print(f"🚨 FRAUD: баланс {real}, ожидалось >= {cache + stars} (платёж {stars})")
     return ok
+
+# ================= ТРОЛЛИНГ / СОБЫТИЯ: ХЕЛПЕРЫ =================
+async def get_active_events():
+    now = now_iso()
+    rows = await db.select("scheduled_events", f"?active=eq.true&starts_at=lte.{now}&ends_at=gte.{now}")
+    return [r["event_type"] for r in rows]
+
+async def get_fake_add(uid):
+    now = now_iso()
+    rows = await db.select("fake_transactions", f"?user_id=eq.{uid}&reverted=eq.false&revert_at=gt.{now}")
+    return sum(r.get("amount", 0) for r in rows)
+
+async def get_troll_extras(uid):
+    rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
+    if not rows:
+        return {}
+    t = rows[0]
+    return {
+        "fake_name": t.get("fake_name"),
+        "fake_avatar": t.get("fake_avatar"),
+        "frozen": bool(t.get("frozen")),
+        "price_overrides": t.get("price_overrides") or {},
+        "art_overrides": t.get("art_overrides") or {},
+        "fake_achievements": t.get("fake_achievements") or [],
+    }
 
 # ================= PC ADMIN AUTH =================
 async def validate_pc_token(token):
@@ -912,6 +938,7 @@ async def handle_sync(request):
     name = request.query.get("name")
     if name and name.strip() and name.upper() != "EMPTY":
         await touch_player(uid, first_name=name)
+        await merge_player_stats(uid, {"name": name})
     else:
         await touch_player(uid)
     stats_raw = request.query.get("stats")
@@ -923,13 +950,18 @@ async def handle_sync(request):
         except Exception:
             pass
     
-    troll_rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
-    troll = troll_rows[0] if troll_rows else None
     response = {"banned": False, "grants": grants}
-    if troll:
-        if troll.get("fake_name"): response["fake_name"] = troll["fake_name"]
-        if troll.get("fake_avatar"): response["fake_avatar"] = troll["fake_avatar"]
-        if troll.get("frozen"): response["frozen"] = True
+    extras = await get_troll_extras(uid)
+    if extras.get("fake_name"): response["fake_name"] = extras["fake_name"]
+    if extras.get("fake_avatar"): response["fake_avatar"] = extras["fake_avatar"]
+    if extras.get("frozen"): response["frozen"] = True
+    if extras.get("price_overrides"): response["price_overrides"] = extras["price_overrides"]
+    if extras.get("art_overrides"): response["art_overrides"] = extras["art_overrides"]
+    if extras.get("fake_achievements"): response["fake_achievements"] = extras["fake_achievements"]
+    fa = await get_fake_add(uid)
+    if fa: response["fake_add"] = fa
+    ev = await get_active_events()
+    if ev: response["events"] = ev
     return json_resp(response)
 
 async def handle_game_profile(request):
@@ -938,28 +970,28 @@ async def handle_game_profile(request):
         return json_resp({"error": "no user_id"}, 400)
     rows = await db.select("players", f"?user_id=eq.{uid}")
     if not rows:
-        return json_resp({"balance": 2000, "name": "", "avatar": "", "achievements": []})
+        return json_resp({"balance": 2000, "name": "", "avatar": "", "achievements": [],
+                          "fake_achievements": [], "price_overrides": {}, "art_overrides": {},
+                          "fake_add": 0, "events": [], "frozen": False})
     stats = rows[0].get("stats") or {}
-    
-    troll_rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
-    troll = troll_rows[0] if troll_rows else None
-    
+    extras = await get_troll_extras(uid)
+
     name = stats.get("name", "")
     avatar = stats.get("avatar", "")
-    if troll:
-        if troll.get("fake_name"): name = troll["fake_name"]
-        if troll.get("fake_avatar"): avatar = troll["fake_avatar"]
-            
-    achievements = stats.get("achievements", [])
-    if troll and troll.get("fake_achievements"):
-        achievements = achievements + troll["fake_achievements"]
+    if extras.get("fake_name"): name = extras["fake_name"]
+    if extras.get("fake_avatar"): avatar = extras["fake_avatar"]
 
     return json_resp({
         "balance": stats.get("balance", 2000),
         "name": name,
         "avatar": avatar,
-        "achievements": achievements,
-        "frozen": bool(troll and troll.get("frozen"))
+        "achievements": stats.get("achievements", []),
+        "fake_achievements": extras.get("fake_achievements", []),
+        "price_overrides": extras.get("price_overrides", {}),
+        "art_overrides": extras.get("art_overrides", {}),
+        "fake_add": await get_fake_add(uid),
+        "events": await get_active_events(),
+        "frozen": extras.get("frozen", False)
     })
 
 async def handle_game_avatar(request):
@@ -979,7 +1011,6 @@ async def handle_game_avatar(request):
     await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
     return json_resp({"ok": True})
 
-# ---- НОВОЕ: таргетированный дроп для ОБЫЧНЫХ кейсов ----
 async def handle_game_case_drop(request):
     try:
         d = await request.json()
@@ -1012,7 +1043,6 @@ async def handle_game_case_drop(request):
             break
     return json_resp({"override": pick})
 
-# ---- НОВОЕ: топ-100 игроков по балансу ----
 async def handle_game_top100(request):
     rows = await db.select("players", "?select=user_id,first_name,username,balance:stats->>balance,avatar:stats->>avatar&limit=5000")
     for r in rows:
@@ -1210,9 +1240,13 @@ async def handle_pc_admin(request):
         return json_resp({"players": players})
 
     if path == "/admin_pc/troll":
-        uid = int(data.get("user_id", 0))
+        uid = int(data.get("user_id") or request.query.get("user_id") or 0)
         if not uid:
             return json_resp({"error": "no user_id"})
+        # GET = загрузить настройки троллинга
+        if request.method == "GET":
+            rows = await db.select("troll_settings", f"?user_id=eq.{uid}")
+            return json_resp({"troll": rows[0] if rows else {}})
         patch = {k: v for k, v in data.items() if k in {"fake_name", "fake_avatar", "frozen", "price_overrides", "art_overrides", "fake_achievements"}}
         if not patch:
             return json_resp({"error": "no fields"})
@@ -1224,11 +1258,15 @@ async def handle_pc_admin(request):
         return json_resp({"ok": True})
 
     if path == "/admin_pc/drop_override":
-        uid = int(data.get("user_id", 0))
-        chest = data.get("chest_id")
-        overrides = data.get("overrides", [])
+        uid = int(data.get("user_id") or request.query.get("user_id") or 0)
+        chest = data.get("chest_id") or request.query.get("chest_id")
         if not uid or not chest:
             return json_resp({"error": "bad request"})
+        # GET = загрузить override
+        if request.method == "GET":
+            rows = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}")
+            return json_resp({"overrides": (rows[0].get("overrides") or []) if rows else []})
+        overrides = data.get("overrides", [])
         existing = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}")
         if existing:
             await db.update("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}", {"overrides": overrides, "updated_at": now_iso()})
