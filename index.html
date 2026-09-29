@@ -428,7 +428,8 @@ const CONFIG = {
   startCoins:2000, upgradeCoeff:70, upgradeMin:2, upgradeMax:85, burnOnLoss:true,
   dailyBase:300, dailyStreakStep:50, dailyMax:700,
   devPromo:"society",
-  multicast: { x1:97, x2:2.4, x3:0.48, x4:0.12 }
+  multicast: { x1:97, x2:2.4, x3:0.48, x4:0.12 },
+  syncInterval: 15000
 };
 
 const SHARD_URL = "https://raw.githubusercontent.com/haress484/Dota-Drop/main/dota_gold.png";
@@ -750,7 +751,7 @@ function showAchievement(a){
   n.classList.remove("show"); void n.offsetWidth; n.classList.add("show"); playAchievement(); setTimeout(() => n.classList.remove("show"), 4500);
 }
 
-// НОВОЕ: попап для НОВЫХ фейковых ачивок при входе/синке (один раз на ачивку)
+// Попап для НОВЫХ фейковых ачивок (один раз на ачивку)
 function notifyNewFakes(){
   const list = TROLL.fakeAchievements || [];
   if(!list.length) return;
@@ -781,9 +782,10 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
 });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
-// ===== ТОП-100 + ПРОФИЛЬ ИГРОКА С КЛИКАБЕЛЬНЫМИ ДОСТИЖЕНИЯМИ =====
+// ===== ТОП-100 + ПРОФИЛЬ ИГРОКА =====
 let _topList = [];
 window._tpFakes = [];
+window._currentTopIdx = null;
 async function loadTop(){
   const uid = tgUserId();
   $("#topList").innerHTML = '<div class="hint">Загрузка…</div>';
@@ -800,6 +802,7 @@ async function loadTop(){
 }
 window.showTopProfile = async function(i){
   const p = _topList[i]; if(!p) return;
+  window._currentTopIdx = i;
   const medal = p.place===1?"🥇 1 место":p.place===2?"🥈 2 место":p.place===3?"🥉 3 место":`#${p.place} место`;
   const ava = p.avatar ? `<img class="tp-ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;tp-ava-ph&quot;>?</div>'">` : `<div class="tp-ava-ph">?</div>`;
   $("#topProfileContent").innerHTML = `
@@ -826,7 +829,7 @@ window.showTopProfile = async function(i){
     $("#tpAchList").innerHTML = '<div class="hint" style="margin:0">—</div>';
   }
 };
-$("#topProfileClose").onclick = () => { $("#topProfileOverlay").hidden = true; };
+$("#topProfileClose").onclick = () => { $("#topProfileOverlay").hidden = true; window._currentTopIdx = null; };
 
 // ===== ДЕТАЛИ ДОСТИЖЕНИЙ =====
 window.showAchDetail = function(id){
@@ -840,7 +843,6 @@ window.showAchDetail = function(id){
   `;
   $("#achDetailOverlay").hidden = false;
 };
-// Своя фейковая ачивка (с условием, если задано)
 window.showAchDetailFake = function(i){
   const a = (TROLL.fakeAchievements||[])[i]; if(!a) return;
   $("#achDetailContent").innerHTML = `
@@ -851,7 +853,6 @@ window.showAchDetailFake = function(i){
   `;
   $("#achDetailOverlay").hidden = false;
 };
-// Достижения ДРУГОГО игрока
 window.showPlayerAchDetail = function(id){
   const a = ACHIEVEMENTS.find(x=>x.id===id); if(!a) return;
   $("#achDetailContent").innerHTML = `
@@ -1031,7 +1032,7 @@ async function startSpin(){
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), chest_id: ch.id})
     });
-    const dj = await r2json(dr);
+    const dj = await dr.json();
     if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
   }catch(e){}
 
@@ -1060,7 +1061,6 @@ async function startSpin(){
   save(); renderInv(); renderChests(); checkAchievements(); pushProfile();
   showMultiResult(results, totalCost, multi, dup);
 }
-const r2json = r => r.json();
 
 function showGiftResult(winner) {
   $("#cvArtSlot").innerHTML = `
@@ -1295,6 +1295,7 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
+// Применяет троллинг/события с сервера + живое обновление открытых окон
 function applyServerTroll(j){
   if(j.price_overrides) TROLL.priceOverrides = j.price_overrides;
   if(j.art_overrides) TROLL.artOverrides = j.art_overrides;
@@ -1309,6 +1310,11 @@ function applyServerTroll(j){
   balance();
   renderChests();
   renderInv();
+  // Живое обновление открытых окон профиля
+  if(!$("#profileOverlay").hidden) renderProfile();
+  if(!$("#topProfileOverlay").hidden && window._currentTopIdx !== null && window._currentTopIdx !== undefined){
+    showTopProfile(window._currentTopIdx);
+  }
   notifyNewFakes();
 }
 
@@ -1412,6 +1418,11 @@ function boot(){
 }
 boot();
 
+// Мгновенный синк при возврате в игру (свернул/развернул Telegram)
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) syncWithServer();
+});
+
 // ===== ПРЕЛОАДЕР =====
 (function preloader(){
   const pr = $("#preloader"), orbit = $("#orbit"), chest = $("#loaderChest"), btn = $("#loadBtn");
@@ -1494,7 +1505,7 @@ boot();
       pr.classList.add("done"); 
       await fetchProfile();
       refreshAll();
-      setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); setInterval(syncWithServer, 60000); }, 500); 
+      setTimeout(() => { pr.classList.add("gone"); pr.remove(); syncWithServer(); setInterval(syncWithServer, CONFIG.syncInterval); }, 500); 
     }, 1000);
   };
 })();
