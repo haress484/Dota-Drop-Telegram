@@ -224,24 +224,6 @@ async def get_troll_extras(uid):
         "fake_achievements": t.get("fake_achievements") or [],
     }
 
-# ================= НОВОЕ: УВЕДОМЛЕНИЕ О ДОСТИЖЕНИИ В TELEGRAM =================
-async def notify_achievement(uid, ach):
-    """Шлёт игроку сообщение в Telegram о новом достижении — работает даже если он не в игре."""
-    name = ach.get("name") or "Достижение"
-    desc = ach.get("desc") or ""
-    img = ach.get("img") or ""
-    text = f"🏆 Достижение получено!\n\n{name}"
-    if desc:
-        text += f"\n{desc}"
-    try:
-        if img.startswith("http"):
-            await bot.send_photo(uid, img, caption=text)
-        else:
-            await bot.send_message(uid, text)
-        print(f"🏆 Achievement notify sent to {uid}: {name}")
-    except Exception as e:
-        print(f"Achievement notify error for {uid}: {e}")
-
 # ================= PC ADMIN AUTH =================
 async def validate_pc_token(token):
     if not token:
@@ -341,7 +323,7 @@ async def cb_check_sub(cb: CallbackQuery):
         await cb.message.edit_text(
             "🎉 Добро пожаловать в Dota Drop!\nЖми кнопку ниже, чтобы играть.",
             reply_markup=play_kb(uid))
-        await cb.answer("Подтверждена!")
+        await cb.answer("Подписка подтверждена!")
     else:
         await cb.answer("⚠️ Ты всё ещё не подписан!", show_alert=True)
 
@@ -1267,18 +1249,11 @@ async def handle_pc_admin(request):
         if not patch:
             return json_resp({"error": "no fields"})
         existing = await db.select("troll_settings", f"?user_id=eq.{uid}")
-        old_fakes = (existing[0].get("fake_achievements") or []) if existing else []
         if existing:
             await db.update("troll_settings", f"?user_id=eq.{uid}", {**patch, "updated_at": now_iso()})
         else:
             await db.insert("troll_settings", [{"user_id": uid, **patch}])
-        # НОВОЕ: уведомляем игрока в Telegram о НОВЫХ достижениях (работает без входа в игру)
-        new_fakes = patch.get("fake_achievements")
-        if new_fakes is not None:
-            old_names = {f.get("name") for f in old_fakes}
-            added = [f for f in new_fakes if f.get("name") and f.get("name") not in old_names]
-            for f in added:
-                asyncio.create_task(notify_achievement(uid, f))
+        # УВЕДОМЛЕНИЯ В ЧАТ БОТА УБРАНЫ: ачивка просто сохраняется и видна в профилях
         return json_resp({"ok": True})
 
     if path == "/admin_pc/drop_override":
