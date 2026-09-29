@@ -642,6 +642,7 @@ function playMulti(x){ const a = multiAudios[x]; if(a){ a.currentTime=0; a.play(
 function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achieveAudio.play().catch(()=>{}); } }
 
 const LKEY = "dotaDrop_save_v2";
+const FKEY = "dotaDrop_seenFakes";
 function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"", frozen:false } }
 let S = defaultState();
 function loadLocal(){
@@ -740,8 +741,36 @@ function checkAchievements(){
   });
 }
 function showAchievement(a){
-  const n = $("#achieveNotif"); n.querySelector(".an-img").src = a.img; n.querySelector(".an-title").textContent = a.title; n.querySelector(".an-desc").textContent = a.desc;
+  const n = $("#achieveNotif");
+  n.querySelector(".an-img").src = a.img;
+  n.querySelector(".an-title").textContent = a.title;
+  const d = n.querySelector(".an-desc");
+  d.textContent = a.desc || "";
+  d.style.display = a.desc ? "" : "none";
   n.classList.remove("show"); void n.offsetWidth; n.classList.add("show"); playAchievement(); setTimeout(() => n.classList.remove("show"), 4500);
+}
+
+// НОВОЕ: попап для НОВЫХ фейковых ачивок при входе/синке (один раз на ачивку)
+function notifyNewFakes(){
+  const list = TROLL.fakeAchievements || [];
+  if(!list.length) return;
+  let seen = [];
+  try{ seen = JSON.parse(localStorage.getItem(FKEY) || "[]"); }catch(e){ seen = []; }
+  let changed = false;
+  list.forEach((a, i) => {
+    const key = a.name || ("fake_" + i);
+    if(!seen.includes(key)){
+      seen.push(key);
+      changed = true;
+      setTimeout(() => {
+        showAchievement({ img: a.img, title: a.name, desc: a.desc || "" });
+        if(!$("#profileOverlay").hidden) renderProfile();
+      }, 1500 + i * 800);
+    }
+  });
+  if(changed){
+    try{ localStorage.setItem(FKEY, JSON.stringify(seen)); }catch(e){}
+  }
 }
 
 document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
@@ -800,7 +829,6 @@ window.showTopProfile = async function(i){
 $("#topProfileClose").onclick = () => { $("#topProfileOverlay").hidden = true; };
 
 // ===== ДЕТАЛИ ДОСТИЖЕНИЙ =====
-// Свои достижения
 window.showAchDetail = function(id){
   const a = ACHIEVEMENTS.find(x=>x.id===id); if(!a) return;
   const got = S.achievements.includes(a.id);
@@ -812,17 +840,18 @@ window.showAchDetail = function(id){
   `;
   $("#achDetailOverlay").hidden = false;
 };
-// Свои фейковые ачивки
+// Своя фейковая ачивка (с условием, если задано)
 window.showAchDetailFake = function(i){
   const a = (TROLL.fakeAchievements||[])[i]; if(!a) return;
   $("#achDetailContent").innerHTML = `
     <img class="ad-img" src="${escHtml(a.img)}" onerror="this.outerHTML='<div class=&quot;ad-img-ph&quot;>🎭</div>'">
     <div class="ad-title">${escHtml(a.name)}</div>
     <div class="ad-status got">✅ Получено</div>
+    ${a.desc ? `<div class="ad-desc"><span class="lbl">Условие получения</span>${escHtml(a.desc)}</div>` : ""}
   `;
   $("#achDetailOverlay").hidden = false;
 };
-// Достижения ДРУГОГО игрока (из его профиля в топе)
+// Достижения ДРУГОГО игрока
 window.showPlayerAchDetail = function(id){
   const a = ACHIEVEMENTS.find(x=>x.id===id); if(!a) return;
   $("#achDetailContent").innerHTML = `
@@ -839,6 +868,7 @@ window.showPlayerAchDetailFake = function(i){
     <img class="ad-img" src="${escHtml(a.img)}" onerror="this.outerHTML='<div class=&quot;ad-img-ph&quot;>🎭</div>'">
     <div class="ad-title">${escHtml(a.name)}</div>
     <div class="ad-status got">✅ Получено игроком</div>
+    ${a.desc ? `<div class="ad-desc"><span class="lbl">Условие получения</span>${escHtml(a.desc)}</div>` : ""}
   `;
   $("#achDetailOverlay").hidden = false;
 };
@@ -1001,7 +1031,7 @@ async function startSpin(){
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), chest_id: ch.id})
     });
-    const dj = await dr.json();
+    const dj = await r2json(dr);
     if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
   }catch(e){}
 
@@ -1030,6 +1060,7 @@ async function startSpin(){
   save(); renderInv(); renderChests(); checkAchievements(); pushProfile();
   showMultiResult(results, totalCost, multi, dup);
 }
+const r2json = r => r.json();
 
 function showGiftResult(winner) {
   $("#cvArtSlot").innerHTML = `
@@ -1278,6 +1309,7 @@ function applyServerTroll(j){
   balance();
   renderChests();
   renderInv();
+  notifyNewFakes();
 }
 
 async function fetchProfile(){
@@ -1468,4 +1500,4 @@ boot();
 })();
 </script>
 </body>
-  </html>
+</html>
