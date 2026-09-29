@@ -144,6 +144,16 @@ class DB:
 
 db = DB()
 
+def db_write_error(res):
+    """None = запись прошла. Иначе текст ошибки Supabase."""
+    if res is None:
+        return "пустой ответ Supabase"
+    if isinstance(res, list):
+        return None
+    if isinstance(res, dict):
+        return res.get("message") or res.get("error") or res.get("hint") or str(res)
+    return str(res)
+
 async def touch_player(user_id, username=None, first_name=None):
     row = {"user_id": user_id, "last_seen": now_iso()}
     if username and username.strip():
@@ -438,7 +448,7 @@ async def select_gift(cb: CallbackQuery, state: FSMContext):
         await db.upsert("meta", [{"key": "bot_stars", "value": new_balance}])
         await refresh_stars_cache()
         await cb.message.edit_text(
-            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n💳 Баланс бота: {new_balance} ⭐",
+            f"✅ <b>Подарок отправлен!</b>\n\n👤 <code>{user_id}</code>\n🎁 {gift['name']}\n💰 Списано: {gift['price']} ⭐\n Баланс бота: {new_balance} ⭐",
             parse_mode="HTML")
     except Exception as e:
         await cb.message.edit_text(f"❌ Ошибка: <code>{str(e)}</code>", parse_mode="HTML")
@@ -1250,10 +1260,16 @@ async def handle_pc_admin(request):
             return json_resp({"error": "no fields"})
         existing = await db.select("troll_settings", f"?user_id=eq.{uid}")
         if existing:
-            await db.update("troll_settings", f"?user_id=eq.{uid}", {**patch, "updated_at": now_iso()})
+            res = await db.update("troll_settings", f"?user_id=eq.{uid}", patch)
         else:
-            await db.insert("troll_settings", [{"user_id": uid, **patch}])
-        # УВЕДОМЛЕНИЯ В ЧАТ БОТА УБРАНЫ: ачивка просто сохраняется и видна в профилях
+            res = await db.insert("troll_settings", [{"user_id": uid, **patch}])
+        err = db_write_error(res)
+        if err:
+            print(f"🚨 TROLL WRITE ERROR uid={uid}: {err}")
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
+        if isinstance(res, list) and len(res) == 0:
+            print(f"🚨 TROLL WRITE NOOP uid={uid}")
+            return json_resp({"ok": False, "error": "База не нашла/не создала строку троллинга"}, 500)
         return json_resp({"ok": True})
 
     if path == "/admin_pc/drop_override":
@@ -1267,9 +1283,15 @@ async def handle_pc_admin(request):
         overrides = data.get("overrides", [])
         existing = await db.select("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}")
         if existing:
-            await db.update("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}", {"overrides": overrides, "updated_at": now_iso()})
+            res = await db.update("drop_overrides", f"?user_id=eq.{uid}&chest_id=eq.{chest}", {"overrides": overrides})
         else:
-            await db.insert("drop_overrides", [{"user_id": uid, "chest_id": chest, "overrides": overrides}])
+            res = await db.insert("drop_overrides", [{"user_id": uid, "chest_id": chest, "overrides": overrides}])
+        err = db_write_error(res)
+        if err:
+            print(f"🚨 DROP OVERRIDE WRITE ERROR uid={uid}: {err}")
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
+        if isinstance(res, list) and len(res) == 0:
+            return json_resp({"ok": False, "error": "База не нашла/не создала строку override"}, 500)
         return json_resp({"ok": True})
 
     if path == "/admin_pc/event":
@@ -1278,7 +1300,10 @@ async def handle_pc_admin(request):
         ends = data.get("ends_at")
         if not etype or not starts or not ends:
             return json_resp({"error": "bad request"})
-        await db.insert("scheduled_events", [{"event_type": etype, "starts_at": starts, "ends_at": ends}])
+        res = await db.insert("scheduled_events", [{"event_type": etype, "starts_at": starts, "ends_at": ends}])
+        err = db_write_error(res)
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
         return json_resp({"ok": True})
 
     if path == "/admin_pc/note":
@@ -1286,7 +1311,10 @@ async def handle_pc_admin(request):
         note = data.get("note", "")
         if not uid or not note:
             return json_resp({"error": "bad request"})
-        await db.insert("admin_notes", [{"user_id": uid, "note": note, "created_by": OWNER_ID}])
+        res = await db.insert("admin_notes", [{"user_id": uid, "note": note, "created_by": OWNER_ID}])
+        err = db_write_error(res)
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
         return json_resp({"ok": True})
 
     if path == "/admin_pc/logs":
@@ -1304,10 +1332,13 @@ async def handle_pc_admin(request):
         if not uid:
             return json_resp({"error": "bad request"})
         revert_at = (datetime.now(timezone.utc) + timedelta(minutes=revert_min)).isoformat()
-        await db.insert("fake_transactions", [{
+        res = await db.insert("fake_transactions", [{
             "user_id": uid, "amount": amount, "type": "fake_grant",
             "revert_at": revert_at
         }])
+        err = db_write_error(res)
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
         return json_resp({"ok": True, "revert_at": revert_at})
 
     if path == "/admin_pc/set_balance":
@@ -1318,7 +1349,10 @@ async def handle_pc_admin(request):
         rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
         cur = (rows[0].get("stats") if rows else None) or {}
         cur["balance"] = bal
-        await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        err = db_write_error(res)
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
         await log_player_action(uid, "admin_set_balance", {"new_balance": bal})
         return json_resp({"ok": True})
 
@@ -1330,7 +1364,10 @@ async def handle_pc_admin(request):
         rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
         cur = (rows[0].get("stats") if rows else None) or {}
         cur["inventory"] = inv
-        await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        err = db_write_error(res)
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
         await log_player_action(uid, "admin_set_inventory", {"items_count": len(inv)})
         return json_resp({"ok": True})
 
@@ -1370,8 +1407,14 @@ async def handle_pc_admin(request):
         stats1["inventory"] = inv1
         stats2["inventory"] = inv2
 
-        await db.update("players", f"?user_id=eq.{from_uid}", {"stats": stats1})
-        await db.update("players", f"?user_id=eq.{to_uid}", {"stats": stats2})
+        r1 = await db.update("players", f"?user_id=eq.{from_uid}", {"stats": stats1})
+        e1 = db_write_error(r1)
+        if e1:
+            return json_resp({"error": f"База не приняла запись отправителя: {e1}"}, 500)
+        r2 = await db.update("players", f"?user_id=eq.{to_uid}", {"stats": stats2})
+        e2 = db_write_error(r2)
+        if e2:
+            return json_resp({"error": f"База не приняла запись получателя: {e2}"}, 500)
 
         await log_player_action(from_uid, "transfer_item_out", {"item": item_id, "to": to_uid, "amount": amount})
         await log_player_action(to_uid, "transfer_item_in", {"item": item_id, "from": from_uid, "amount": amount})
@@ -1455,10 +1498,13 @@ async def handle_admin(request):
         amount = int(data.get("amount", 0))
         item_id = data.get("item_id")
         reason = data.get("reason") or None
-        await db.insert("grants", [{
+        res = await db.insert("grants", [{
             "user_id": uid, "type": gtype, "amount": amount,
             "item_id": item_id, "reason": reason
         }])
+        err = db_write_error(res)
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла выдачу: {err}"}, 500)
         if gtype == "item" and (item_id in GIFT_CATALOG or item_id == "gift_case"):
             stats, ginv = await get_gift_inv(uid)
             ginv[item_id] = ginv.get(item_id, 0) + 1
@@ -1502,7 +1548,10 @@ async def handle_admin(request):
             "amount": int(data.get("amount", 0)), "reason": data.get("reason") or None
         } for p in players]
         if rows:
-            await db.insert("grants", rows)
+            res = await db.insert("grants", rows)
+            err = db_write_error(res)
+            if err:
+                return json_resp({"ok": False, "error": f"База не приняла выдачу: {err}"}, 500)
         return json_resp({"ok": True, "count": len(rows)})
 
     if path == "/admin/ban":
@@ -1631,7 +1680,8 @@ async def handle_admin(request):
     return json_resp({"error": "unknown path"}, 404)
 
 async def start_web_server():
-    app = web.Application(middlewares=[cors_middleware])
+    # client_max_size поднят до 16 МБ: фейковые аватары в base64 больше не упрутся в лимит тела запроса
+    app = web.Application(middlewares=[cors_middleware], client_max_size=16 * 1024 * 1024)
     app.router.add_get("/create_invoice", handle_create_invoice)
     app.router.add_get("/create_unban_invoice", handle_create_unban_invoice)
     app.router.add_get("/game/profile", handle_game_profile)
