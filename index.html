@@ -180,7 +180,7 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .ban-emoji{font-size:64px;margin-bottom:12px}
 .ban-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:8px}
 .ban-reason{color:var(--mut);font-size:14px;margin-bottom:16px}
-.grants-box{background:var(--panel);border:2px solid var(--grn);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center}
+.grants-box{background:var(--panel);border:2px solid var(--grn);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center;max-height:85vh;overflow-y:auto}
 .grants-emoji{font-size:56px;margin-bottom:10px}
 .grants-title{font-size:20px;font-weight:900;color:var(--grn);margin-bottom:12px}
 .grant-item{background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;text-align:left}
@@ -620,7 +620,6 @@ $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openSho
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 // ===== ДОСТИЖЕНИЯ =====
-// НОВОЕ: вторая ачивка заменена на «Коллекционер» — все предметы игры одновременно в инвентаре
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
   { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры в инвентаре одновременно", img:CHEST_IMAGES.immortal, check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
@@ -1377,6 +1376,14 @@ function showGrants(grants){
       S.coins = Math.max(0, S.coins - absAmount); 
       html += `<div class="grant-item"><div class="gi-type" style="color:var(--red)">Списание осколков</div><div class="gi-amount" style="color:var(--red)">-${actualDeduction}</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`; 
     }
+    else if(g.type === "all_items"){
+      // НОВОЕ: команда /allitem — все предметы игры разом
+      hasNormalGrants = true;
+      let cnt = 0;
+      ITEMS.forEach(it => { S.inv[it.id] = (S.inv[it.id]||0) + 1; cnt++; });
+      save();
+      html += `<div class="grant-item"><div class="gi-type">🎒 Все предметы игры</div><div class="gi-amount">+${cnt} предметов в инвентарь</div>${g.reason ? `<div class="gi-reason">Причина: "${g.reason}"</div>` : ""}</div>`;
+    }
     else if(g.type === "item"){
       hasNormalGrants = true;
       const isGiftItem = GIFT_ITEMS.includes(g.item_id) || g.item_id === "gift_case";
@@ -1403,7 +1410,7 @@ function showGrants(grants){
   } else { 
     title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; 
   }
-  list.innerHTML = html; save(); balance(); renderInv(); pushProfile(); $("#grantsOverlay").hidden = false;
+  list.innerHTML = html; save(); balance(); renderInv(); checkAchievements(); pushProfile(); $("#grantsOverlay").hidden = false;
 }
 $("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
 
@@ -1509,4 +1516,4 @@ document.addEventListener("visibilitychange", () => {
 })();
 </script>
 </body>
-  </html>
+    </html>
