@@ -619,9 +619,11 @@ function showNoCoins(need){ $("#noCoinsHint").textContent = need ? `Для эт�
 $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openShop(); };
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
+// ===== ДОСТИЖЕНИЯ =====
+// НОВОЕ: вторая ачивка заменена на «Коллекционер» — все предметы игры одновременно в инвентаре
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_2.png", check: S => S.promos.includes(CONFIG.devPromo) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры в инвентаре одновременно", img:CHEST_IMAGES.immortal, check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -751,7 +753,6 @@ function showAchievement(a){
   n.classList.remove("show"); void n.offsetWidth; n.classList.add("show"); playAchievement(); setTimeout(() => n.classList.remove("show"), 4500);
 }
 
-// Попап для НОВЫХ фейковых ачивок (один раз на ачивку)
 function notifyNewFakes(){
   const list = TROLL.fakeAchievements || [];
   if(!list.length) return;
@@ -1213,7 +1214,7 @@ $("#btnPromo").onclick = () => {
   toast("Проверяю промокод...");
   fetch(`${API_URL}/promo?code=${encodeURIComponent(code)}&user_id=${uid}`).then(r => r.json()).then(j => {
     if(j.ok){
-      if(j.secret){ if(!S.promos.includes(code)){ S.promos.push(code); save(); } checkAchievements(); toast("Секретный промокод активирован!"); } 
+      if(j.secret){ if(!S.promos.includes(code)){ S.promos.push(code); save(); } toast("Секретный промокод активирован!"); } 
       else { S.coins += j.amount; save(); balance(); pushProfile(); toast(`+${j.amount} осколков по промокоду!`); }
     } else { toast(j.error || "Неверный промокод"); }
   }).catch(()=> toast("Нет связи с сервером"));
@@ -1295,7 +1296,6 @@ $("#avatarInput").onchange = e => {
   reader.readAsDataURL(file);
 };
 
-// Применяет троллинг/события с сервера + живое обновление открытых окон
 function applyServerTroll(j){
   if(j.price_overrides) TROLL.priceOverrides = j.price_overrides;
   if(j.art_overrides) TROLL.artOverrides = j.art_overrides;
@@ -1310,7 +1310,6 @@ function applyServerTroll(j){
   balance();
   renderChests();
   renderInv();
-  // Живое обновление открытых окон профиля
   if(!$("#profileOverlay").hidden) renderProfile();
   if(!$("#topProfileOverlay").hidden && window._currentTopIdx !== null && window._currentTopIdx !== undefined){
     showTopProfile(window._currentTopIdx);
@@ -1418,7 +1417,6 @@ function boot(){
 }
 boot();
 
-// Мгновенный синк при возврате в игру (свернул/развернул Telegram)
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) syncWithServer();
 });
@@ -1511,4 +1509,4 @@ document.addEventListener("visibilitychange", () => {
 })();
 </script>
 </body>
-</html>
+  </html>
