@@ -45,7 +45,7 @@ SNIPER_ENABLED = True
 SNIPER_INTERVAL = 15
 SNIPER_MANUAL_COOLDOWN = 5
 
-# НОВЫЕ ПАКИ: прогрессивная выгода
+# ПАКИ: прогрессивная выгода
 PACKS = {1: 150, 5: 1000, 10: 2500, 25: 7500, 50: 20000}
 
 # РУЛЕТКА
@@ -260,6 +260,17 @@ async def add_balance(uid, delta):
     if err:
         return None, err
     return new, None
+
+async def get_display_identity(uid):
+    """Имя/аватар для PVP: профиль игры → имя из Telegram → заглушка."""
+    rows = await db.select("players", f"?user_id=eq.{uid}&select=first_name,stats")
+    if not rows:
+        return "Игрок", ""
+    r = rows[0]
+    st = r.get("stats") or {}
+    name = st.get("name") or r.get("first_name") or "Игрок"
+    avatar = st.get("avatar") or ""
+    return name, avatar
 
 async def merge_player_stats(uid, patch):
     rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
@@ -1375,8 +1386,7 @@ async def roulette_apply_prize(uid, pos_id, stake):
         decay = CHEST_DEFS[pos_id][2]
         item_id, item_cost = weighted_pick(pool, decay)
         st = await get_stats(uid)
-        inv = (st or {}).get("inventory", {})
-        inv = dict(inv)
+        inv = dict((st or {}).get("inventory", {}))
         inv[item_id] = inv.get(item_id, 0) + 1
         err = await merge_player_stats(uid, {"inventory": inv})
         if err:
@@ -1537,6 +1547,14 @@ async def handle_pvp(request):
         if case_id not in CHEST_DEFS or rounds not in PVP_ROUND_OPTS:
             return json_resp({"error": "bad params"}, 400)
         stake = CHEST_DEFS[case_id][3] * rounds
+        # защита от дублей (мульти-тап): возвращаем существующий waiting-батл
+        my_seats = await db.select("pvp_players", f"?user_id=eq.{uid}&seat=eq.0")
+        for ms in my_seats:
+            bs = await db.select("pvp_battles", f"?code=eq.{ms['battle_code']}&status=eq.waiting")
+            if bs:
+                room = await pvp_room_state(ms["battle_code"])
+                if room:
+                    return json_resp({"ok": True, "reused": True, **room})
         bal = await get_balance(uid)
         if bal < stake:
             return json_resp({"error": f"Не хватает осколков: нужно {stake}"}, 400)
@@ -1549,9 +1567,7 @@ async def handle_pvp(request):
             if not exists:
                 break
             code = gen_battle_code()
-        st = await get_stats(uid)
-        me_name = (st or {}).get("name") or "Игрок"
-        me_ava = (st or {}).get("avatar") or ""
+        me_name, me_ava = await get_display_identity(uid)
         r1 = await db.insert("pvp_battles", [{
             "code": code, "case_id": case_id, "rounds": rounds, "stake": stake,
             "status": "waiting", "round_now": 0,
@@ -1589,10 +1605,10 @@ async def handle_pvp(request):
         new_bal, err = await add_balance(uid, -stake)
         if err:
             return json_resp({"error": err}, 500)
-        st = await get_stats(uid)
+        j_name, j_ava = await get_display_identity(uid)
         r = await db.insert("pvp_players", [{
             "battle_code": code, "seat": 1, "user_id": uid,
-            "name": (st or {}).get("name") or "Игрок", "avatar": (st or {}).get("avatar") or "", "score": 0,
+            "name": j_name, "avatar": j_ava, "score": 0,
         }])
         err = db_write_error(r)
         if err or not r:
