@@ -768,9 +768,10 @@ function showNoCoins(need){ $("#noCoinsHint").textContent = need ? `Для эт�
 $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openShop(); };
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
+// ДОСТИЖЕНИЯ: «Коллекционер» = все предметы игры в инвентаре (кроме платных подарочных)
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"fuck_society", title:"Fuck society", desc:"Ввести секретный промокод", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_2.png", check: S => S.promos.includes(CONFIG.devPromo) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры (кроме платных)", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -811,7 +812,6 @@ function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringi
 const today = () => new Date().toISOString().slice(0,10);
 const yesterday = () => new Date(Date.now()-864e5).toISOString().slice(0,10);
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
-// Принятие баланса с сервера: запоминаем базу для дельт
 function adoptBalance(v){
   if(typeof v === "number"){ S.coins = v; S.lastServerBalance = v; save(); balance(); }
 }
@@ -1061,7 +1061,7 @@ window.openCaseView = function(id){
   if(id === "gift_case") id = "gift";
   const ch = CHESTS.find(c=>c.id===id);
   if(!ch){ toast("Кейс не найден"); return; }
-  spinSeq++; spinning = false;   // убиваем любой зомби-спин прошлого кейса
+  spinSeq++; spinning = false;
   curChest = ch;
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
@@ -1093,7 +1093,7 @@ window.openCaseView = function(id){
 $("#cvOpen").onclick = () => startSpin();
 $("#cvClose").onclick = () => {
   if(spinning) return toast("Дождись окончания крутки");
-  spinSeq++;   // убиваем зависший спин в фазе запроса
+  spinSeq++;
   $("#caseView").hidden = true;
 };
 
@@ -1197,7 +1197,6 @@ async function startSpin(){
   openBtn.disabled = true;
   openBtn.textContent = "⏳ Кручу...";
 
-  // сначала серверный ролл override ДО списания, чтобы закрытие окна не съедало деньги
   let overrideItem = null;
   try{
     const dr = await fetch(`${API_URL}/game/case_drop`, {
@@ -1207,7 +1206,7 @@ async function startSpin(){
     const dj = await dr.json();
     if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
   }catch(e){}
-  if(seq !== spinSeq) return;   // окно закрыли/сменили кейс — выходим без списания
+  if(seq !== spinSeq) return;
 
   const recruitFree = ch.id === "recruit" && isRecruitFree();
   const evFree = eventFree();
@@ -1243,7 +1242,7 @@ async function startSpin(){
   results.forEach(it => { addInv(it.id, dup); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
   S.drops = S.drops.slice(-5);
   save(); renderInv(); pushProfile();
-  if(seq !== spinSeq){ renderChests(); checkAchievements(); return; }  // докрутили в фоне: дропы применены, UI не трогаем
+  if(seq !== spinSeq){ renderChests(); checkAchievements(); return; }
   renderChests(); checkAchievements();
   const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
   showMultiResult(results, totalCost, multi, dup);
@@ -1491,6 +1490,7 @@ function applyServerTroll(j){
     showTopProfile(window._currentTopIdx);
   }
   notifyNewFakes();
+  checkAchievements();
 }
 
 async function fetchProfile(){
@@ -1591,7 +1591,7 @@ function showGrants(grants){
   } else { 
     title.textContent = "Тебе начислено!"; emoji.textContent = "🎁"; 
   }
-  list.innerHTML = html; save(); balance(); renderInv(); pushProfile(); $("#grantsOverlay").hidden = false;
+  list.innerHTML = html; save(); balance(); renderInv(); pushProfile(); checkAchievements(); $("#grantsOverlay").hidden = false;
 }
 $("#grantsClose").onclick = () => { $("#grantsOverlay").hidden = true; };
 
@@ -1725,7 +1725,7 @@ $("#roulSpin").onclick = async () => {
 
   if(typeof res.new_balance === "number"){ adoptBalance(res.new_balance); }
   if(res.item_id){ addInv(res.item_id, 1); renderInv(); }
-  save(); balance(); pushProfile();
+  save(); balance(); pushProfile(); checkAchievements();
 
   const out = $("#roulResult");
   out.hidden = false;
@@ -1895,7 +1895,6 @@ function pvpOpenRoom(room){
   pvpSpinning = false;
   window._pvpLastCase = room.battle.case_id;
   window._pvpLastRounds = room.battle.rounds;
-  // полный сброс «хвостов» прошлого батла
   $("#pvpc0").classList.remove("win");
   $("#pvpc1").classList.remove("win");
   $("#pstrip0").innerHTML = "";
@@ -2093,7 +2092,7 @@ document.addEventListener("visibilitychange", () => {
     const angle = (360/N)*i; img.style.transform = `rotate(${angle}deg) translateY(-82px) rotate(${-angle}deg)`;
     orbit.appendChild(img); shards.push(img);
   }
-  const allImgs = [BG_IMAGE_URL, CHEST_IMAGES.recruit, CHEST_IMAGES.guardian, CHEST_IMAGES.knight, CHEST_IMAGES.immortal, CHEST_IMAGES.gift, CHEST_URL, BEAR_IMG];
+  const allImgs = [BG_IMAGE_URL, CHEST_IMAGES.recruit, CHEST_IMAGES.guardian, CHEST_IMAGES.knight, CHEST_IMAGES.immortal, CHEST_IMAGES.gift, CHEST_URL, BEAR_IMG, "https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg"];
   ITEMS.forEach(it => allImgs.push(CDN + it.id + ".png"));
   ITEMS.forEach(it => { if(it.alts) it.alts.forEach(a => allImgs.push(CDN + a)); });
   ACHIEVEMENTS.forEach(a => { if(a.img && a.img !== SHARD_URL) allImgs.push(a.img); });
