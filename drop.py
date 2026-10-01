@@ -279,6 +279,17 @@ async def merge_player_stats(uid, patch):
     res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
     return db_write_error(res)
 
+async def apply_balance_delta(uid, data):
+    """Дельта-слияние баланса: клиент шлёт balance + balance_base, сервер применяет разницу поверх правды."""
+    bal = data.get("balance")
+    base = data.get("balance_base")
+    if isinstance(bal, int) and isinstance(base, int):
+        delta = bal - base
+        if delta != 0:
+            _, err = await add_balance(uid, delta)
+            if err:
+                print(f"🚨 BALANCE DELTA ERROR uid={uid}: {err}")
+
 async def touch_player(user_id, username=None, first_name=None):
     row = {"user_id": user_id, "last_seen": now_iso()}
     if username and username.strip():
@@ -1113,6 +1124,8 @@ async def handle_sync(request):
         try:
             data = json.loads(stats_raw)
             filtered = {k: v for k, v in data.items() if k in ALLOWED_PUSH_FIELDS}
+            filtered.pop("balance", None)
+            await apply_balance_delta(uid, data)
             await merge_player_stats(uid, filtered)
         except Exception:
             pass
@@ -1246,6 +1259,8 @@ async def handle_push_stats(request):
         try:
             data = json.loads(raw)
             filtered = {k: v for k, v in data.items() if k in ALLOWED_PUSH_FIELDS}
+            filtered.pop("balance", None)
+            await apply_balance_delta(uid, data)
             await merge_player_stats(uid, filtered)
         except Exception:
             pass
@@ -1547,7 +1562,6 @@ async def handle_pvp(request):
         if case_id not in CHEST_DEFS or rounds not in PVP_ROUND_OPTS:
             return json_resp({"error": "bad params"}, 400)
         stake = CHEST_DEFS[case_id][3] * rounds
-        # защита от дублей (мульти-тап): возвращаем существующий waiting-батл
         my_seats = await db.select("pvp_players", f"?user_id=eq.{uid}&seat=eq.0")
         for ms in my_seats:
             bs = await db.select("pvp_battles", f"?code=eq.{ms['battle_code']}&status=eq.waiting")
