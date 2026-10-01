@@ -793,7 +793,7 @@ function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achiev
 
 const LKEY = "dotaDrop_save_v2";
 const FKEY = "dotaDrop_seenFakes";
-function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"", frozen:false } }
+function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"", frozen:false, lastServerBalance:null } }
 let S = defaultState();
 function loadLocal(){
   try{
@@ -803,6 +803,7 @@ function loadLocal(){
     if(!S.achievements) S.achievements = [];
     if(!S.name) S.name = ""; if(!S.avatar) S.avatar = ""; if(!S.freeRecruitDate) S.freeRecruitDate = "";
     if(S.frozen === undefined) S.frozen = false;
+    if(S.lastServerBalance == null) S.lastServerBalance = S.coins;
   }catch(e){}
   localStorage.removeItem("dotaDrop_save");
 }
@@ -810,6 +811,10 @@ function save(){ S.ts = Date.now(); try{ localStorage.setItem(LKEY, JSON.stringi
 const today = () => new Date().toISOString().slice(0,10);
 const yesterday = () => new Date(Date.now()-864e5).toISOString().slice(0,10);
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; $("#toasts").appendChild(t); setTimeout(()=>t.remove(),2600); }
+// Принятие баланса с сервера: запоминаем базу для дельт
+function adoptBalance(v){
+  if(typeof v === "number"){ S.coins = v; S.lastServerBalance = v; save(); balance(); }
+}
 function balance(){ $("#balance").textContent = fmt(S.coins + (TROLL.fakeAdd || 0)); if(typeof pvpRenderSums === "function"){ try{ pvpRenderSums(); }catch(e){} } }
 function addInv(id,n=1){ S.inv[id]=(S.inv[id]||0)+n; save(); }
 function takeInv(id,n=1){ if((S.inv[id]||0)<n) return false; S.inv[id]-=n; if(!S.inv[id]) delete S.inv[id]; save(); return true; }
@@ -869,7 +874,7 @@ function pushProfile(){
     const uid = tgUserId(); if(!uid) return;
     const stats = JSON.stringify({
       casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent,
-      balance: S.coins, inventory: S.inv,
+      balance: S.coins, balance_base: S.lastServerBalance, inventory: S.inv,
       name: S.name, achievements: S.achievements
     });
     fetch(`${API_URL}/push_stats?user_id=${uid}&stats=${encodeURIComponent(stats)}`).catch(()=>{});
@@ -1049,13 +1054,14 @@ function renderChests(){
   }).join(""); 
 }
 
-let spinning = false; const CELL = 104; let curChest = null;
+let spinning = false; let spinSeq = 0; const CELL = 104; let curChest = null;
 
 window.openCaseView = function(id){
   if(checkFrozen()) return;
   if(id === "gift_case") id = "gift";
   const ch = CHESTS.find(c=>c.id===id);
   if(!ch){ toast("Кейс не найден"); return; }
+  spinSeq++; spinning = false;   // убиваем любой зомби-спин прошлого кейса
   curChest = ch;
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
@@ -1085,6 +1091,11 @@ window.openCaseView = function(id){
 };
 
 $("#cvOpen").onclick = () => startSpin();
+$("#cvClose").onclick = () => {
+  if(spinning) return toast("Дождись окончания крутки");
+  spinSeq++;   // убиваем зависший спин в фазе запроса
+  $("#caseView").hidden = true;
+};
 
 function tickLoop(state){ 
   if(!state.running) return;
@@ -1126,6 +1137,22 @@ function rollMulticast(chestId){
   return 4;
 }
 
+function setOpenBtnIdle(){
+  const ch = curChest; if(!ch) return;
+  const free = (ch.id === "recruit" && isRecruitFree()) || (!ch.isGift && eventFree());
+  const b = $("#cvOpen");
+  b.style.display = "";
+  b.disabled = false;
+  if(ch.isGift){
+    const hasCase = (S.inv["gift_case"]||0) > 0;
+    b.textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ⭐";
+    b.className = hasCase ? "btn pur big" : "btn grn big";
+  } else {
+    b.textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
+    b.className = free ? "btn grn big" : "btn pur big";
+  }
+}
+
 async function startSpin(){
   if(checkFrozen()) return;
   const ch = curChest; if(!ch || spinning) return;
@@ -1165,18 +1192,12 @@ async function startSpin(){
     return;
   }
 
-  const recruitFree = ch.id === "recruit" && isRecruitFree();
-  const evFree = eventFree();
-  if (!recruitFree && !evFree && S.coins < ch.price){ showNoCoins(ch.price); return; }
-  if (recruitFree){ S.freeRecruitDate = today(); } 
-  if (!recruitFree && !evFree){ S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
-  S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
-  save(); balance();
-  
-  const pool = chestPool(ch);
-  const multi = rollMulticast(ch.id);
-  $("#cvOpen").style.display = "none";
+  const seq = ++spinSeq;
+  const openBtn = $("#cvOpen");
+  openBtn.disabled = true;
+  openBtn.textContent = "⏳ Кручу...";
 
+  // сначала серверный ролл override ДО списания, чтобы закрытие окна не съедало деньги
   let overrideItem = null;
   try{
     const dr = await fetch(`${API_URL}/game/case_drop`, {
@@ -1186,6 +1207,19 @@ async function startSpin(){
     const dj = await dr.json();
     if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
   }catch(e){}
+  if(seq !== spinSeq) return;   // окно закрыли/сменили кейс — выходим без списания
+
+  const recruitFree = ch.id === "recruit" && isRecruitFree();
+  const evFree = eventFree();
+  if (!recruitFree && !evFree && S.coins < ch.price){ setOpenBtnIdle(); showNoCoins(ch.price); return; }
+  if (recruitFree){ S.freeRecruitDate = today(); } 
+  if (!recruitFree && !evFree){ S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
+  S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
+  save(); balance();
+  
+  const pool = chestPool(ch);
+  const multi = rollMulticast(ch.id);
+  openBtn.style.display = "none";
 
   const winners = Array.from({length:multi}, (_,i)=> (i===0 && overrideItem) ? overrideItem : weightedPick(pool, ch.decay));
   let html = `<div class="multi-wrap">`;
@@ -1206,10 +1240,12 @@ async function startSpin(){
   spinning = false;
 
   const dup = TROLL.events.includes("x2_drops") ? 2 : 1;
-  const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
   results.forEach(it => { addInv(it.id, dup); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
   S.drops = S.drops.slice(-5);
-  save(); renderInv(); renderChests(); checkAchievements(); pushProfile();
+  save(); renderInv(); pushProfile();
+  if(seq !== spinSeq){ renderChests(); checkAchievements(); return; }  // докрутили в фоне: дропы применены, UI не трогаем
+  renderChests(); checkAchievements();
+  const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
   showMultiResult(results, totalCost, multi, dup);
 }
 
@@ -1264,20 +1300,10 @@ window.resultKeep = () => { pushProfile(); backToIdle(); };
 window.resultAgain = () => startSpin();
 function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
+  setOpenBtnIdle();
   const free = (curChest.id === "recruit" && isRecruitFree()) || (!curChest.isGift && eventFree());
-  $("#cvOpen").style.display = "";
-  $("#cvOpen").disabled = false;
-  if(curChest.isGift){
-    const hasCase = (S.inv["gift_case"]||0) > 0;
-    $("#cvOpen").textContent = hasCase ? "ОТКРЫТЬ" : "КУПИТЬ ЗА 25 ⭐";
-    $("#cvOpen").className = hasCase ? "btn pur big" : "btn grn big";
-  } else {
-    $("#cvOpen").textContent = free ? "ОТКРЫТЬ БЕСПЛАТНО" : "ОТКРЫТЬ";
-    $("#cvOpen").className = free ? "btn grn big" : "btn pur big";
-  }
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${fmt(curChest.price)} ${curChest.isGift ? '⭐' : SHARD}`;
 }
-$("#cvClose").onclick = () => { if(spinning) return toast("Дождись окончания крутки"); $("#caseView").hidden = true; };
 
 let upOwn=null, upTarget=null;
 (function(){ let h=""; for(let i=0;i<60;i++){ const a=i*6*Math.PI/180; h+=`<line x1="${150+128*Math.sin(a)}" y1="${150-128*Math.cos(a)}" x2="${150+140*Math.sin(a)}" y2="${150-140*Math.cos(a)}" stroke="#2c4634" stroke-width="2"/>`; } $("#ticks").innerHTML=h; })();
@@ -1472,7 +1498,7 @@ async function fetchProfile(){
   try {
     const r = await fetch(`${API_URL}/game/profile?user_id=${uid}`);
     const j = await r.json();
-    if(j.balance !== undefined) S.coins = j.balance;
+    if(j.balance !== undefined) adoptBalance(j.balance);
     if(j.name !== undefined && S.name === "") S.name = j.name;
     if(j.avatar !== undefined && S.avatar === "") S.avatar = j.avatar;
     if(j.achievements !== undefined && S.achievements.length === 0) S.achievements = j.achievements;
@@ -1485,7 +1511,7 @@ async function syncWithServer(){
   const uid = tgUserId(); if(!uid) return;
   const stats = JSON.stringify({
     casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent,
-    balance: S.coins, inventory: S.inv,
+    balance: S.coins, balance_base: S.lastServerBalance, inventory: S.inv,
     name: S.name, achievements: S.achievements
   });
   try {
@@ -1508,7 +1534,7 @@ async function syncWithServer(){
     $("#banOverlay").hidden = true;
     applyServerTroll(j);
     if(j.grants && j.grants.length) showGrants(j.grants);
-    if(typeof j.server_balance === "number"){ S.coins = j.server_balance; }
+    if(typeof j.server_balance === "number"){ adoptBalance(j.server_balance); }
     save(); balance();
   } catch(e){ console.log("Sync error:", e); }
 }
@@ -1555,7 +1581,7 @@ function showGrants(grants){
     }
     else if(g.type === "reset"){ 
       hasNormalGrants = true;
-      S.coins = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; 
+      S.coins = CONFIG.startCoins; S.lastServerBalance = CONFIG.startCoins; S.inv = {}; S.stats = {casesOpened: 0, coinsSpent: 0}; 
       html += `<div class="grant-item"><div class="gi-type" style="color:var(--org)">🔄 Прогресс сброшен</div><div class="gi-amount" style="color:var(--org)">Баланс: ${fmt(CONFIG.startCoins)} осколков</div><div class="gi-amount" style="color:var(--org)">Инвентарь: очищен</div>${g.reason ? `<div class="gi-reason">${escHtml(g.reason)}</div>` : ""}</div>`; 
     }
   });
@@ -1697,7 +1723,7 @@ $("#roulSpin").onclick = async () => {
   await roulAnimate(res.position, res.teaser);
   roulSpinning = false;
 
-  if(typeof res.new_balance === "number"){ S.coins = res.new_balance; }
+  if(typeof res.new_balance === "number"){ adoptBalance(res.new_balance); }
   if(res.item_id){ addInv(res.item_id, 1); renderInv(); }
   save(); balance(); pushProfile();
 
@@ -1818,6 +1844,10 @@ function pvpShowRoom(){
   $("#pvpLobby").hidden = true;
   $("#pvpRoom").hidden = false;
 }
+function pvpResetFooter(){
+  $("#pvFooter").innerHTML = '<button class="btn ghost" id="pvLeave">Выйти</button>';
+  $("#pvLeave").onclick = pvpLeaveHandler;
+}
 $("#pvpCreate").onclick = async () => {
   if(checkFrozen()) return;
   if(pvpCreating) return;
@@ -1830,7 +1860,7 @@ $("#pvpCreate").onclick = async () => {
   try{
     const j = await apiPvp("/pvp/create", {case_id: pvpSelCase, rounds: pvpSelRounds});
     if(j.error){ toast(j.error); return; }
-    if(typeof j.new_balance === "number"){ S.coins = j.new_balance; save(); balance(); }
+    if(typeof j.new_balance === "number"){ adoptBalance(j.new_balance); }
     toast(j.reused ? "У тебя уже был открытый батл — возвращаемся в него" : "Батл создан! Ждём соперника…");
     pvpOpenRoom(j);
   }catch(e){ toast("Ошибка сети"); }
@@ -1846,7 +1876,7 @@ window.pvpJoin = async (code) => {
       if(j.error === "Ты уже в этом батле"){ return pvpReenter(code); }
       return toast(j.error);
     }
-    if(typeof j.new_balance === "number"){ S.coins = j.new_balance; save(); balance(); }
+    if(typeof j.new_balance === "number"){ adoptBalance(j.new_balance); }
     toast("Ты в батле!");
     pvpOpenRoom(j);
   }catch(e){ toast("Ошибка сети"); }
@@ -1865,6 +1895,14 @@ function pvpOpenRoom(room){
   pvpSpinning = false;
   window._pvpLastCase = room.battle.case_id;
   window._pvpLastRounds = room.battle.rounds;
+  // полный сброс «хвостов» прошлого батла
+  $("#pvpc0").classList.remove("win");
+  $("#pvpc1").classList.remove("win");
+  $("#pstrip0").innerHTML = "";
+  $("#pstrip0").style.transform = "translateX(0)";
+  $("#pstrip1").innerHTML = "";
+  $("#pstrip1").style.transform = "translateX(0)";
+  pvpResetFooter();
   pvpShowRoom();
   pvpRenderRoom(room);
   pvpRenderLog(room.rounds);
@@ -1900,7 +1938,7 @@ function pvpRenderRoom(room){
       $("#pvpc"+i).classList.add("waiting-pulse");
     }
   }
-  if(typeof room.balance === "number"){ S.coins = room.balance; save(); balance(); }
+  if(typeof room.balance === "number"){ adoptBalance(room.balance); }
 }
 function pvpRenderLog(rounds){
   const box = $("#pvLog");
@@ -1992,7 +2030,7 @@ function pvpFinish(room){
   if(b.winner_uid == null){ title = "🤝 Ничья: взносы возвращены"; cls = ""; }
   else if(b.winner_uid === myUid){ title = `🏆 Банк твой: +${fmt(b.prize)}`; cls = "me"; }
   else { const wp = players.find(p=>p.user_id===b.winner_uid); title = `😔 Банк у ${escHtml(wp ? wp.name : "соперника")}`; cls = "opp"; }
-  if(typeof room.balance === "number"){ S.coins = room.balance; save(); balance(); }
+  if(typeof room.balance === "number"){ adoptBalance(room.balance); }
   $("#pvFooter").innerHTML = `
     <div class="win-banner ${cls}">${title}</div>
     <div class="hint" style="margin-bottom:12px">${fmt(s0)} : ${fmt(s1)} · банк ${fmt(b.stake*2)}</div>
@@ -2010,14 +2048,15 @@ window.pvpRematch = async () => {
   if($("#pvpCreate").disabled) return toast("Не хватает осколков на реванш");
   $("#pvpCreate").click();
 };
-$("#pvLeave").onclick = async () => {
+async function pvpLeaveHandler(){
   if(!pvpCode) return;
   if(!confirm("Выйти из батла? В активном батле выход = поражение.")) return;
   const j = await apiPvp("/pvp/leave", {code: pvpCode});
-  if(j && j.refunded){ S.coins = j.new_balance; save(); balance(); toast(`Взнос возвращён: ${fmt(j.refunded)}`); }
+  if(j && j.refunded){ adoptBalance(j.new_balance); toast(`Взнос возвращён: ${fmt(j.refunded)}`); }
   if(j && j.forfeit){ toast("Ты сдался. Банк у соперника."); }
   pvpShowLobby();
-};
+}
+$("#pvLeave").onclick = pvpLeaveHandler;
 $("#pvpRefresh").onclick = async () => {
   const btn = $("#pvpRefresh");
   btn.disabled = true;
