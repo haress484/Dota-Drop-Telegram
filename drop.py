@@ -45,25 +45,25 @@ SNIPER_ENABLED = True
 SNIPER_INTERVAL = 15
 SNIPER_MANUAL_COOLDOWN = 5
 
-# НОВЫЕ ПАКИ: прогрессивная выгода, без бейджей
+# НОВЫЕ ПАКИ: прогрессивная выгода
 PACKS = {1: 150, 5: 1000, 10: 2500, 25: 7500, 50: 20000}
 
-# РУЛЕТКА: конфиг
+# РУЛЕТКА
 ROULETTE_POSITIONS = [
-    {"id": "x2",       "weight": 20},
-    {"id": "x05",      "weight": 25},
-    {"id": "lose",     "weight": 32},
+    {"id": "x2", "weight": 20},
+    {"id": "x05", "weight": 25},
+    {"id": "lose", "weight": 32},
     {"id": "immortal", "weight": 3},
     {"id": "guardian", "weight": 20},
-    {"id": "bear",     "weight": 0},   # мишка-приманка, никогда не выпадает
+    {"id": "bear", "weight": 0},
 ]
-ROULETTE_PRICES = [1000, 1500, 2250, 3400, 5000]   # прогрессия за день
+ROULETTE_PRICES = [1000, 1500, 2250, 3400, 5000]
 ROULETTE_DAILY_LIMIT = 5
-ROULETTE_STARS_PRICE = 15      # ⭐ за крут сверх лимита (фикс, не растёт)
-ROULETTE_STAR_STAKE = 5000     # эквивалент ставки в осколках для x2/x0.5 при круте за ⭐
-TEASER_CHANCE = 0.30           # доля проигрышей с тизером мишки
+ROULETTE_STARS_PRICE = 15
+ROULETTE_STAR_STAKE = 5000
+TEASER_CHANCE = 0.30
 
-# PVP: конфиг
+# PVP
 PVP_COMMISSION = 0.05
 PVP_ROUND_OPTS = (1, 3, 5)
 PVP_WAIT_TIMEOUT_MIN = 5
@@ -91,53 +91,53 @@ def now_iso():
 
 # ================= КАТАЛОГ ПРЕДМЕТОВ (СЕРВЕР) =================
 SERVER_ITEMS = [
- ("royale_with_cheese",2),("tango_single",30),("blood_grenade",50),("courier",50),("smoke_of_deceit",50),("ward_dispenser",50),
- ("ward_sentry",50),("branches",55),("clarity",60),("enchanted_mango",65),("faerie_fire",65),("tome_of_knowledge",75),
- ("dust",80),("tango",90),("flask",100),("flying_courier",100),("quelling_blade",100),("stout_shield",100),
- ("tpscroll",100),("gauntlets",140),("mantle",140),("slippers",140),("circlet",155),("ring_of_protection",175),
- ("ring_of_regen",175),("sobi_mask",175),("magic_stick",200),("infused_raindrop",225),("wind_lace",225),("fluffy_hat",250),
- ("wizard_hat",250),("blight_stone",300),("orb_of_frost",300),("orb_of_venom",350),("buckler",425),("headdress",425),
- ("ring_of_basilius",425),("belt_of_strength",450),("blades_of_attack",450),("boots_of_elves",450),("crown",450),("gloves",450),
- ("robe",450),("shawl",450),("magic_wand",460),("boots",500),("chainmail",500),("bracer",505),("null_talisman",505),
- ("wraith_band",505),("voodoo_mask",650),("bottle",675),("ring_of_health",700),("void_stone",700),("energy_booster",800),
- ("soul_ring",805),("urn_of_shadows",825),("quarterstaff",875),("chasm_stone",900),("cloak",900),("gem",900),("javelin",900),
- ("lifesteal",900),("shadow_amulet",900),("tranquil_boots",900),("splintmail",950),("helm_of_iron_will",975),
- ("blade_of_alacrity",1000),("blitz_knuckles",1000),("broadsword",1000),("cheese",1000),("diadem",1000),("ogre_axe",1000),
- ("pocket_roshan",1000),("refresher_shard",1000),("staff_of_wizardry",1000),("vitality_booster",1000),("orb_of_corrosion",1050),
- ("falcon_blade",1125),("cornucopia",1200),("point_booster",1200),("talisman_of_evasion",1300),("claymore",1350),("pavise",1350),
- ("aghanims_shard",1400),("pers",1400),("platemail",1400),("power_treads",1400),("phase_boots",1450),("arcane_boots",1500),
- ("ghost",1500),("mithril_hammer",1600),("drum",1625),("oblivion_staff",1625),("ring_of_tarrasque",1700),("tiara_of_selemene",1700),
- ("vanguard",1700),("veil_of_discord",1700),("essence_distiller",1775),("mekansm",1775),("dragon_lance",1900),("mask_of_madness",1900),
- ("hyperstone",2000),("crystalys",2000),("necronomicon",2050),("kaya",2100),("sange",2100),("yasha",2100),("glimmer_cape",2150),
- ("demon_edge",2200),("force_staff",2200),("hand_of_midas",2200),("vladmir",2200),("blink",2250),("holy_locket",2250),
- ("rod_of_atos",2250),("aether_lens",2275),("blade_mail",2400),("armlet",2500),("diffusal_blade",2500),("travel_boots",2500),
- ("helm_of_the_dominator",2550),("specialists_array",2550),("solar_crest",2575),("consecrated_wraps",2600),("cyclone",2600),
- ("phylactery",2600),("echo_sabre",2700),("spirit_vessel",2725),("witch_blade",2775),("eagle",2800),("mystic_staff",2800),
- ("reaver",2800),("ultimate_orb",2800),("meteor_hammer",2850),("basher",2875),("maelstrom",2950),("aeon_disk",3000),
- ("dagon",3000),("soul_booster",3000),("mage_slayer",3100),("invis_sword",3250),("orchid",3275),("necronomicon_2",3300),
- ("revenants_brooch",3300),("heavens_halberd",3400),("relic",3400),("desolator",3500),("crimson_guard",3725),("pipe",3725),
- ("wraith_pact",3800),("lotus_orb",3850),("bfury",3900),("eternal_shroud",3900),("moon_shard",4000),("black_king_bar",4050),
- ("dagon_2",4100),("kaya_and_sange",4200),("sange_and_yasha",4200),("ultimate_scepter",4200),("yasha_and_kaya",4200),
- ("boots_of_bearing",4225),("nullifier",4350),("guardian_greaves",4450),("hurricane_pike",4450),("shivas",4500),
- ("travel_boots_2",4500),("necronomicon_3",4550),("gungir",4650),("manta",4650),("bloodstone",4700),("harpoon",4700),
- ("radiance",4700),("crellas_crozier",4800),("sphere",4800),("octarine_core",4900),("monkey_king_bar",5000),("refresher",5000),
- ("satanic",5050),("daedalus",5100),("assault",5125),("dagon_3",5200),("ethereal_blade",5200),("heart",5200),
- ("scythe_of_vyse",5200),("butterfly",5450),("mjollnir",5500),("angels_demise",5600),("casters_rapier",5600),("rapier",5600),
- ("helm_of_the_overlord",5650),("silver_edge",5700),("ultimate_scepter_2",5800),("hydras_breath",5900),("skadi",5900),
- ("devastator",5975),("disperser",6100),("abyssal_blade",6250),("dagon_4",6300),("trident",6301),("bloodthorn",6400),
- ("arcane_blink",6800),("overwhelming_blink",6800),("swift_blink",6800),("wind_waker",6800),("dagon_5",7400),
+    ("royale_with_cheese", 2), ("tango_single", 30), ("blood_grenade", 50), ("courier", 50), ("smoke_of_deceit", 50), ("ward_dispenser", 50),
+    ("ward_sentry", 50), ("branches", 55), ("clarity", 60), ("enchanted_mango", 65), ("faerie_fire", 65), ("tome_of_knowledge", 75),
+    ("dust", 80), ("tango", 90), ("flask", 100), ("flying_courier", 100), ("quelling_blade", 100), ("stout_shield", 100),
+    ("tpscroll", 100), ("gauntlets", 140), ("mantle", 140), ("slippers", 140), ("circlet", 155), ("ring_of_protection", 175),
+    ("ring_of_regen", 175), ("sobi_mask", 175), ("magic_stick", 200), ("infused_raindrop", 225), ("wind_lace", 225), ("fluffy_hat", 250),
+    ("wizard_hat", 250), ("blight_stone", 300), ("orb_of_frost", 300), ("orb_of_venom", 350), ("buckler", 425), ("headdress", 425),
+    ("ring_of_basilius", 425), ("belt_of_strength", 450), ("blades_of_attack", 450), ("boots_of_elves", 450), ("crown", 450), ("gloves", 450),
+    ("robe", 450), ("shawl", 450), ("magic_wand", 460), ("boots", 500), ("chainmail", 500), ("bracer", 505), ("null_talisman", 505),
+    ("wraith_band", 505), ("voodoo_mask", 650), ("bottle", 675), ("ring_of_health", 700), ("void_stone", 700), ("energy_booster", 800),
+    ("soul_ring", 805), ("urn_of_shadows", 825), ("quarterstaff", 875), ("chasm_stone", 900), ("cloak", 900), ("gem", 900), ("javelin", 900),
+    ("lifesteal", 900), ("shadow_amulet", 900), ("tranquil_boots", 900), ("splintmail", 950), ("helm_of_iron_will", 975),
+    ("blade_of_alacrity", 1000), ("blitz_knuckles", 1000), ("broadsword", 1000), ("cheese", 1000), ("diadem", 1000), ("ogre_axe", 1000),
+    ("pocket_roshan", 1000), ("refresher_shard", 1000), ("staff_of_wizardry", 1000), ("vitality_booster", 1000), ("orb_of_corrosion", 1050),
+    ("falcon_blade", 1125), ("cornucopia", 1200), ("point_booster", 1200), ("talisman_of_evasion", 1300), ("claymore", 1350), ("pavise", 1350),
+    ("aghanims_shard", 1400), ("pers", 1400), ("platemail", 1400), ("power_treads", 1400), ("phase_boots", 1450), ("arcane_boots", 1500),
+    ("ghost", 1500), ("mithril_hammer", 1600), ("drum", 1625), ("oblivion_staff", 1625), ("ring_of_tarrasque", 1700), ("tiara_of_selemene", 1700),
+    ("vanguard", 1700), ("veil_of_discord", 1700), ("essence_distiller", 1775), ("mekansm", 1775), ("dragon_lance", 1900), ("mask_of_madness", 1900),
+    ("hyperstone", 2000), ("crystalys", 2000), ("necronomicon", 2050), ("kaya", 2100), ("sange", 2100), ("yasha", 2100), ("glimmer_cape", 2150),
+    ("demon_edge", 2200), ("force_staff", 2200), ("hand_of_midas", 2200), ("vladmir", 2200), ("blink", 2250), ("holy_locket", 2250),
+    ("rod_of_atos", 2250), ("aether_lens", 2275), ("blade_mail", 2400), ("armlet", 2500), ("diffusal_blade", 2500), ("travel_boots", 2500),
+    ("helm_of_the_dominator", 2550), ("specialists_array", 2550), ("solar_crest", 2575), ("consecrated_wraps", 2600), ("cyclone", 2600),
+    ("phylactery", 2600), ("echo_sabre", 2700), ("spirit_vessel", 2725), ("witch_blade", 2775), ("eagle", 2800), ("mystic_staff", 2800),
+    ("reaver", 2800), ("ultimate_orb", 2800), ("meteor_hammer", 2850), ("basher", 2875), ("maelstrom", 2950), ("aeon_disk", 3000),
+    ("dagon", 3000), ("soul_booster", 3000), ("mage_slayer", 3100), ("invis_sword", 3250), ("orchid", 3275), ("necronomicon_2", 3300),
+    ("revenants_brooch", 3300), ("heavens_halberd", 3400), ("relic", 3400), ("desolator", 3500), ("crimson_guard", 3725), ("pipe", 3725),
+    ("wraith_pact", 3800), ("lotus_orb", 3850), ("bfury", 3900), ("eternal_shroud", 3900), ("moon_shard", 4000), ("black_king_bar", 4050),
+    ("dagon_2", 4100), ("kaya_and_sange", 4200), ("sange_and_yasha", 4200), ("ultimate_scepter", 4200), ("yasha_and_kaya", 4200),
+    ("boots_of_bearing", 4225), ("nullifier", 4350), ("guardian_greaves", 4450), ("hurricane_pike", 4450), ("shivas", 4500),
+    ("travel_boots_2", 4500), ("necronomicon_3", 4550), ("gungir", 4650), ("manta", 4650), ("bloodstone", 4700), ("harpoon", 4700),
+    ("radiance", 4700), ("crellas_crozier", 4800), ("sphere", 4800), ("octarine_core", 4900), ("monkey_king_bar", 5000), ("refresher", 5000),
+    ("satanic", 5050), ("daedalus", 5100), ("assault", 5125), ("dagon_3", 5200), ("ethereal_blade", 5200), ("heart", 5200),
+    ("scythe_of_vyse", 5200), ("butterfly", 5450), ("mjollnir", 5500), ("angels_demise", 5600), ("casters_rapier", 5600), ("rapier", 5600),
+    ("helm_of_the_overlord", 5650), ("silver_edge", 5700), ("ultimate_scepter_2", 5800), ("hydras_breath", 5900), ("skadi", 5900),
+    ("devastator", 5975), ("disperser", 6100), ("abyssal_blade", 6250), ("dagon_4", 6300), ("trident", 6301), ("bloodthorn", 6400),
+    ("arcane_blink", 6800), ("overwhelming_blink", 6800), ("swift_blink", 6800), ("wind_waker", 6800), ("dagon_5", 7400),
 ]
-ITEM_COST = dict(SERVER_ITEMS)
-# кейс: (min, max, decay, цена)
 CHEST_DEFS = {
-    "recruit":  (0,    1000,   .97, 500),
-    "guardian": (1000, 2500,   .95, 1700),
-    "knight":   (2500, 4500,   .94, 3600),
-    "immortal": (4500, 10**9,  .93, 5000),
+    "recruit": (0, 1000, 0.97, 500),
+    "guardian": (1000, 2500, 0.95, 1700),
+    "knight": (2500, 4500, 0.94, 3600),
+    "immortal": (4500, 10 ** 9, 0.93, 5000),
 }
+
 def chest_pool(case_id):
     mn, mx, decay, price = CHEST_DEFS[case_id]
     return sorted([(i, c) for i, c in SERVER_ITEMS if mn < c <= mx], key=lambda x: x[1])
+
 def weighted_pick(pool, decay):
     w = [decay ** i for i in range(len(pool))]
     r = random.uniform(0, sum(w))
@@ -151,10 +151,10 @@ def weighted_pick(pool, decay):
 GIFT_CATALOG = {
     "gift_heart": {"id": "5170145012310081615", "price": 15, "name": "💝 Сердечко"},
     "gift_teddy": {"id": "5170233102089322756", "price": 15, "name": "🧸 Мишка"},
-    "gift_box":   {"id": "5170250947678437525", "price": 25, "name": "🎁 Подарок"},
-    "gift_rose":  {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
-    "gift_cake":  {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
-    "gift_bouquet":{"id": "5170314324215857265", "price": 50, "name": "💐 Букет"}
+    "gift_box": {"id": "5170250947678437525", "price": 25, "name": "🎁 Подарок"},
+    "gift_rose": {"id": "5168103777563050263", "price": 25, "name": "🌹 Роза"},
+    "gift_cake": {"id": "5170144170496491616", "price": 50, "name": "🎂 Торт"},
+    "gift_bouquet": {"id": "5170314324215857265", "price": 50, "name": "💐 Букет"},
 }
 
 class GiftSendStates(StatesGroup):
@@ -174,7 +174,7 @@ class DB:
             "apikey": SUPABASE_KEY,
             "Authorization": "Bearer " + SUPABASE_KEY,
             "Content-Type": "application/json",
-            "Prefer": "return=representation"
+            "Prefer": "return=representation",
         }
 
     async def _req(self, method, path, data=None):
@@ -227,7 +227,6 @@ class DB:
 db = DB()
 
 def db_write_error(res):
-    """None = запись прошла. Иначе текст ошибки Supabase."""
     if res is None:
         return "пустой ответ Supabase"
     if isinstance(res, list):
@@ -236,7 +235,7 @@ def db_write_error(res):
         return res.get("message") or res.get("error") or res.get("hint") or str(res)
     return str(res)
 
-# ================= БАЛАНС: СЕРВЕР КАК ИСТОЧНИК ПРАВДЫ =================
+# ================= БАЛАНС: СЕРВЕР = ИСТОЧНИК ПРАВДЫ =================
 async def get_stats(uid):
     rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
     if not rows:
@@ -250,11 +249,10 @@ async def get_balance(uid):
     return int(st.get("balance", 0) or 0)
 
 async def add_balance(uid, delta):
-    """Мгновенно меняет баланс на сервере. Возвращает (new_balance, error)."""
     rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
     if not rows:
         return None, "игрок не найден"
-    cur = (rows[0].get("stats") or {})
+    cur = rows[0].get("stats") or {}
     new = max(0, int(cur.get("balance", 0) or 0) + delta)
     cur["balance"] = new
     res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
@@ -319,7 +317,7 @@ async def stars_delta_ok(stars):
         print(f"🚨 FRAUD: баланс {real}, ожидалось >= {cache + stars} (платёж {stars})")
     return ok
 
-# ================= КРЕДИТЫ РУЛЕТКИ (за звёзды) =================
+# ================= КРЕДИТЫ РУЛЕТКИ =================
 async def get_roulette_credits(uid):
     rows = await db.select("meta", "?key=eq.roulette_credits")
     if not rows:
@@ -341,7 +339,7 @@ async def add_roulette_credits(uid, delta):
     await db.upsert("meta", [{"key": "roulette_credits", "value": json.dumps(data)}])
     return data[str(uid)]
 
-# ================= ТРОЛЛИНГ / СОБЫТИЯ: ХЕЛПЕРЫ =================
+# ================= ТРОЛЛИНГ / СОБЫТИЯ =================
 async def get_active_events():
     now = now_iso()
     rows = await db.select("scheduled_events", f"?active=eq.true&starts_at=lte.{now}&ends_at=gte.{now}")
@@ -386,7 +384,7 @@ async def log_player_action(user_id, action, details=None):
         await db.insert("player_action_log", [{
             "user_id": user_id,
             "action": action,
-            "details": details or {}
+            "details": details or {},
         }])
     except Exception as e:
         print(f"Log error: {e}")
@@ -405,7 +403,7 @@ def play_kb(user_id):
 
 SUB_KB = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/the_kubicki")],
-    [InlineKeyboardButton(text="✅ Я подписался, проверить", callback_data="check_sub")]
+    [InlineKeyboardButton(text="✅ Я подписался, проверить", callback_data="check_sub")],
 ])
 
 async def check_sub(user_id):
@@ -442,7 +440,6 @@ async def cmd_start(message: Message, state: FSMContext):
         await touch_player(uid, message.from_user.username, message.from_user.first_name)
     except Exception as e:
         print("start: touch_player ошибка:", e)
-
     if not await check_sub(uid):
         sent = await message.answer(
             "👋 Привет! Чтобы получить доступ к боту, подпишись на канал:\n\n"
@@ -458,7 +455,6 @@ async def cmd_start(message: Message, state: FSMContext):
     except Exception as e:
         print("start: ошибка сохранения stats:", e)
 
-# выдача ВСЕХ предметов игры (только владелец)
 @dp.message(Command("allitem"))
 async def cmd_allitem(message: Message):
     if message.from_user.id != OWNER_ID:
@@ -472,7 +468,7 @@ async def cmd_allitem(message: Message):
         "user_id": target,
         "type": "all_items",
         "amount": 0,
-        "reason": "Команда /allitem"
+        "reason": "Команда /allitem",
     }])
     await log_player_action(target, "admin_all_items", {"by": OWNER_ID})
     if target == message.from_user.id:
@@ -491,7 +487,7 @@ async def cb_check_sub(cb: CallbackQuery):
     else:
         await cb.answer("⚠️ Ты всё ещё не подписан!", show_alert=True)
 
-# ================= INLINE-РЕЖИМ =================
+# ================= INLINE =================
 @dp.inline_query()
 async def handle_inline(iq: InlineQuery):
     if iq.from_user.id != OWNER_ID:
@@ -503,8 +499,7 @@ async def handle_inline(iq: InlineQuery):
             id="hint",
             title="Введи число звёзд",
             description="Например: 25 — карточка спонсорства бота",
-            input_message_content=InputTextMessageContent(
-                message_text="💎 Спонсорство Dota Drop: напиши @бот и число звёзд"),
+            input_message_content=InputTextMessageContent(message_text="💎 Спонсорство Dota Drop: напиши @бот и число звёзд"),
         )
         await iq.answer([hint], cache_time=0, is_personal=True)
         return
@@ -514,8 +509,7 @@ async def handle_inline(iq: InlineQuery):
             id="hint_range",
             title=f"Число от 1 до {INLINE_MAX_STARS}",
             description="Столько звёзд сможет внести спонсор",
-            input_message_content=InputTextMessageContent(
-                message_text="💎 Введи число звёзд от 1 до 10000"),
+            input_message_content=InputTextMessageContent(message_text="💎 Введи число звёзд от 1 до 10000"),
         )
         await iq.answer([hint], cache_time=0, is_personal=True)
         return
@@ -542,15 +536,13 @@ async def handle_inline(iq: InlineQuery):
     )
     await iq.answer([result], cache_time=0, is_personal=True)
 
-# ================= ОТПРАВКА ПОДАРКА ЧЕРЕЗ БОТА (FSM) =================
+# ================= ПОДАРОК (FSM) =================
 @dp.callback_query(F.data == "admin_gift")
 async def cb_admin_gift(cb: CallbackQuery, state: FSMContext):
     if cb.from_user.id != OWNER_ID:
         await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
-    await cb.message.edit_text(
-        "🎁 <b>Отправка подарка</b>\n\nВведите <b>ID пользователя</b> (число):",
-        parse_mode="HTML")
+    await cb.message.edit_text("🎁 <b>Отправка подарка</b>\n\nВведите <b>ID пользователя</b> (число):", parse_mode="HTML")
     await state.set_state(GiftSendStates.waiting_user_id)
     await cb.answer()
 
@@ -649,9 +641,7 @@ async def bc_all(cb: CallbackQuery, state: FSMContext):
     if cb.from_user.id != OWNER_ID:
         return
     await state.update_data(target="all")
-    await cb.message.answer(
-        "👥 Отправлю ВСЕМ игрокам.\n\nТеперь пришли сообщение для рассылки "
-        "(текст, фото, файл, видео, стикер) — скопирую как есть.")
+    await cb.message.answer("👥 Отправлю ВСЕМ игрокам.\n\nТеперь пришли сообщение для рассылки (текст, фото, файл, видео, стикер) — скопирую как есть.")
     await state.set_state(BroadcastStates.waiting_content)
     await cb.answer()
 
@@ -676,9 +666,7 @@ async def bc_uid(message: Message, state: FSMContext):
         await message.answer("❌ Неверный ID. Введите число:")
         return
     await state.update_data(target_uid=uid)
-    await message.answer(
-        f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки "
-        f"(текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
+    await message.answer(f"👤 Получатель: <code>{uid}</code>\n\nТеперь пришли сообщение для отправки (текст, фото, файл, видео, стикер) — скопирую как есть.", parse_mode="HTML")
     await state.set_state(BroadcastStates.waiting_content)
 
 @dp.message(BroadcastStates.waiting_content)
@@ -782,12 +770,10 @@ async def sniper_scan_once():
             if gid not in alive:
                 chat_id, msg_id = SNIPER_STATE["msg_ids"][gid]
                 try:
-                    await bot.edit_message_caption("😔 Раскупили без нас — остаток 0.",
-                                                   chat_id=chat_id, message_id=msg_id)
+                    await bot.edit_message_caption("😔 Раскупили без нас — остаток 0.", chat_id=chat_id, message_id=msg_id)
                 except Exception:
                     try:
-                        await bot.edit_message_text("😔 Раскупили без нас — остаток 0.",
-                                                      chat_id=chat_id, message_id=msg_id)
+                        await bot.edit_message_text("😔 Раскупили без нас — остаток 0.", chat_id=chat_id, message_id=msg_id)
                     except Exception:
                         pass
                 del SNIPER_STATE["msg_ids"][gid]
@@ -819,8 +805,7 @@ async def cb_sniper_scan(cb: CallbackQuery):
     status = await cb.message.answer("🎯 Принудительное сканирование запущено...")
     try:
         new_found, total = await sniper_scan_once()
-        await status.edit_text(
-            f"🎯 Сканирование завершено\n🔥 Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
+        await status.edit_text(f"🎯 Сканирование завершено\n🔥 Новых лимиток: {new_found}\n📦 Лимиток в каталоге: {total}")
     except Exception as e:
         await status.edit_text(f"❌ Ошибка сканирования: {e}")
 
@@ -905,7 +890,6 @@ async def on_payment(message: Message):
     payload = p.invoice_payload or ""
     user_id = message.from_user.id
 
-    # кредиты рулетки за звёзды
     if payload.startswith("roulette_cred_"):
         await add_roulette_credits(user_id, 1)
         await message.answer(f"✅ Оплачено! Получен 1 кредит рулетки ({ROULETTE_STARS_PRICE}⭐). Крути сверх лимита!")
@@ -956,7 +940,7 @@ async def on_payment(message: Message):
             await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": 0}])
             await db.insert("grants", [{
                 "user_id": user_id, "type": "item", "item_id": "gift_case",
-                "amount": 1, "reason": "Покупка подарочного кейса"
+                "amount": 1, "reason": "Покупка подарочного кейса",
             }])
             await message.answer("🎁 Оплата подтверждена! Подарочный кейс начислен.")
         except Exception as e:
@@ -970,14 +954,13 @@ async def on_payment(message: Message):
             return
         coins = PACKS.get(stars, stars * 150)
         await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": coins}])
-        # МГНОВЕННОЕ зачисление: баланс пишем сервером сразу
         new_bal, err = await add_balance(user_id, coins)
-        await db.insert("grants", [{
-            "user_id": user_id, "type": "coins", "amount": coins,
-            "reason": "Покупка осколков", "pre_applied": True
-        }])
         if err:
             print(f"🚨 TOPUP BALANCE ERROR: {err}")
+        await db.insert("grants", [{
+            "user_id": user_id, "type": "coins", "amount": coins,
+            "reason": "Покупка осколков", "pre_applied": True,
+        }])
         await message.answer(f"✅ Оплата {stars} ⭐ подтверждена! +{coins} осколков уже на балансе.")
         return
 
@@ -985,7 +968,7 @@ async def on_payment(message: Message):
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
 }
 
 @web.middleware
@@ -1102,7 +1085,7 @@ async def handle_sync(request):
         return json_resp({
             "banned": True,
             "reason": banned[0].get("reason"),
-            "ban_price": banned[0].get("ban_price", 0)
+            "ban_price": banned[0].get("ban_price", 0),
         })
     grants = await db.select("grants", f"?user_id=eq.{uid}&consumed=eq.false&order=created_at.asc")
     if grants:
@@ -1122,7 +1105,6 @@ async def handle_sync(request):
             await merge_player_stats(uid, filtered)
         except Exception:
             pass
-
     response = {"banned": False, "grants": grants}
     extras = await get_troll_extras(uid)
     if extras.get("fake_name"): response["fake_name"] = extras["fake_name"]
@@ -1135,7 +1117,6 @@ async def handle_sync(request):
     if fa: response["fake_add"] = fa
     ev = await get_active_events()
     if ev: response["events"] = ev
-    # СЕРВЕР КАК ИСТОЧНИК ПРАВДЫ ПО БАЛАНСУ
     response["server_balance"] = await get_balance(uid)
     return json_resp(response)
 
@@ -1152,8 +1133,10 @@ async def handle_game_profile(request):
     extras = await get_troll_extras(uid)
     name = stats.get("name", "")
     avatar = stats.get("avatar", "")
-    if extras.get("fake_name"): name = extras["fake_name"]
-    if extras.get("fake_avatar"): avatar = extras["fake_avatar"]
+    if extras.get("fake_name"):
+        name = extras["fake_name"]
+    if extras.get("fake_avatar"):
+        avatar = extras["fake_avatar"]
     return json_resp({
         "balance": stats.get("balance", 2000),
         "name": name,
@@ -1164,7 +1147,7 @@ async def handle_game_profile(request):
         "art_overrides": extras.get("art_overrides", {}),
         "fake_add": await get_fake_add(uid),
         "events": await get_active_events(),
-        "frozen": extras.get("frozen", False)
+        "frozen": extras.get("frozen", False),
     })
 
 async def handle_game_avatar(request):
@@ -1239,7 +1222,7 @@ async def handle_game_top100(request):
             "user_id": r["user_id"],
             "name": t.get("fake_name") or r.get("first_name") or "Игрок",
             "avatar": t.get("fake_avatar") or r.get("avatar") or "",
-            "balance": r["balance"]
+            "balance": r["balance"],
         })
     return json_resp({"top": out})
 
@@ -1371,17 +1354,18 @@ def roulette_roll_position():
     return random.choices(ROULETTE_POSITIONS, weights=weights, k=1)[0]
 
 async def roulette_apply_prize(uid, pos_id, stake):
-    """Применяет приз. Возвращает (result_dict, error)."""
     res = {"position": pos_id, "teaser": False}
     if pos_id == "x2":
         amount = stake * 2
         new_bal, err = await add_balance(uid, amount)
-        if err: return None, err
+        if err:
+            return None, err
         res.update({"amount": amount, "new_balance": new_bal})
     elif pos_id == "x05":
         amount = stake // 2
         new_bal, err = await add_balance(uid, amount)
-        if err: return None, err
+        if err:
+            return None, err
         res.update({"amount": amount, "new_balance": new_bal})
     elif pos_id == "lose":
         res["teaser"] = random.random() < TEASER_CHANCE
@@ -1390,15 +1374,15 @@ async def roulette_apply_prize(uid, pos_id, stake):
         pool = chest_pool(pos_id)
         decay = CHEST_DEFS[pos_id][2]
         item_id, item_cost = weighted_pick(pool, decay)
-        rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
-        cur = (rows[0].get("stats") if rows else None) or {}
-        inv = cur.get("inventory", {})
+        st = await get_stats(uid)
+        inv = (st or {}).get("inventory", {})
+        inv = dict(inv)
         inv[item_id] = inv.get(item_id, 0) + 1
-        cur["inventory"] = inv
         err = await merge_player_stats(uid, {"inventory": inv})
-        if err: return None, err
+        if err:
+            return None, err
         res.update({"item_id": item_id, "item_cost": item_cost, "new_balance": await get_balance(uid)})
-    else:  # bear — вес 0, сюда попасть нельзя
+    else:
         return None, "invalid position"
     return res, None
 
@@ -1421,11 +1405,11 @@ async def handle_roulette(request):
         return json_resp({
             "spins_today": n,
             "daily_limit": ROULETTE_DAILY_LIMIT,
-            "next_price": ROULETTE_PRICES[min(n, ROULETTE_DAILY_LIMIT - 1)] if n < ROULETTE_DAILY_LIMIT else None,
+            "next_price": ROULETTE_PRICES[n] if n < ROULETTE_DAILY_LIMIT else None,
             "stars_price": ROULETTE_STARS_PRICE,
             "star_credits": await get_roulette_credits(uid),
             "prices": ROULETTE_PRICES,
-            "balance": await get_balance(uid)
+            "balance": await get_balance(uid),
         })
 
     if path == "/roulette/buy_credits":
@@ -1455,16 +1439,15 @@ async def handle_roulette(request):
         pos = roulette_roll_position()
         prize, err = await roulette_apply_prize(uid, pos["id"], price)
         if err:
-            await add_balance(uid, price)  # откат
+            await add_balance(uid, price)
             return json_resp({"error": err}, 500)
         await db.insert("roulette_spins", [{
             "user_id": uid, "spin_date": today, "spin_number": n + 1,
             "position_id": pos["id"], "item_id": prize.get("item_id"),
-            "amount": prize.get("amount"), "paid_stars": False, "teaser": prize.get("teaser", False)
+            "amount": prize.get("amount"), "paid_stars": False, "teaser": prize.get("teaser", False),
         }])
         await log_player_action(uid, "roulette_spin", {"pos": pos["id"], "price": price})
-        return json_resp({"ok": True, "paid_stars": False, "price": price,
-                          "spins_today": n + 1, **prize})
+        return json_resp({"ok": True, "paid_stars": False, "price": price, "spins_today": n + 1, **prize})
 
     if path == "/roulette/spin_stars":
         credits = await get_roulette_credits(uid)
@@ -1475,12 +1458,12 @@ async def handle_roulette(request):
         pos = roulette_roll_position()
         prize, err = await roulette_apply_prize(uid, pos["id"], stake)
         if err:
-            await add_roulette_credits(uid, 1)  # откат
+            await add_roulette_credits(uid, 1)
             return json_resp({"error": err}, 500)
         await db.insert("roulette_spins", [{
             "user_id": uid, "spin_date": today, "spin_number": 0,
             "position_id": pos["id"], "item_id": prize.get("item_id"),
-            "amount": prize.get("amount"), "paid_stars": True, "teaser": prize.get("teaser", False)
+            "amount": prize.get("amount"), "paid_stars": True, "teaser": prize.get("teaser", False),
         }])
         await log_player_action(uid, "roulette_spin_stars", {"pos": pos["id"]})
         return json_resp({"ok": True, "paid_stars": True, "price": ROULETTE_STARS_PRICE,
@@ -1503,8 +1486,8 @@ async def pvp_room_state(code):
     return {"battle": b, "players": players, "rounds": rounds}
 
 async def pvp_finalize(b, players):
-    """Финиш: начисляет приз, ставит finished. Возвращает (winner_uid, prize)."""
-    stake = int(b["stake"]); bank = stake * 2
+    stake = int(b["stake"])
+    bank = stake * 2
     s0 = int(players[0].get("score", 0) or 0) if len(players) > 0 else 0
     s1 = int(players[1].get("score", 0) or 0) if len(players) > 1 else 0
     prize = int(bank * (1 - PVP_COMMISSION))
@@ -1516,7 +1499,6 @@ async def pvp_finalize(b, players):
         winner_uid = players[1]["user_id"]
         await add_balance(winner_uid, prize)
     else:
-        # ничья: возврат взносов
         for p in players:
             await add_balance(p["user_id"], stake)
         prize = 0
@@ -1543,10 +1525,9 @@ async def handle_pvp(request):
             ps = await db.select("pvp_players", f"?battle_code=eq.{b['code']}&seat=eq.0")
             owner = ps[0] if ps else None
             out.append({
-                "code": b["code"], "case_id": b["case_id"], "rounds": b["rounds"],
-                "stake": b["stake"],
+                "code": b["code"], "case_id": b["case_id"], "rounds": b["rounds"], "stake": b["stake"],
                 "owner": {"user_id": owner["user_id"], "name": owner.get("name"), "avatar": owner.get("avatar")} if owner else None,
-                "mine": bool(owner and owner["user_id"] == uid)
+                "mine": bool(owner and owner["user_id"] == uid),
             })
         return json_resp({"battles": out})
 
@@ -1573,7 +1554,7 @@ async def handle_pvp(request):
         me_ava = (st or {}).get("avatar") or ""
         r1 = await db.insert("pvp_battles", [{
             "code": code, "case_id": case_id, "rounds": rounds, "stake": stake,
-            "status": "waiting", "round_now": 0
+            "status": "waiting", "round_now": 0,
         }])
         err = db_write_error(r1)
         if err:
@@ -1581,7 +1562,7 @@ async def handle_pvp(request):
             return json_resp({"error": err}, 500)
         r2 = await db.insert("pvp_players", [{
             "battle_code": code, "seat": 0, "user_id": uid,
-            "name": me_name, "avatar": me_ava, "score": 0
+            "name": me_name, "avatar": me_ava, "score": 0,
         }])
         err = db_write_error(r2)
         if err:
@@ -1611,7 +1592,7 @@ async def handle_pvp(request):
         st = await get_stats(uid)
         r = await db.insert("pvp_players", [{
             "battle_code": code, "seat": 1, "user_id": uid,
-            "name": (st or {}).get("name") or "Игрок", "avatar": (st or {}).get("avatar") or "", "score": 0
+            "name": (st or {}).get("name") or "Игрок", "avatar": (st or {}).get("avatar") or "", "score": 0,
         }])
         err = db_write_error(r)
         if err or not r:
@@ -1645,19 +1626,18 @@ async def handle_pvp(request):
         if len(ps) < 2 or int(b["round_now"]) >= int(b["rounds"]):
             return json_resp({"error": "no rounds left"}, 400)
         old_round = int(b["round_now"])
-        # атомарно занимаем раунд (защита от одновременных роллов)
         guard = await db.update("pvp_battles", f"?code=eq.{code}&round_now=eq.{old_round}",
                                 {"round_now": old_round + 1, "updated_at": now_iso()})
         if not guard:
             room = await pvp_room_state(code)
             return json_resp({"ok": True, "race": True, **room})
         pool = chest_pool(b["case_id"])
-        decay = CHEST_DEFS[b["case_id"]2] if False else CHEST_DEFS[b["case_id"]][2]
+        decay = CHEST_DEFS[b["case_id"]][2]
         i0, c0 = weighted_pick(pool, decay)
         i1, c1 = weighted_pick(pool, decay)
         await db.insert("pvp_rounds", [{
             "battle_code": code, "round_num": old_round + 1,
-            "p0_item": i0, "p1_item": i1, "p0_cost": c0, "p1_cost": c1
+            "p0_item": i0, "p1_item": i1, "p0_cost": c0, "p1_cost": c1,
         }])
         await db.update("pvp_players", f"?battle_code=eq.{code}&seat=eq.0", {"score": int(ps[0].get("score", 0)) + c0})
         await db.update("pvp_players", f"?battle_code=eq.{code}&seat=eq.1", {"score": int(ps[1].get("score", 0)) + c1})
@@ -1704,7 +1684,7 @@ async def handle_pvp(request):
 
     return json_resp({"error": "unknown path"}, 404)
 
-# ================= PC ADMIN ENDPOINTS =================
+# ================= PC ADMIN =================
 async def handle_pc_admin(request):
     path = request.path
     token = request.headers.get("Authorization", "").replace("Bearer ", "") or request.query.get("token")
@@ -1723,7 +1703,7 @@ async def handle_pc_admin(request):
             "token": tok,
             "expires_at": expires,
             "ip_address": request.remote,
-            "user_agent": request.headers.get("User-Agent")
+            "user_agent": request.headers.get("User-Agent"),
         }])
         return json_resp({"ok": True, "token": tok, "expires_at": expires})
 
@@ -1814,7 +1794,7 @@ async def handle_pc_admin(request):
 
     if path == "/admin_pc/logs":
         uid = request.query.get("user_id")
-        q = f"?order=created_at.desc&limit=50"
+        q = "?order=created_at.desc&limit=50"
         if uid:
             q = f"?user_id=eq.{uid}&order=created_at.desc&limit=50"
         logs = await db.select("player_action_log", q)
@@ -1828,8 +1808,7 @@ async def handle_pc_admin(request):
             return json_resp({"error": "bad request"})
         revert_at = (datetime.now(timezone.utc) + timedelta(minutes=revert_min)).isoformat()
         res = await db.insert("fake_transactions", [{
-            "user_id": uid, "amount": amount, "type": "fake_grant",
-            "revert_at": revert_at
+            "user_id": uid, "amount": amount, "type": "fake_grant", "revert_at": revert_at,
         }])
         err = db_write_error(res)
         if err:
@@ -1910,7 +1889,7 @@ async def handle_pc_admin(request):
             "item": item_id,
             "amount": amount,
             "from_uid": from_uid,
-            "to_uid": to_uid
+            "to_uid": to_uid,
         })
 
     if path == "/admin_pc/events_list":
@@ -1919,7 +1898,7 @@ async def handle_pc_admin(request):
 
     if path == "/admin_pc/notes_list":
         uid = request.query.get("user_id")
-        q = f"?order=created_at.desc"
+        q = "?order=created_at.desc"
         if uid:
             q = f"?user_id=eq.{uid}&order=created_at.desc"
         notes = await db.select("admin_notes", q)
@@ -1927,7 +1906,7 @@ async def handle_pc_admin(request):
 
     return json_resp({"error": "unknown path"}, 404)
 
-# ================= ОБЫЧНАЯ АДМИНКА (МОБИЛЬНАЯ) =================
+# ================= МОБИЛЬНАЯ АДМИНКА =================
 async def handle_admin(request):
     user, data = await admin_auth(request)
     if not user:
@@ -1971,7 +1950,7 @@ async def handle_admin(request):
         total_stars = sum(p.get("stars", 0) for p in payments) if payments else 0
         return json_resp({
             "players": players_count, "stars": total_stars,
-            "grants": grants_count, "promos": promos_count
+            "grants": grants_count, "promos": promos_count,
         })
 
     if path == "/admin/grant":
@@ -1981,14 +1960,13 @@ async def handle_admin(request):
         item_id = data.get("item_id")
         reason = data.get("reason") or None
         pre = False
-        # МГНОВЕННОЕ зачисление: осколки и обнуление пишем сервером сразу
         if gtype == "coins":
             new_bal, err = await add_balance(uid, amount)
             if err:
                 return json_resp({"ok": False, "error": err}, 500)
             pre = True
         elif gtype == "clear_coins":
-            new_bal, err = await add_balance(uid, -await get_balance(uid))
+            await add_balance(uid, -await get_balance(uid))
             pre = True
         elif gtype == "clear_items":
             rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
@@ -1999,7 +1977,7 @@ async def handle_admin(request):
             pre = True
         res = await db.insert("grants", [{
             "user_id": uid, "type": gtype, "amount": amount,
-            "item_id": item_id, "reason": reason, "pre_applied": pre
+            "item_id": item_id, "reason": reason, "pre_applied": pre,
         }])
         err = db_write_error(res)
         if err:
@@ -2029,7 +2007,7 @@ async def handle_admin(request):
         await db.insert("grants", [{
             "user_id": uid,
             "type": "clear_coins" if gtype == "coins" else "clear_items",
-            "amount": 0, "reason": "Аннуляция администратором", "pre_applied": pre
+            "amount": 0, "reason": "Аннуляция администратором", "pre_applied": pre,
         }])
         return json_resp({"ok": True})
 
@@ -2038,10 +2016,10 @@ async def handle_admin(request):
         if not uid:
             return json_resp({"error": "no user_id"})
         await db.update("players", f"?user_id=eq.{uid}", {
-            "stats": {"casesOpened": 0, "coinsSpent": 0, "balance": 2000, "inventory": {}, "gift_inv": {}}
+            "stats": {"casesOpened": 0, "coinsSpent": 0, "balance": 2000, "inventory": {}, "gift_inv": {}},
         })
         await db.insert("grants", [{
-            "user_id": uid, "type": "reset", "amount": 0, "reason": "Сброс прогресса администратором"
+            "user_id": uid, "type": "reset", "amount": 0, "reason": "Сброс прогресса администратором",
         }])
         return json_resp({"ok": True})
 
@@ -2053,7 +2031,7 @@ async def handle_admin(request):
             await add_balance(p["user_id"], amount)
             rows.append({
                 "user_id": p["user_id"], "type": "coins",
-                "amount": amount, "reason": data.get("reason") or None, "pre_applied": True
+                "amount": amount, "reason": data.get("reason") or None, "pre_applied": True,
             })
         if rows:
             res = await db.insert("grants", rows)
@@ -2068,7 +2046,7 @@ async def handle_admin(request):
         res = await db.insert("bans", [{
             "user_id": uid_b,
             "reason": data.get("reason") or None,
-            "ban_price": int(data.get("ban_price", 0))
+            "ban_price": int(data.get("ban_price", 0)),
         }])
         if not isinstance(res, list):
             print(f"🚨 BAN DB ERROR: {res}")
@@ -2107,7 +2085,7 @@ async def handle_admin(request):
             "amount": int(data.get("amount", 0)),
             "max_uses": int(data.get("max_uses", 1)),
             "secret": bool(data.get("secret", False)),
-            "active": True
+            "active": True,
         }])
         return json_resp({"ok": True})
 
@@ -2155,7 +2133,7 @@ async def handle_admin(request):
                     "id": str(g.id), "star_count": g.star_count,
                     "remaining_count": g.remaining_count if g.remaining_count is not None else -1,
                     "total_count": g.total_count if g.total_count is not None else -1,
-                    "image": image_url
+                    "image": image_url,
                 })
             return json_resp({"gifts": items})
         except Exception as e:
@@ -2212,7 +2190,7 @@ async def start_web_server():
         "/admin_pc/drop_override", "/admin_pc/event", "/admin_pc/note",
         "/admin_pc/logs", "/admin_pc/fake_tx", "/admin_pc/set_balance",
         "/admin_pc/set_inventory", "/admin_pc/transfer_item",
-        "/admin_pc/events_list", "/admin_pc/notes_list"
+        "/admin_pc/events_list", "/admin_pc/notes_list",
     ]
     for p in pc_paths:
         app.router.add_route("*", p, handle_pc_admin)
@@ -2224,7 +2202,7 @@ async def start_web_server():
         "/admin/send", "/admin/broadcast",
         "/admin/promo_create", "/admin/promo_list", "/admin/promo_delete",
         "/admin/bot_balance", "/admin/topup_bot",
-        "/admin/available_gifts", "/admin/send_gift"
+        "/admin/available_gifts", "/admin/send_gift",
     ]
     for p in admin_paths:
         app.router.add_route("*", p, handle_admin)
@@ -2237,7 +2215,6 @@ async def start_web_server():
     print(f"🌐 Веб-сервер запущен на порту {port}")
 
 async def pvp_cleanup_tick():
-    """Закрывает протухшие батлы: waiting > 5 мин (возврат), active без роллов > 10 мин (возврат обоим)."""
     try:
         now = datetime.now(timezone.utc)
         waiting = await db.select("pvp_battles", "?status=eq.waiting")
