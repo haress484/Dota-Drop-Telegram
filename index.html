@@ -301,7 +301,12 @@ body.has-frozen .event-banner{top:52px}
 .vip-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;margin-left:6px;border:1.5px solid #f5c842;border-radius:14px;font-size:9px;font-weight:800;color:#f5c842;letter-spacing:.5px;line-height:1;white-space:nowrap;vertical-align:middle;text-shadow:0 0 6px rgba(245,200,66,.5);box-shadow:0 0 8px rgba(245,200,66,.25);pointer-events:none}
 .vip-particle{position:absolute;top:50%;left:50%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:radial-gradient(circle,#ffe066,#f5c842);border-radius:50%;pointer-events:none;animation:vipParticleFly 2.4s ease-out infinite;animation-delay:var(--d);box-shadow:0 0 4px #f5c842}
 @keyframes vipParticleFly{0%{transform:translate(0,0) scale(1);opacity:1}70%{opacity:.6}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
-.vip-badge-slot{min-height:14px;margin-top:2px;text-align:center}
+.vip-badge-slot{display:flex;align-items:center;flex-shrink:0}
+.vip-badge-slot:empty{display:none}
+.profile-name-row{display:flex;align-items:center;gap:8px;min-width:0}
+.profile-name-row input{flex:1;min-width:0}
+.profile-name-row .vip-badge{font-size:12px;padding:4px 12px;border-width:2px;border-radius:18px;margin-left:0;letter-spacing:1px}
+.profile-name-row .vip-particle{width:4px;height:4px;margin:-2px 0 0 -2px}
 .top-row .nm{position:relative}
 .pcard .pn{position:relative}
 .top-profile-box .tp-name{position:relative}
@@ -495,8 +500,10 @@ body.has-frozen .event-banner{top:52px}
       </label>
       <input type="file" id="avatarInput" accept="image/*" style="display:none">
       <div class="profile-name">
-        <input id="profileName" placeholder="Твоё имя">
-        <div class="vip-badge-slot" id="vipBadgeSlot"></div>
+        <div class="profile-name-row">
+          <input id="profileName" placeholder="Твоё имя">
+          <span class="vip-badge-slot" id="vipBadgeSlot"></span>
+        </div>
         <div class="vip-days-line" id="vipDaysLine"></div>
         <div class="hint" style="text-align:center;margin:0;font-size:11px">Имя сохраняется автоматически</div>
       </div>
