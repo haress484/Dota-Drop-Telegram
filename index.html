@@ -805,7 +805,7 @@ $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры (кроме платных)", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -1502,7 +1502,7 @@ function renderProfile(){
   else { av.style.display = "none"; ph.style.display = ""; }
   $("#vipBadgeSlot").innerHTML = S.vip ? vipBadgeHTML() : "";
   $("#vipDaysLine").innerHTML = S.vip ? `💎 VIP · осталось ${S.vipDays} дн.` : "";
-  $("#vipBuyRow").innerHTML = S.vip ? "" : `<button class="btn pur" onclick="buyVip()">💎 Купить VIP за 100⭐</button>`;
+  $("#vipBuyRow").innerHTML = S.vip ? "" : `<button class="btn pur" onclick="buyVip()"> Купить VIP за 100⭐</button>`;
   $("#statCases").textContent = S.stats.casesOpened || 0;
   $("#statSpent").textContent = S.stats.coinsSpent || 0;
   let html = ACHIEVEMENTS.map(a => {
