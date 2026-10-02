@@ -7,6 +7,7 @@ import logging
 import random
 import time
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from urllib.parse import parse_qsl
 
@@ -33,7 +34,9 @@ if not ADMIN_PC_PASSWORD:
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
 ADMIN_URL = WEB_APP_URL + "admin.html"
-OWNER_ID = 1837442717
+
+# ✅ FIX #2: OWNER_ID теперь в env (с дефолтом на случай, если env пустой)
+OWNER_ID = int(os.environ.get("OWNER_ID", "1837442717"))
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -45,14 +48,11 @@ SNIPER_ENABLED = True
 SNIPER_INTERVAL = 15
 SNIPER_MANUAL_COOLDOWN = 5
 
-# ПАКИ: прогрессивная выгода
 PACKS = {1: 150, 5: 1000, 10: 2500, 25: 7500, 50: 20000}
 
-# VIP
 VIP_PRICE_STARS = 100
 VIP_DAYS = 30
 
-# РУЛЕТКА
 ROULETTE_POSITIONS = [
     {"id": "x2", "weight": 20},
     {"id": "x05", "weight": 25},
@@ -67,11 +67,12 @@ ROULETTE_STARS_PRICE = 15
 ROULETTE_STAR_STAKE = 5000
 TEASER_CHANCE = 0.30
 
-# PVP
 PVP_COMMISSION = 0.05
 PVP_ROUND_OPTS = (1, 3, 5)
 PVP_WAIT_TIMEOUT_MIN = 5
 PVP_STALE_TIMEOUT_MIN = 10
+PVP_MIN_PLAYERS = 2
+PVP_MAX_PLAYERS = 5
 
 GIFT_PATTERNS = [
     {"seq": [15, 15, 25, 15, 15, 50], "weight": 40},
@@ -86,6 +87,36 @@ PRICE_TO_GIFTS = {
 }
 
 ALLOWED_PUSH_FIELDS = {"casesOpened", "coinsSpent", "balance", "inventory", "name", "achievements"}
+
+# ================= ФИКСЫ ТЕХДОЛГОВ =================
+
+# ✅ FIX #3: Rate-limiter (sliding window, per-uid, in-memory)
+class RateLimiter:
+    def __init__(self):
+        self.hits = defaultdict(list)
+
+    def check(self, uid, max_per_minute=30):
+        now = time.time()
+        key = str(uid)
+        # Оставляем только хиты за последние 60 секунд
+        self.hits[key] = [t for t in self.hits[key] if now - t < 60]
+        if len(self.hits[key]) >= max_per_minute:
+            return False
+        self.hits[key].append(now)
+        return True
+
+RATE = RateLimiter()
+
+# ✅ FIX #1: Lock-и по uid для атомарности операций с балансом.
+# Гарантирует, что два параллельных запроса на одного игрока не перезатирают баланс друг друга.
+_balance_locks: dict[int, asyncio.Lock] = {}
+_balance_locks_mu = asyncio.Lock()
+
+async def _get_balance_lock(uid: int) -> asyncio.Lock:
+    async with _balance_locks_mu:
+        if uid not in _balance_locks:
+            _balance_locks[uid] = asyncio.Lock()
+        return _balance_locks[uid]
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -252,21 +283,23 @@ async def get_balance(uid):
         return 0
     return int(st.get("balance", 0) or 0)
 
+# ✅ FIX #1: атомарный add_balance через asyncio.Lock по uid
 async def add_balance(uid, delta):
-    rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
-    if not rows:
-        return None, "игрок не найден"
-    cur = rows[0].get("stats") or {}
-    new = max(0, int(cur.get("balance", 0) or 0) + delta)
-    cur["balance"] = new
-    res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
-    err = db_write_error(res)
-    if err:
-        return None, err
-    return new, None
+    lock = await _get_balance_lock(int(uid))
+    async with lock:
+        rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+        if not rows:
+            return None, "игрок не найден"
+        cur = rows[0].get("stats") or {}
+        new = max(0, int(cur.get("balance", 0) or 0) + delta)
+        cur["balance"] = new
+        res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        err = db_write_error(res)
+        if err:
+            return None, err
+        return new, None
 
 async def get_display_identity(uid):
-    """Имя/аватар для PVP: профиль игры → имя из Telegram → заглушка."""
     rows = await db.select("players", f"?user_id=eq.{uid}&select=first_name,stats")
     if not rows:
         return "Игрок", ""
@@ -277,14 +310,15 @@ async def get_display_identity(uid):
     return name, avatar
 
 async def merge_player_stats(uid, patch):
-    rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
-    cur = (rows[0].get("stats") if rows else None) or {}
-    cur.update(patch)
-    res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
-    return db_write_error(res)
+    lock = await _get_balance_lock(int(uid))
+    async with lock:
+        rows = await db.select("players", f"?user_id=eq.{uid}&select=stats")
+        cur = (rows[0].get("stats") if rows else None) or {}
+        cur.update(patch)
+        res = await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+        return db_write_error(res)
 
 async def apply_balance_delta(uid, data):
-    """Дельта-слияние баланса: клиент шлёт balance + balance_base, сервер применяет разницу поверх правды."""
     bal = data.get("balance")
     base = data.get("balance_base")
     if isinstance(bal, int) and isinstance(base, int):
@@ -1049,9 +1083,17 @@ async def cors_middleware(request, handler):
 def json_resp(data, status=200):
     return web.json_response(data, status=status)
 
+# ✅ FIX #4: проверка auth_date — данные старше 24 часов отклоняются
 def validate_tg(init_data):
     try:
         pairs = dict(parse_qsl(init_data, strict_parsing=True))
+    except Exception:
+        return None
+    # Свежесть initData
+    try:
+        auth_date = int(pairs.get("auth_date", 0))
+        if auth_date <= 0 or time.time() - auth_date > 86400:
+            return None
     except Exception:
         return None
     h = pairs.pop("hash", None)
@@ -1261,6 +1303,9 @@ async def handle_game_case_drop(request):
     if not user:
         return json_resp({"override": None})
     uid = int(user["id"])
+    # ✅ FIX #3: rate-limit
+    if not RATE.check(uid, max_per_minute=20):
+        return json_resp({"override": None})
     chest = d.get("chest_id", "")
     if not chest:
         return json_resp({"override": None})
@@ -1511,6 +1556,9 @@ async def handle_roulette(request):
             return json_resp({"error": str(e)}, 500)
 
     if path == "/roulette/spin":
+        # ✅ FIX #3: rate-limit
+        if not RATE.check(uid, max_per_minute=15):
+            return json_resp({"error": "Слишком много попыток. Подожди минуту."}, 429)
         spins = await db.select("roulette_spins", f"?user_id=eq.{uid}&spin_date=eq.{today}&paid_stars=eq.false")
         n = len(spins)
         if n >= ROULETTE_DAILY_LIMIT:
@@ -1536,6 +1584,8 @@ async def handle_roulette(request):
         return json_resp({"ok": True, "paid_stars": False, "price": price, "spins_today": n + 1, **prize})
 
     if path == "/roulette/spin_stars":
+        if not RATE.check(uid, max_per_minute=15):
+            return json_resp({"error": "Слишком много попыток. Подожди минуту."}, 429)
         credits = await get_roulette_credits(uid)
         if credits < 1:
             return json_resp({"error": "no_credits", "stars_price": ROULETTE_STARS_PRICE}, 402)
@@ -1557,7 +1607,7 @@ async def handle_roulette(request):
 
     return json_resp({"error": "unknown path"}, 404)
 
-# ================= PVP БАТТЛЫ =================
+# ================= PVP БАТТЛЫ (2-5 игроков, JSONB round_data) =================
 def gen_battle_code():
     s = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     return "".join(random.choice(s) for _ in range(4))
@@ -1569,6 +1619,15 @@ async def pvp_room_state(code):
     b = battles[0]
     players = await db.select("pvp_players", f"?battle_code=eq.{code}&order=seat.asc")
     rounds = await db.select("pvp_rounds", f"?battle_code=eq.{code}&order=round_num.asc")
+    # Нормализация round_data (старые записи могут не иметь поля)
+    for r in rounds:
+        rd = r.get("round_data")
+        if rd is None:
+            # Миграция на лету для старых записей с p0/p1 колонками
+            r["round_data"] = [
+                {"item": r.get("p0_item"), "cost": int(r.get("p0_cost") or 0)},
+                {"item": r.get("p1_item"), "cost": int(r.get("p1_cost") or 0)},
+            ]
     uids = [p["user_id"] for p in players]
     vip_map = {}
     if uids:
@@ -1581,25 +1640,33 @@ async def pvp_room_state(code):
     return {"battle": b, "players": players, "rounds": rounds}
 
 async def pvp_finalize(b, players):
+    """Финализация батла для 2-5 игроков.
+    Победитель — игрок с max score. При ничьей — возврат stake всем.
+    Приз = банк * (1 - комиссия), делится поровну если ничья."""
     stake = int(b["stake"])
-    bank = stake * 2
-    s0 = int(players[0].get("score", 0) or 0) if len(players) > 0 else 0
-    s1 = int(players[1].get("score", 0) or 0) if len(players) > 1 else 0
-    prize = int(bank * (1 - PVP_COMMISSION))
-    winner_uid = None
-    if s0 > s1:
-        winner_uid = players[0]["user_id"]
-        await add_balance(winner_uid, prize)
-    elif s1 > s0:
-        winner_uid = players[1]["user_id"]
-        await add_balance(winner_uid, prize)
-    else:
+    num_players = len(players)
+    bank = stake * num_players
+    prize_pool = int(bank * (1 - PVP_COMMISSION))
+
+    scores = [int(p.get("score", 0) or 0) for p in players]
+    max_score = max(scores) if scores else 0
+    winners = [i for i, s in enumerate(scores) if s == max_score]
+
+    if len(winners) > 1:
+        # Ничья — всем возвращается stake (комиссия съедается, как пенальти)
         for p in players:
             await add_balance(p["user_id"], stake)
-        prize = 0
-    await db.update("pvp_battles", f"?code=eq.{b['code']}",
-                    {"status": "finished", "winner_uid": winner_uid, "prize": prize})
-    return winner_uid, prize
+        await db.update("pvp_battles", f"?code=eq.{b['code']}",
+                        {"status": "finished", "winner_uid": None, "prize": 0})
+        return None, 0
+    else:
+        # Один победитель
+        winner_idx = winners[0]
+        winner_uid = players[winner_idx]["user_id"]
+        await add_balance(winner_uid, prize_pool)
+        await db.update("pvp_battles", f"?code=eq.{b['code']}",
+                        {"status": "finished", "winner_uid": winner_uid, "prize": prize_pool})
+        return winner_uid, prize_pool
 
 async def handle_pvp(request):
     path = request.path
@@ -1617,21 +1684,33 @@ async def handle_pvp(request):
         rows = await db.select("pvp_battles", "?status=eq.waiting&order=created_at.desc&limit=20")
         out = []
         for b in rows:
-            ps = await db.select("pvp_players", f"?battle_code=eq.{b['code']}&seat=eq.0")
+            ps = await db.select("pvp_players", f"?battle_code=eq.{b['code']}&order=seat.asc")
             owner = ps[0] if ps else None
             out.append({
                 "code": b["code"], "case_id": b["case_id"], "rounds": b["rounds"], "stake": b["stake"],
+                "max_players": int(b.get("max_players") or 2),
+                "current_players": len(ps),
                 "owner": {"user_id": owner["user_id"], "name": owner.get("name"), "avatar": owner.get("avatar")} if owner else None,
                 "mine": bool(owner and owner["user_id"] == uid),
             })
         return json_resp({"battles": out})
 
     if path == "/pvp/create":
+        if not RATE.check(uid, max_per_minute=10):
+            return json_resp({"error": "Слишком часто. Подожди."}, 429)
         case_id = d.get("case_id")
         rounds = int(d.get("rounds", 0))
-        if case_id not in CHEST_DEFS or rounds not in PVP_ROUND_OPTS:
-            return json_resp({"error": "bad params"}, 400)
-        stake = CHEST_DEFS[case_id][3] * rounds
+        max_players = int(d.get("max_players", 2))
+        if case_id not in CHEST_DEFS:
+            return json_resp({"error": "bad case"}, 400)
+        if rounds not in PVP_ROUND_OPTS:
+            return json_resp({"error": "bad rounds"}, 400)
+        if max_players < PVP_MIN_PLAYERS or max_players > PVP_MAX_PLAYERS:
+            return json_resp({"error": f"Игроков должно быть от {PVP_MIN_PLAYERS} до {PVP_MAX_PLAYERS}"}, 400)
+
+        stake = CHEST_DEFS[case_id][3] * rounds  # Взнос с одного игрока
+
+        # Проверка: нет ли уже открытого батла этого игрока
         my_seats = await db.select("pvp_players", f"?user_id=eq.{uid}&seat=eq.0")
         for ms in my_seats:
             bs = await db.select("pvp_battles", f"?code=eq.{ms['battle_code']}&status=eq.waiting")
@@ -1639,6 +1718,7 @@ async def handle_pvp(request):
                 room = await pvp_room_state(ms["battle_code"])
                 if room:
                     return json_resp({"ok": True, "reused": True, **room})
+
         bal = await get_balance(uid)
         if bal < stake:
             return json_resp({"error": f"Не хватает осколков: нужно {stake}"}, 400)
@@ -1654,6 +1734,7 @@ async def handle_pvp(request):
         me_name, me_ava = await get_display_identity(uid)
         r1 = await db.insert("pvp_battles", [{
             "code": code, "case_id": case_id, "rounds": rounds, "stake": stake,
+            "max_players": max_players,
             "status": "waiting", "round_now": 0,
         }])
         err = db_write_error(r1)
@@ -1669,11 +1750,13 @@ async def handle_pvp(request):
             await add_balance(uid, stake)
             await db.delete("pvp_battles", f"?code=eq.{code}")
             return json_resp({"error": err}, 500)
-        await log_player_action(uid, "pvp_create", {"code": code, "stake": stake})
+        await log_player_action(uid, "pvp_create", {"code": code, "stake": stake, "max_players": max_players})
         room = await pvp_room_state(code)
         return json_resp({"ok": True, "new_balance": new_bal, **room})
 
     if path == "/pvp/join":
+        if not RATE.check(uid, max_per_minute=15):
+            return json_resp({"error": "Слишком часто. Подожди."}, 429)
         code = (d.get("code") or d.get("battle_id") or "").strip().upper()
         battles = await db.select("pvp_battles", f"?code=eq.{code}")
         if not battles or battles[0]["status"] != "waiting":
@@ -1682,6 +1765,11 @@ async def handle_pvp(request):
         ps = await db.select("pvp_players", f"?battle_code=eq.{code}&order=seat.asc")
         if any(p["user_id"] == uid for p in ps):
             return json_resp({"error": "Ты уже в этом батле"}, 400)
+
+        max_players = int(b.get("max_players") or 2)
+        if len(ps) >= max_players:
+            return json_resp({"error": "Батл уже заполнен"}, 400)
+
         stake = int(b["stake"])
         bal = await get_balance(uid)
         if bal < stake:
@@ -1690,16 +1778,20 @@ async def handle_pvp(request):
         if err:
             return json_resp({"error": err}, 500)
         j_name, j_ava = await get_display_identity(uid)
+        next_seat = len(ps)
         r = await db.insert("pvp_players", [{
-            "battle_code": code, "seat": 1, "user_id": uid,
+            "battle_code": code, "seat": next_seat, "user_id": uid,
             "name": j_name, "avatar": j_ava, "score": 0,
         }])
         err = db_write_error(r)
         if err or not r:
             await add_balance(uid, stake)
             return json_resp({"error": err or "место занято"}, 500)
-        await db.update("pvp_battles", f"?code=eq.{code}&status=eq.waiting",
-                        {"status": "active", "updated_at": now_iso()})
+
+        # Если батл заполнен — переходим в active
+        if next_seat + 1 >= max_players:
+            await db.update("pvp_battles", f"?code=eq.{code}&status=eq.waiting",
+                            {"status": "active", "updated_at": now_iso()})
         await log_player_action(uid, "pvp_join", {"code": code, "stake": stake})
         room = await pvp_room_state(code)
         return json_resp({"ok": True, "new_balance": new_bal, **room})
@@ -1713,6 +1805,8 @@ async def handle_pvp(request):
         return json_resp(room)
 
     if path == "/pvp/roll":
+        if not RATE.check(uid, max_per_minute=30):
+            return json_resp({"error": "Слишком часто."}, 429)
         code = (d.get("code") or "").strip().upper()
         battles = await db.select("pvp_battles", f"?code=eq.{code}")
         if not battles:
@@ -1723,24 +1817,34 @@ async def handle_pvp(request):
         ps = await db.select("pvp_players", f"?battle_code=eq.{code}&order=seat.asc")
         if not any(p["user_id"] == uid for p in ps):
             return json_resp({"error": "not a participant"}, 403)
-        if len(ps) < 2 or int(b["round_now"]) >= int(b["rounds"]):
+        if int(b["round_now"]) >= int(b["rounds"]):
             return json_resp({"error": "no rounds left"}, 400)
         old_round = int(b["round_now"])
+        # Оптимистичная блокировка: обновляем только если round_now не изменился
         guard = await db.update("pvp_battles", f"?code=eq.{code}&round_now=eq.{old_round}",
                                 {"round_now": old_round + 1, "updated_at": now_iso()})
         if not guard:
             room = await pvp_room_state(code)
             return json_resp({"ok": True, "race": True, **room})
+
+        # Для каждого игрока кидаем предмет
         pool = chest_pool(b["case_id"])
         decay = CHEST_DEFS[b["case_id"]][2]
-        i0, c0 = weighted_pick(pool, decay)
-        i1, c1 = weighted_pick(pool, decay)
+        round_data = []
+        for p in ps:
+            item_id, item_cost = weighted_pick(pool, decay)
+            round_data.append({"item": item_id, "cost": item_cost})
+
+        # Вставляем раунд с JSONB массивом
         await db.insert("pvp_rounds", [{
             "battle_code": code, "round_num": old_round + 1,
-            "p0_item": i0, "p1_item": i1, "p0_cost": c0, "p1_cost": c1,
+            "round_data": round_data,
         }])
-        await db.update("pvp_players", f"?battle_code=eq.{code}&seat=eq.0", {"score": int(ps[0].get("score", 0)) + c0})
-        await db.update("pvp_players", f"?battle_code=eq.{code}&seat=eq.1", {"score": int(ps[1].get("score", 0)) + c1})
+        # Обновляем score каждого игрока
+        for i, p in enumerate(ps):
+            new_score = int(p.get("score", 0)) + round_data[i]["cost"]
+            await db.update("pvp_players", f"?battle_code=eq.{code}&seat=eq.{i}", {"score": new_score})
+
         room = await pvp_room_state(code)
         if old_round + 1 >= int(b["rounds"]):
             winner_uid, prize = await pvp_finalize(b, room["players"])
@@ -1762,22 +1866,34 @@ async def handle_pvp(request):
         if not me:
             return json_resp({"error": "not a participant"}, 403)
         stake = int(b["stake"])
+
         if b["status"] == "waiting":
+            # Возврат взноса, удаление игрока
             await add_balance(uid, stake)
-            await db.update("pvp_battles", f"?code=eq.{code}", {"status": "canceled"})
-            await db.delete("pvp_players", f"?battle_code=eq.{code}")
+            await db.delete("pvp_players", f"?battle_code=eq.{code}&user_id=eq.{uid}")
+            remaining = await db.select("pvp_players", f"?battle_code=eq.{code}")
+            if not remaining:
+                await db.update("pvp_battles", f"?code=eq.{code}", {"status": "canceled"})
             return json_resp({"ok": True, "refunded": stake, "new_balance": await get_balance(uid)})
+
         if b["status"] == "active":
-            opp = next((p for p in ps if p["user_id"] != uid), None)
-            prize = int(stake * 2 * (1 - PVP_COMMISSION))
-            if opp:
-                await add_balance(opp["user_id"], prize)
-                winner = opp["user_id"]
+            # В активном батле выход = поражение. Банк делится между оставшимися.
+            opponents = [p for p in ps if p["user_id"] != uid]
+            num_players = len(ps)
+            bank = stake * num_players
+            prize = int(bank * (1 - PVP_COMMISSION))
+            if opponents:
+                # Банк делится поровну между оставшимися
+                share = prize // len(opponents)
+                for opp in opponents:
+                    await add_balance(opp["user_id"], share)
+                winner = opponents[0]["user_id"] if len(opponents) == 1 else None
             else:
                 winner = None
                 await add_balance(uid, stake)
+                prize = 0
             await db.update("pvp_battles", f"?code=eq.{code}",
-                            {"status": "finished", "winner_uid": winner, "prize": prize if opp else 0})
+                            {"status": "finished", "winner_uid": winner, "prize": prize})
             await log_player_action(uid, "pvp_leave_forfeit", {"code": code})
             return json_resp({"ok": True, "forfeit": True, "winner_uid": winner})
         return json_resp({"ok": True})
@@ -2339,9 +2455,9 @@ async def pvp_cleanup_tick():
         for b in waiting:
             created = datetime.fromisoformat(b["created_at"])
             if (now - created) > timedelta(minutes=PVP_WAIT_TIMEOUT_MIN):
-                ps = await db.select("pvp_players", f"?battle_code=eq.{b['code']}&seat=eq.0")
-                if ps:
-                    await add_balance(ps[0]["user_id"], int(b["stake"]))
+                ps = await db.select("pvp_players", f"?battle_code=eq.{b['code']}")
+                for p in ps:
+                    await add_balance(p["user_id"], int(b["stake"]))
                 await db.update("pvp_battles", f"?code=eq.{b['code']}", {"status": "canceled"})
                 print(f"🧹 PVP waiting timeout: {b['code']}")
         active = await db.select("pvp_battles", "?status=eq.active")
@@ -2367,6 +2483,7 @@ async def cleanup_loop():
 
 async def main():
     print("🚀 Запуск...")
+    print(f"👑 OWNER_ID = {OWNER_ID} (из env)")
     asyncio.create_task(start_web_server())
     asyncio.create_task(cleanup_loop())
     if SNIPER_ENABLED:
