@@ -272,15 +272,17 @@ body.has-frozen .event-banner{top:52px}
 .room-head .rh-case{font-weight:900;font-size:16px}
 .room-head .rh-round{color:var(--mut);font-size:12px;font-weight:700}
 .room-head .rh-bank{color:var(--gold);font-weight:900;font-size:15px}
-.battle-grid{display:flex;gap:8px;align-items:stretch;margin-bottom:14px}
-.battle-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
-.vs{align-self:center;font-family:Georgia,serif;font-weight:900;font-size:16px;color:var(--red);flex-shrink:0;padding:0 2px}
+.battle-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.battle-grid .pcard{flex:1 1 28%;min-width:86px}
 .pcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center;position:relative}
 .pcard.win{border-color:var(--gold);box-shadow:0 0 14px rgba(247,201,72,.25)}
 .pcard .pa{width:40px;height:40px;border-radius:50%;background:var(--panel2);border:2px solid var(--line);margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;overflow:hidden}
 .pcard .pa img{width:100%;height:100%;object-fit:cover}
-.pcard .pn{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .pn{font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcard .ps{font-size:17px;font-weight:900;color:var(--gold);margin-top:3px}
+.pv-strip-row{margin-bottom:8px}
+.pv-strip-label{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--mut);font-weight:700;margin-bottom:3px}
+.pv-strip-label .sl-score{color:var(--gold);font-weight:900}
 .pstrip-wrap{position:relative;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#0d1a12;height:84px;min-height:84px;flex:0 0 84px}
 .pstrip{display:flex;gap:6px;padding:11px 0;width:max-content;will-change:transform;position:absolute;left:0;top:0}
 .pcell{width:72px;height:62px;flex:0 0 auto;background:var(--panel2);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -288,7 +290,7 @@ body.has-frozen .event-banner{top:52px}
 .pcell b{font-size:9px;color:var(--mut);font-weight:600;margin-top:2px}
 .pcell.win{border-color:var(--grn);box-shadow:0 0 10px rgba(61,220,132,.35)}
 .rounds-log{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:14px;min-height:40px}
-.rl-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)}
+.rl-row{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .rl-row:last-child{border:none}
 .rl-row .n{color:var(--mut)}
 .rl-row .w{font-weight:800;color:var(--grn)}
@@ -399,6 +401,7 @@ body.has-frozen .event-banner{top:52px}
         <h3 style="color:var(--gold);font-size:15px;margin-bottom:12px">Создать батл</h3>
         <div class="chips" id="pvpCaseChips"></div>
         <div class="chips" id="pvpRoundChips"></div>
+        <div class="chips" id="pvpPlayerChips"></div>
         <div class="sum-row"><span>Взнос</span><span class="v gold" id="pvpStake">—</span></div>
         <div class="sum-row"><span>Банк</span><span class="v gold" id="pvpBank">—</span></div>
         <div class="sum-row"><span>Приз победителю</span><span class="v" id="pvpPrize">—</span></div>
@@ -425,25 +428,8 @@ body.has-frozen .event-banner{top:52px}
           <div class="rh-round" id="pvCode">—</div>
         </div>
       </div>
-      <div class="battle-grid">
-        <div class="battle-col">
-          <div class="pcard" id="pvpc0">
-            <div class="pa" id="pva0">?</div>
-            <div class="pn" id="pvn0">—</div>
-            <div class="ps" id="pvs0">0</div>
-          </div>
-          <div class="pstrip-wrap"><div class="marker"></div><div class="pstrip" id="pstrip0"></div></div>
-        </div>
-        <div class="vs">VS</div>
-        <div class="battle-col">
-          <div class="pcard" id="pvpc1">
-            <div class="pa" id="pva1">?</div>
-            <div class="pn" id="pvn1">—</div>
-            <div class="ps" id="pvs1">0</div>
-          </div>
-          <div class="pstrip-wrap"><div class="marker"></div><div class="pstrip" id="pstrip1"></div></div>
-        </div>
-      </div>
+      <div class="battle-grid" id="pvCards"></div>
+      <div id="pvStrips"></div>
       <div class="rounds-log" id="pvLog"><div class="hint" style="margin:0">Ожидание…</div></div>
       <div class="room-footer" id="pvFooter">
         <button class="btn ghost" id="pvLeave">Выйти</button>
@@ -805,7 +791,7 @@ $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры (кроме платных)", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -1502,7 +1488,7 @@ function renderProfile(){
   else { av.style.display = "none"; ph.style.display = ""; }
   $("#vipBadgeSlot").innerHTML = S.vip ? vipBadgeHTML() : "";
   $("#vipDaysLine").innerHTML = S.vip ? `💎 VIP · осталось ${S.vipDays} дн.` : "";
-  $("#vipBuyRow").innerHTML = S.vip ? "" : `<button class="btn pur" onclick="buyVip()"> Купить VIP за 100⭐</button>`;
+  $("#vipBuyRow").innerHTML = S.vip ? "" : `<button class="btn pur" onclick="buyVip()">💎 Купить VIP за 100⭐</button>`;
   $("#statCases").textContent = S.stats.casesOpened || 0;
   $("#statSpent").textContent = S.stats.coinsSpent || 0;
   let html = ACHIEVEMENTS.map(a => {
@@ -1811,11 +1797,13 @@ $("#roulSpin").onclick = async () => {
   roulRenderInfo();
 };
 
-// ================= PVP =================
+// ================= PVP (2-5 игроков) =================
 const PVP_CASES = CHESTS.filter(c => !c.isGift);
 const PVP_ROUNDS = [1,3,5];
+const PVP_PLAYER_OPTS = [2,3,4,5];
 let pvpSelCase = "recruit";
 let pvpSelRounds = 3;
+let pvpSelPlayers = 2;
 let pvpCode = null;
 let pvpPollTimer = null;
 let pvpSeenRounds = 0;
@@ -1845,12 +1833,15 @@ function pvpRenderChips(){
   $("#pvpRoundChips").innerHTML = PVP_ROUNDS.map(r =>
     `<div class="chip ${r===pvpSelRounds?"active":""}" data-r="${r}">${r} раунд${r>1?"а":""}</div>`).join("");
   document.querySelectorAll("#pvpRoundChips .chip").forEach(el => el.onclick = () => { pvpSelRounds = +el.dataset.r; pvpRenderChips(); pvpRenderSums(); });
+  $("#pvpPlayerChips").innerHTML = PVP_PLAYER_OPTS.map(n =>
+    `<div class="chip ${n===pvpSelPlayers?"active":""}" data-p="${n}">👥 ${n}</div>`).join("");
+  document.querySelectorAll("#pvpPlayerChips .chip").forEach(el => el.onclick = () => { pvpSelPlayers = +el.dataset.p; pvpRenderChips(); pvpRenderSums(); });
 }
 function pvpRenderSums(){
   const ch = PVP_CASES.find(c=>c.id===pvpSelCase);
   if(!ch) return;
   const stake = ch.price * pvpSelRounds;
-  const bank = stake * 2;
+  const bank = stake * pvpSelPlayers;
   const prize = Math.floor(bank * 0.95);
   $("#pvpStake").textContent = fmt(stake);
   $("#pvpBank").textContent = fmt(bank);
@@ -1867,12 +1858,14 @@ async function pvpListLoad(){
     $("#pvpList").innerHTML = list.length ? list.map(b => {
       const ch = CHESTS.find(c=>c.id===b.case_id);
       const o = b.owner;
+      const mp = b.max_players || 2;
+      const cp = b.current_players != null ? b.current_players : 1;
       const ava = o && o.avatar ? `<img src="${o.avatar}">` : escHtml((o && o.name ? o.name : "?")[0].toUpperCase());
       return `<div class="battle-card">
         <div class="bc-ava">${ava}</div>
         <div class="bc-info">
           <div class="bc-name">${b.mine ? "Твой батл (жди)" : escHtml(o ? o.name : "?")}</div>
-          <div class="bc-meta">${ch ? ch.name : b.case_id} · ${b.rounds} раунд. · код ${b.code}</div>
+          <div class="bc-meta">${ch ? ch.name : b.case_id} · ${b.rounds} раунд. · 👥 ${cp}/${mp} · код ${b.code}</div>
         </div>
         <div class="bc-stake">${fmt(b.stake)}</div>
         ${b.mine ? `<button class="btn pur" onclick="pvpReenter('${b.code}')">ВОЙТИ</button>` : `<button class="btn grn" onclick="pvpJoin('${b.code}')">ВОЙТИ</button>`}
@@ -1925,10 +1918,10 @@ $("#pvpCreate").onclick = async () => {
   $("#pvpCreate").disabled = true;
   $("#pvpCreate").textContent = "СОЗДАЮ…";
   try{
-    const j = await apiPvp("/pvp/create", {case_id: pvpSelCase, rounds: pvpSelRounds});
+    const j = await apiPvp("/pvp/create", {case_id: pvpSelCase, rounds: pvpSelRounds, max_players: pvpSelPlayers});
     if(j.error){ toast(j.error); return; }
     if(typeof j.new_balance === "number"){ adoptBalance(j.new_balance); }
-    toast(j.reused ? "У тебя уже был открытый батл — возвращаемся в него" : "Батл создан! Ждём соперника…");
+    toast(j.reused ? "У тебя уже был открытый батл — возвращаемся в него" : "Батл создан! Ждём соперников…");
     pvpOpenRoom(j);
   }catch(e){ toast("Ошибка сети"); }
   finally{ pvpCreating = false; pvpRenderSums(); }
@@ -1955,6 +1948,19 @@ $("#pvpJoinCode").onclick = () => {
   if(!code) return toast("Введи код");
   pvpJoin(code);
 };
+function pvpBuildStrips(code, maxPl){
+  const stripsEl = $("#pvStrips");
+  if (stripsEl.dataset.code === code && stripsEl.childElementCount === maxPl) return;
+  let s = "";
+  for(let i=0;i<maxPl;i++){
+    s += `<div class="pv-strip-row">
+      <div class="pv-strip-label"><span id="pvsl${i}">Слот ${i+1}</span><span class="sl-score" id="pvsc${i}"></span></div>
+      <div class="pstrip-wrap"><div class="marker"></div><div class="pstrip" id="pstrip${i}"></div></div>
+    </div>`;
+  }
+  stripsEl.innerHTML = s;
+  stripsEl.dataset.code = code;
+}
 function pvpOpenRoom(room){
   pvpCode = room.battle.code;
   pvpSeenRounds = (room.rounds||[]).length;
@@ -1962,12 +1968,10 @@ function pvpOpenRoom(room){
   pvpSpinning = false;
   window._pvpLastCase = room.battle.case_id;
   window._pvpLastRounds = room.battle.rounds;
-  $("#pvpc0").classList.remove("win");
-  $("#pvpc1").classList.remove("win");
-  $("#pstrip0").innerHTML = "";
-  $("#pstrip0").style.transform = "translateX(0)";
-  $("#pstrip1").innerHTML = "";
-  $("#pstrip1").style.transform = "translateX(0)";
+  window._pvpLastPlayers = room.battle.max_players || 2;
+  $("#pvCards").innerHTML = "";
+  $("#pvStrips").innerHTML = "";
+  $("#pvStrips").dataset.code = "";
   pvpResetFooter();
   pvpShowRoom();
   pvpRenderRoom(room);
@@ -1983,27 +1987,40 @@ function pvpOpenRoom(room){
 function pvpRenderRoom(room){
   const b = room.battle;
   const ch = CHESTS.find(c=>c.id===b.case_id);
-  $("#pvCase").textContent = `${ch ? ch.name : b.case_id} · ${b.rounds} раунд.`;
+  const maxPl = b.max_players || 2;
+  $("#pvCase").textContent = `${ch ? ch.name : b.case_id} · ${b.rounds} раунд. · 👥 ${maxPl}`;
   $("#pvCode").textContent = `Код: ${b.code}`;
-  $("#pvBank").textContent = `Банк ${fmt(b.stake*2)}`;
+  $("#pvBank").textContent = `Банк ${fmt(b.stake * maxPl)}`;
   $("#pvRound").textContent = `${(room.rounds||[]).length}/${b.rounds}`;
   const myUid = tgUserId();
-  pvpMySeat = (room.players||[]).findIndex(p=>p.user_id===myUid);
+  const players = room.players || [];
+  pvpMySeat = players.findIndex(p=>p.user_id===myUid);
   if(pvpMySeat < 0) pvpMySeat = 0;
-  for(let i=0;i<2;i++){
-    const p = (room.players||[])[i];
+  let cards = "";
+  for(let i=0;i<maxPl;i++){
+    const p = players[i];
     if(p){
-      $("#pva"+i).innerHTML = p.avatar ? `<img src="${p.avatar}">` : escHtml((p.name||"?")[0].toUpperCase());
       const vipTag = p.vip ? vipBadgeHTML() : '';
-      $("#pvn"+i).innerHTML = escHtml(p.user_id===myUid ? p.name+" (ты)" : (p.name||"?")) + vipTag;
-      $("#pvs"+i).textContent = fmt(p.score);
-      $("#pvpc"+i).classList.remove("waiting-pulse");
+      cards += `<div class="pcard" id="pvpc${i}">
+        <div class="pa">${p.avatar ? `<img src="${p.avatar}">` : escHtml((p.name||"?")[0].toUpperCase())}</div>
+        <div class="pn">${escHtml(p.user_id===myUid ? (p.name||"?")+" (ты)" : (p.name||"?"))}${vipTag}</div>
+        <div class="ps">${fmt(p.score)}</div>
+      </div>`;
     } else {
-      $("#pva"+i).textContent = "…";
-      $("#pvn"+i).textContent = "Поиск соперника…";
-      $("#pvs"+i).textContent = "0";
-      $("#pvpc"+i).classList.add("waiting-pulse");
+      cards += `<div class="pcard waiting-pulse" id="pvpc${i}">
+        <div class="pa">…</div>
+        <div class="pn">Поиск соперника…</div>
+        <div class="ps">0</div>
+      </div>`;
     }
+  }
+  $("#pvCards").innerHTML = cards;
+  pvpBuildStrips(b.code, maxPl);
+  for(let i=0;i<maxPl;i++){
+    const p = players[i];
+    const lbl = $("#pvsl"+i), sc = $("#pvsc"+i);
+    if(lbl) lbl.textContent = p ? (p.user_id===myUid ? (p.name||"?")+" (ты)" : (p.name||"?")) : `Слот ${i+1} (пуст)`;
+    if(sc) sc.textContent = p ? fmt(p.score) : "";
   }
   if(typeof room.balance === "number"){ adoptBalance(room.balance); }
 }
@@ -2011,10 +2028,15 @@ function pvpRenderLog(rounds){
   const box = $("#pvLog");
   if(!rounds || !rounds.length){ box.innerHTML = '<div class="hint" style="margin:0">Ожидание…</div>'; return; }
   box.innerHTML = rounds.map(r => {
-    const myWin = (pvpMySeat === 0 ? r.p0_cost >= r.p1_cost : r.p1_cost >= r.p0_cost);
-    const a = pvpMySeat === 0 ? r.p0_cost : r.p1_cost;
-    const b = pvpMySeat === 0 ? r.p1_cost : r.p0_cost;
-    return `<div class="rl-row"><span class="n">Раунд ${r.round_num}</span><span class="${myWin?"w":"l"}">${fmt(a)}</span><span style="color:var(--mut)">:</span><span class="${myWin?"l":"w"}">${fmt(b)}</span></div>`;
+    const data = r.round_data || [];
+    const costs = data.map(d=>parseInt(d.cost)||0);
+    const maxC = costs.length ? Math.max(...costs) : 0;
+    const cells = data.map((d, i) => {
+      const isWin = (parseInt(d.cost)||0) === maxC && maxC > 0;
+      const style = i === pvpMySeat ? "font-weight:900;text-decoration:underline" : "";
+      return `<span class="${isWin?"w":""}" style="${style}">${fmt(d.cost)}</span>`;
+    }).join('<span style="color:var(--mut)">:</span>');
+    return `<div class="rl-row"><span class="n">Раунд ${r.round_num}</span>${cells}</div>`;
   }).join("");
 }
 function pvpStartPoll(){
@@ -2074,12 +2096,14 @@ function pvpAnimateRound(round, room){
   return new Promise(async resolve => {
     const ch = CHESTS.find(c=>c.id===room.battle.case_id) || CHESTS[0];
     const pool = chestPool(ch);
-    const w0 = itemById(round.p0_item) || {id:round.p0_item, n:round.p0_item, cost:round.p0_cost};
-    const w1 = itemById(round.p1_item) || {id:round.p1_item, n:round.p1_item, cost:round.p1_cost};
-    await Promise.all([
-      spinOneStrip({wrapEl: $("#pstrip0").parentElement, stripEl: $("#pstrip0"), winner: w0, pool, ch, duration: 4.2, delay: 0, cellW: PCELL, cellClass: "pcell"}),
-      spinOneStrip({wrapEl: $("#pstrip1").parentElement, stripEl: $("#pstrip1"), winner: w1, pool, ch, duration: 4.2, delay: 0, cellW: PCELL, cellClass: "pcell"})
-    ]);
+    const data = round.round_data || [];
+    const promises = data.map((d, i) => {
+      const w = itemById(d.item) || {id:d.item, n:d.item, cost:d.cost};
+      const stripEl = document.getElementById("pstrip"+i);
+      if(!stripEl) return Promise.resolve();
+      return spinOneStrip({wrapEl: stripEl.parentElement, stripEl, winner: w, pool, ch, duration: 4.2, delay: 0, cellW: PCELL, cellClass: "pcell"});
+    });
+    await Promise.all(promises);
     resolve();
   });
 }
@@ -2089,10 +2113,11 @@ function pvpFinish(room){
   const b = room.battle;
   const myUid = tgUserId();
   const players = room.players || [];
-  const s0 = players[0] ? players[0].score : 0;
-  const s1 = players[1] ? players[1].score : 0;
-  $("#pvpc0").classList.toggle("win", s0 > s1);
-  $("#pvpc1").classList.toggle("win", s1 > s0);
+  players.forEach((p, i) => {
+    const el = document.getElementById("pvpc"+i);
+    if(el) el.classList.toggle("win", b.winner_uid != null && p.user_id === b.winner_uid);
+  });
+  const scores = players.map(p=>fmt(p.score)).join(" : ");
   let title, cls;
   if(b.winner_uid == null){ title = "🤝 Ничья: взносы возвращены"; cls = ""; }
   else if(b.winner_uid === myUid){ title = `🏆 Банк твой: +${fmt(b.prize)}`; cls = "me"; }
@@ -2100,7 +2125,7 @@ function pvpFinish(room){
   if(typeof room.balance === "number"){ adoptBalance(room.balance); }
   $("#pvFooter").innerHTML = `
     <div class="win-banner ${cls}">${title}</div>
-    <div class="hint" style="margin-bottom:12px">${fmt(s0)} : ${fmt(s1)} · банк ${fmt(b.stake*2)}</div>
+    <div class="hint" style="margin-bottom:12px">${scores} · банк ${fmt(b.stake * (b.max_players||2))}</div>
     <div style="display:flex;gap:8px;justify-content:center">
       <button class="btn pur" onclick="pvpRematch()">🔄 РЕВАНШ</button>
       <button class="btn ghost" onclick="pvpShowLobby()">В лобби</button>
@@ -2109,6 +2134,7 @@ function pvpFinish(room){
 window.pvpRematch = async () => {
   if(window._pvpLastCase) pvpSelCase = window._pvpLastCase;
   if(window._pvpLastRounds) pvpSelRounds = window._pvpLastRounds;
+  if(window._pvpLastPlayers) pvpSelPlayers = window._pvpLastPlayers;
   pvpShowLobby();
   pvpRenderChips();
   pvpRenderSums();
@@ -2120,7 +2146,7 @@ async function pvpLeaveHandler(){
   if(!confirm("Выйти из батла? В активном батле выход = поражение.")) return;
   const j = await apiPvp("/pvp/leave", {code: pvpCode});
   if(j && j.refunded){ adoptBalance(j.new_balance); toast(`Взнос возвращён: ${fmt(j.refunded)}`); }
-  if(j && j.forfeit){ toast("Ты сдался. Банк у соперника."); }
+  if(j && j.forfeit){ toast("Ты сдался. Банк у соперников."); }
   pvpShowLobby();
 }
 $("#pvLeave").onclick = pvpLeaveHandler;
