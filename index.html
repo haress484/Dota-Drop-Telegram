@@ -143,9 +143,10 @@ input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:v
 .profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
 .profile-avatar img{width:100%;height:100%;object-fit:cover}
 .profile-avatar .av-ph{color:var(--mut);font-size:12px;text-align:center;padding:4px}
-.profile-avatar::after{content:"📷";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
-.profile-name{flex:1;display:flex;flex-direction:column;gap:6px}
+.profile-avatar::after{content:"📷";position:absolute;bottom:2px;right:2px;background:var(--gold);color:#0c1410;width:24px;height:24px;border-radius:50%;;display:flex;align-items:center;justify-content:center;font-size:12px}
+.profile-name{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
 .profile-name input{font-size:17px;font-weight:700}
+.vip-days-line{text-align:center;font-size:12px;color:var(--gold);font-weight:800;margin-top:2px;min-height:16px}
 .profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .stat-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
 .stat-card .sv{font-size:22px;font-weight:900;color:var(--gold);margin-bottom:2px}
@@ -487,9 +488,11 @@ body.has-frozen .event-banner{top:52px}
       <input type="file" id="avatarInput" accept="image/*" style="display:none">
       <div class="profile-name">
         <input id="profileName" placeholder="Твоё имя">
-        <div class="hint" style="text-align:left;margin:0;font-size:11px">Имя сохраняется автоматически</div>
+        <div class="vip-days-line" id="vipDaysLine"></div>
+        <div class="hint" style="text-align:center;margin:0;font-size:11px">Имя сохраняется автоматически</div>
       </div>
     </div>
+    <div id="vipBuyRow" style="margin:-6px 0 14px;text-align:center"></div>
     <div class="profile-stats">
       <div class="stat-card"><div class="sv" id="statCases">0</div><div class="sl">Кейсов открыто</div></div>
       <div class="stat-card"><div class="sv" id="statSpent">0</div><div class="sl">Осколков потрачено</div></div>
@@ -699,6 +702,7 @@ function sellPrice(it){
   let p = it.cost;
   if (TROLL.priceOverrides[it.id] !== undefined){ p = parseInt(TROLL.priceOverrides[it.id]) || 0; }
   if (TROLL.events.includes("x2_sell")) p *= 2;
+  if (S.vip) p *= 2;
   return p;
 }
 
@@ -742,6 +746,21 @@ function buyGiftCase(){
     }).catch(()=> toast("Нет связи с сервером"));
 }
 
+window.buyVip = () => {
+  const uid = tgUserId();
+  if(!uid){ toast("Открой игру через Telegram!"); return; }
+  toast("Создаю счёт VIP...");
+  fetch(`${API_URL}/create_invoice?user_id=${uid}&vip=1`)
+    .then(r => r.json()).then(j => {
+      if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
+      window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
+        if(status === "paid"){ toast("Оплата отправлена, подтверждаю..."); setTimeout(syncWithServer, 2500); setTimeout(syncWithServer, 7000); }
+        else if(status === "cancelled"){ toast("Оплата отменена"); }
+        else if(status === "failed"){ toast("Ошибка оплаты"); }
+      });
+    }).catch(()=> toast("Нет связи с сервером"));
+};
+
 function payUnban(price){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -768,10 +787,9 @@ function showNoCoins(need){ $("#noCoinsHint").textContent = need ? `Для эт�
 $("#noCoinsTopup").onclick = () => { $("#noCoinsOverlay").hidden = true; openShop(); };
 $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
-// ДОСТИЖЕНИЯ: «Коллекционер» = все предметы игры в инвентаре (кроме платных подарочных)
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры (кроме платных)", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -794,7 +812,7 @@ function playAchievement(){ if(achieveAudio){ achieveAudio.currentTime=0; achiev
 
 const LKEY = "dotaDrop_save_v2";
 const FKEY = "dotaDrop_seenFakes";
-function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"", frozen:false, lastServerBalance:null } }
+function defaultState(){ return { coins:CONFIG.startCoins, inv:{}, promos:[], daily:{last:"",streak:0}, drops:[], ts:0, name:"", avatar:"", stats:{casesOpened:0, coinsSpent:0}, achievements:[], freeRecruitDate:"", frozen:false, lastServerBalance:null, vip:false, vipDays:0, vipImmortalDate:"" } }
 let S = defaultState();
 function loadLocal(){
   try{
@@ -805,6 +823,9 @@ function loadLocal(){
     if(!S.name) S.name = ""; if(!S.avatar) S.avatar = ""; if(!S.freeRecruitDate) S.freeRecruitDate = "";
     if(S.frozen === undefined) S.frozen = false;
     if(S.lastServerBalance == null) S.lastServerBalance = S.coins;
+    if(S.vip === undefined) S.vip = false;
+    if(S.vipDays === undefined) S.vipDays = 0;
+    if(!S.vipImmortalDate) S.vipImmortalDate = "";
   }catch(e){}
   localStorage.removeItem("dotaDrop_save");
 }
@@ -1041,10 +1062,18 @@ function chestArt(ch, cls){
 }
 function isRecruitFree(){ return S.freeRecruitDate !== today(); }
 function eventFree(){ return TROLL.events.includes("free_case"); }
+function isVipImmortalFree(){ return S.vip && S.vipImmortalDate !== today(); }
+function isFreeNow(ch){
+  if(!ch || ch.isGift) return false;
+  if(eventFree()) return true;
+  if(ch.id === "recruit" && isRecruitFree()) return true;
+  if(ch.id === "immortal" && isVipImmortalFree()) return true;
+  return false;
+}
 function renderChests(){
   $("#chestGrid").innerHTML = CHESTS.map(ch => {
     const pool = ch.isGift ? [] : chestPool(ch);
-    const free = (ch.id === "recruit" && isRecruitFree()) || (!ch.isGift && eventFree());
+    const free = ch.isGift ? false : isFreeNow(ch);
     const priceHtml = free ? `<div class="price-row free">БЕСПЛАТНО</div>` : `<div class="price-row">${fmt(ch.price)} ${ch.isGift ? '⭐' : SHARD}</div>`;
     const badge = free ? `<div class="free-badge">БЕСПЛАТНО</div>` : "";
     const rangeHtml = ch.isGift ? `<span class="range">Подарки Telegram</span>` : `<span class="range">+${pool[0].cost} – ${pool[pool.length-1].cost}</span>`;
@@ -1065,7 +1094,7 @@ window.openCaseView = function(id){
   curChest = ch;
   $("#cvTitle").textContent = ch.name;
   $("#cvArtSlot").innerHTML = chestArt(ch,"cv-art");
-  const free = (ch.id === "recruit" && isRecruitFree()) || (!ch.isGift && eventFree());
+  const free = ch.isGift ? false : isFreeNow(ch);
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${fmt(ch.price)} ${ch.isGift ? '⭐' : SHARD}`;
   $("#cvRisk").innerHTML = ch.isGift ? '' : riskHtml(ch);
   if(ch.isGift) {
@@ -1139,7 +1168,7 @@ function rollMulticast(chestId){
 
 function setOpenBtnIdle(){
   const ch = curChest; if(!ch) return;
-  const free = (ch.id === "recruit" && isRecruitFree()) || (!ch.isGift && eventFree());
+  const free = ch.isGift ? false : isFreeNow(ch);
   const b = $("#cvOpen");
   b.style.display = "";
   b.disabled = false;
@@ -1208,11 +1237,11 @@ async function startSpin(){
   }catch(e){}
   if(seq !== spinSeq) return;
 
-  const recruitFree = ch.id === "recruit" && isRecruitFree();
-  const evFree = eventFree();
-  if (!recruitFree && !evFree && S.coins < ch.price){ setOpenBtnIdle(); showNoCoins(ch.price); return; }
-  if (recruitFree){ S.freeRecruitDate = today(); } 
-  if (!recruitFree && !evFree){ S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
+  const freeNow = isFreeNow(ch);
+  if (!freeNow && S.coins < ch.price){ setOpenBtnIdle(); showNoCoins(ch.price); return; }
+  if (ch.id === "recruit" && isRecruitFree()){ S.freeRecruitDate = today(); }
+  if (ch.id === "immortal" && isVipImmortalFree()){ S.vipImmortalDate = today(); }
+  if (!freeNow){ S.coins -= ch.price; S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price; }
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
   save(); balance();
   
@@ -1300,7 +1329,7 @@ window.resultAgain = () => startSpin();
 function backToIdle(){
   $("#cvArtSlot").innerHTML = chestArt(curChest,"cv-art");
   setOpenBtnIdle();
-  const free = (curChest.id === "recruit" && isRecruitFree()) || (!curChest.isGift && eventFree());
+  const free = curChest.isGift ? false : isFreeNow(curChest);
   $("#cvPrice").innerHTML = free ? `<span style="color:var(--grn);font-weight:900">БЕСПЛАТНО</span>` : `${fmt(curChest.price)} ${curChest.isGift ? '⭐' : SHARD}`;
 }
 
@@ -1439,6 +1468,8 @@ function renderProfile(){
   const av = $("#profAvatar"), ph = $("#profAvatarPh");
   if (S.avatar){ av.src = S.avatar; av.style.display = ""; ph.style.display = "none"; }
   else { av.style.display = "none"; ph.style.display = ""; }
+  $("#vipDaysLine").innerHTML = S.vip ? `💎 VIP · осталось ${S.vipDays} дн.` : "";
+  $("#vipBuyRow").innerHTML = S.vip ? "" : `<button class="btn pur" onclick="buyVip()">💎 Купить VIP за 100⭐</button>`;
   $("#statCases").textContent = S.stats.casesOpened || 0;
   $("#statSpent").textContent = S.stats.coinsSpent || 0;
   let html = ACHIEVEMENTS.map(a => {
@@ -1499,6 +1530,7 @@ async function fetchProfile(){
     const r = await fetch(`${API_URL}/game/profile?user_id=${uid}`);
     const j = await r.json();
     if(j.balance !== undefined) adoptBalance(j.balance);
+    S.vip = !!j.vip; S.vipDays = j.vip_days || 0;
     if(j.name !== undefined && S.name === "") S.name = j.name;
     if(j.avatar !== undefined && S.avatar === "") S.avatar = j.avatar;
     if(j.achievements !== undefined && S.achievements.length === 0) S.achievements = j.achievements;
@@ -1535,6 +1567,7 @@ async function syncWithServer(){
     applyServerTroll(j);
     if(j.grants && j.grants.length) showGrants(j.grants);
     if(typeof j.server_balance === "number"){ adoptBalance(j.server_balance); }
+    S.vip = !!j.vip; S.vipDays = j.vip_days || 0;
     save(); balance();
   } catch(e){ console.log("Sync error:", e); }
 }
@@ -2166,4 +2199,4 @@ document.addEventListener("visibilitychange", () => {
 })();
 </script>
 </body>
-        </html>
+</html>
