@@ -2,1006 +2,608 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dota-Drop  Админ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Dota-Drop · Админ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--bg:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--gold:#f7c948;--grn:#3ddc84;--red:#e74c3c;--pur:#ffd35c;--blue:#3498db;--tg:#9b59b6}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);background:var(--bg);min-height:100vh;padding:12px}
-.top{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
-.top h1{font-size:17px}
-.badge{background:var(--pur);color:#241a00;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:800}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
-.stat-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
-.stat-card .sv{font-size:24px;font-weight:900;color:var(--gold);margin-bottom:4px}
-.stat-card .sl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
-@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
-.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
-.tab{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--mut)}
-.tab.active{background:var(--panel2);color:var(--gold);border-color:var(--gold)}
+:root{--bg:#0c1410;--panel:#14251a;--panel2:#1d3324;--line:rgba(140,220,160,.16);--txt:#f3efe4;--mut:#a8bfae;--gold:#f7c948;--grn:#3ddc84;--red:#e74c3c;--pur:#ffd35c;--tg:#0088cc}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);min-height:100vh;background:var(--bg);padding-bottom:50px}
+button{font-family:inherit}
+.topbar{position:sticky;top:0;z-index:6;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(10,18,12,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:18px}.logo i{font-style:italic;color:var(--gold)}
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px 14px;background:rgba(10,18,12,.85);border-bottom:1px solid var(--line)}
+.st{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center}
+.st .v{font-size:16px;font-weight:900;color:var(--gold)}
+.st .l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.tabs{position:sticky;top:57px;z-index:5;display:flex;overflow-x:auto;background:rgba(10,18,12,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex:0 0 auto;background:none;border:none;color:var(--mut);padding:12px 14px;font-size:13px;font-weight:800;cursor:pointer;border-bottom:2px solid transparent}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+main{padding:14px;max-width:560px;margin:0 auto}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-.card h2{font-size:15px;margin-bottom:10px;color:var(--gold)}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.card-header h2{margin:0}
-.row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
-.row > *{flex:1}
-input,select,textarea{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px;font-size:14px;width:100%;font-family:inherit}
-.btn{border:none;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;font-size:14px}
+.card h3{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card h3 button{width:auto;padding:5px 10px;margin:0;font-size:11px}
+.btn{border:none;border-radius:10px;padding:12px 14px;font-weight:800;cursor:pointer;color:#e8f3e8;background:#2c4634;font-size:14px;width:100%;margin-top:8px}
 .btn.pur{background:linear-gradient(180deg,var(--pur),#e8a41c);color:#241a00}
 .btn.grn{background:linear-gradient(180deg,#4ae89a,#2ecc71);color:#0c1410}
 .btn.red{background:var(--red);color:#fff}
-.btn.blue{background:var(--blue);color:#fff}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:#cfe8cf}
-.btn.sm{padding:6px 10px;font-size:11px}
-.btn:disabled{opacity:.5;cursor:default}
-.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.btn-row .btn{flex:1;min-width:70px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;word-break:break-word}
-th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-.tr-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
-.tr-actions .btn{padding:6px 10px;font-size:11px;flex:1;min-width:50px;max-width:80px;text-align:center}
-.empty{text-align:center;color:var(--mut);padding:20px}
-.hint{color:var(--mut);font-size:12px;margin-top:6px}
-#toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:6px}
-.toast{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:8px 18px;font-size:13px}
-.balance-big{font-size:28px;font-weight:900;color:var(--gold);text-align:center;padding:10px 0}
-.search-box{margin-bottom:12px}
-.search-box input{background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--txt);width:100%}
-
-.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(6,12,8,.95);display:flex;align-items:center;justify-content:center;padding:16px}
-.modal-overlay[hidden]{display:none}
-.modal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto}
-.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.modal-header h3{font-size:18px;color:var(--gold)}
-.modal-close{background:none;border:none;color:var(--mut);font-size:24px;cursor:pointer}
-.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
-.detail-row .dl{color:var(--mut);font-size:13px}
-.detail-row .dv{font-weight:700;font-size:14px}
-.detail-section{margin-top:16px}
-.detail-section h4{font-size:14px;color:var(--gold);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
-
-.inv-item{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:6px}
-.inv-item img{width:52px;height:40px;object-fit:contain}
-.inv-item .in{flex:1;font-size:13px;font-weight:600}
-.inv-item .ic{color:var(--gold);font-size:12px;font-weight:700}
-
-.picker-overlay{position:fixed;inset:0;z-index:200;background:rgba(6,12,8,.97);display:flex;flex-direction:column;padding:16px}
-.picker-overlay[hidden]{display:none}
-.picker-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;max-height:90vh;display:flex;flex-direction:column}
-.picker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.picker-header h3{font-size:16px;color:var(--gold)}
-.picker-close{background:none;border:none;color:var(--mut);font-size:22px;cursor:pointer}
-.picker-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.pick-row{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer}
-.pick-row:hover{background:var(--panel2)}
-.pick-row img{width:52px;height:40px;object-fit:contain}
+.btn.blue{background:var(--tg);color:#fff}
+.btn.outline{background:transparent;border:1px solid var(--line);color:#cfe8cf}
+.btn.sm{width:auto;padding:6px 12px;font-size:12px;margin:0}
+.btn:disabled{opacity:.4;cursor:default}
+input,select,textarea{background:#0d1a12;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:11px;font-size:14px;width:100%;margin-top:8px}
+textarea{min-height:90px;resize:vertical}
+label{font-size:11px;color:var(--mut);font-weight:700;display:block;margin-top:8px}
+.row{display:flex;gap:8px;align-items:center}
+.row .btn{margin-top:8px}
+.chip-line{display:flex;align-items:center;gap:8px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-top:8px}
+.chip-line .cn{flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-line .cn small{display:block;color:var(--mut);font-weight:600;font-size:10px}
+.tpl-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tpl{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:6px 12px;font-size:12px;font-weight:800;color:#cfe8cf;cursor:pointer}
+.tpl:active{border-color:var(--gold);color:var(--gold)}
+.prow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.prow:last-child{border:none}
+.prow .ava{width:40px;height:40px;border-radius:50%;background:var(--panel2);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0;overflow:hidden}
+.prow .nm{flex:1;min-width:0}
+.prow .nm b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .nm b .badge-vip{margin-left:4px}
+.prow .nm span{font-size:11px;color:var(--mut)}
+.prow .bl{color:var(--gold);font-weight:800;font-size:13px;text-align:right;white-space:nowrap}
+.prow .bl small{display:block;color:var(--mut);font-weight:600}
+.badge-ban{background:var(--red);color:#fff;border-radius:8px;font-size:9px;font-weight:900;padding:2px 6px;vertical-align:middle}
+.badge-vip{background:linear-gradient(180deg,#ffe95c,#c8860a);color:#241a00;border-radius:8px;font-size:9px;font-weight:900;padding:2px 6px;vertical-align:middle}
+.gift-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.gift-cell{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer}
+.gift-cell.active{border-color:var(--gold);box-shadow:0 0 10px rgba(247,201,72,.3)}
+.gift-cell img{width:44px;height:44px;object-fit:contain}
+.gift-cell .gn{font-size:10px;font-weight:700;margin-top:4px}
+.gift-cell .gp{font-size:10px;color:var(--gold);font-weight:800}
+.grline{font-size:12px;padding:7px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.grline:last-child{border:none}
+.grline b{color:var(--gold)}
+.grline .dim{color:var(--mut);font-size:10px}
+.invlist{max-height:220px;overflow-y:auto;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;font-size:12px}
+.invlist div{padding:4px 0;border-bottom:1px solid var(--line)}
+.invlist div:last-child{border:none}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(6,12,8,.97);display:flex;flex-direction:column;justify-content:center;padding:16px}
+.overlay[hidden]{display:none}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;margin:auto}
+.case-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:800;font-size:16px}
+.x{background:none;border:none;color:var(--mut);font-size:22px;cursor:pointer;line-height:1}
+.pick-row{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:6px;cursor:pointer}
+.pick-row img{width:44px;height:34px;object-fit:contain}
 .pick-row .pn{flex:1;font-size:13px;font-weight:600}
 .pick-row .pc{color:var(--mut);font-size:11px}
-
-.player-info{display:flex;flex-direction:column;gap:2px}
-.player-name{font-weight:600;font-size:13px}
-.player-balance{color:var(--gold);font-size:11px}
-.player-items{color:var(--mut);font-size:11px}
-.player-items a{color:var(--blue);cursor:pointer;text-decoration:underline}
-
-.gift-templates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.gift-temp{background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;cursor:pointer;transition:transform .1s}
-.gift-temp:active{transform:scale(.95)}
-.gift-temp img{width:40px;height:40px;object-fit:contain;margin-bottom:4px}
-.gift-temp .gn{font-size:11px;font-weight:700}
-.gift-temp .gp{font-size:10px;color:var(--gold)}
-
-.selector-item{display:flex;align-items:center;gap:10px;background:#0d1a12;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer}
-.selector-item:hover{background:var(--panel2)}
-.selector-item .si-name{flex:1;font-size:13px;font-weight:600}
-.selector-item .si-id{color:var(--mut);font-size:11px}
-
-.field-with-select{display:flex;gap:6px;align-items:center}
-.field-with-select input{flex:1}
-.field-with-select .btn{flex:0 0 auto;padding:10px 12px}
-
-.section-divider{margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
-
-@keyframes spin{to{transform:rotate(360deg)}}
-.refreshing{display:inline-block;animation:spin 1s linear infinite}
+.hint{color:var(--mut);font-size:12px;margin-top:6px}
+[hidden]{display:none !important}
 </style>
 </head>
 <body>
-
-<div class="top">
-  <h1>🛠 Dota Drop · Админ</h1>
-  <span class="badge" id="ownerBadge">—</span>
+<header class="topbar">
+  <div class="logo">🛠 Dota Drop <i>· Админ</i></div>
+  <button class="btn outline sm" onclick="refreshCurrent()">🔄</button>
+</header>
+<div class="stats-strip">
+  <div class="st"><div class="v" id="stPlayers">—</div><div class="l">Игроков</div></div>
+  <div class="st"><div class="v" id="stStars">—</div><div class="l">Звёзд</div></div>
+  <div class="st"><div class="v" id="stGrants">—</div><div class="l">Выдач</div></div>
+  <div class="st"><div class="v" id="stPromos">—</div><div class="l">Промо</div></div>
 </div>
+<nav class="tabs">
+  <button class="tab-btn active" data-t="players">👥 Игроки</button>
+  <button class="tab-btn" data-t="grant">💎 Выдачи</button>
+  <button class="tab-btn" data-t="gifts">🎁 Подарки</button>
+  <button class="tab-btn" data-t="promo">🎫 Промо</button>
+  <button class="tab-btn" data-t="pay">💳 Платежи</button>
+  <button class="tab-btn" data-t="send">📢 Сообщения</button>
+</nav>
+<main>
+  <!-- ИГРОКИ -->
+  <section id="t-players">
+    <div class="card">
+      <h3>Список игроков <button class="btn outline sm" onclick="loadPlayers()">🔄 Обновить</button></h3>
+      <input id="pSearch" placeholder="Поиск: имя / id / @username" oninput="renderPlayers()">
+      <div id="playerList"><div class="hint">Загрузка…</div></div>
+    </div>
+  </section>
 
-<div class="stats-grid" id="statsGrid">
-  <div class="stat-card"><div class="sv" id="statPlayers">—</div><div class="sl">Игроков</div></div>
-  <div class="stat-card"><div class="sv" id="statStars">—</div><div class="sl">Звёзд</div></div>
-  <div class="stat-card"><div class="sv" id="statGrants">—</div><div class="sl">Выдач</div></div>
-  <div class="stat-card"><div class="sv" id="statPromos">—</div><div class="sl">Промо</div></div>
-</div>
+  <!-- ВЫДАЧИ -->
+  <section id="t-grant" hidden>
+    <div class="card">
+      <h3>Выдать игроку</h3>
+      <div class="chip-line"><button class="btn blue sm" onclick="openPlayerPicker()">👥</button><div class="cn" id="chipGrant">игрок не выбран</div></div>
+      <label>Тип выдачи</label>
+      <select id="gType" onchange="toggleItemRow()">
+        <option value="coins">Осколки</option>
+        <option value="item">Предмет</option>
+        <option value="all_items">Все предметы игры</option>
+      </select>
+      <div id="itemRow" hidden>
+        <button class="btn outline" onclick="openItemPicker()">🔍 ВЫБРАТЬ ПРЕДМЕТ</button>
+        <div class="hint" id="itemSelName">предмет не выбран</div>
+      </div>
+      <label>Количество</label>
+      <input id="gAmount" placeholder="0" inputmode="numeric">
+      <div class="tpl-row">
+        <span class="tpl" onclick="setAmt(100)">+100</span>
+        <span class="tpl" onclick="setAmt(500)">+500</span>
+        <span class="tpl" onclick="setAmt(1000)">+1000</span>
+        <span class="tpl" onclick="setAmt(5000)">+5000</span>
+        <span class="tpl" onclick="setAmt(-500)">-500</span>
+      </div>
+      <label>Причина (необязательно)</label>
+      <input id="gReason" placeholder="Напр. компенсация / тест">
+      <button class="btn pur" onclick="doGrant()">ВЫДАТЬ</button>
+    </div>
+    <div class="card">
+      <h3>💎 VIP-статус</h3>
+      <div class="chip-line"><button class="btn blue sm" onclick="openPlayerPicker()">👥</button><div class="cn" id="chipVip">игрок не выбран</div></div>
+      <label>Дней VIP (по умолчанию 30, продлевает к остатку)</label>
+      <input id="vipDays" value="30" inputmode="numeric">
+      <button class="btn pur" onclick="doGrantVip()">💎 ВЫДАТЬ VIP</button>
+      <div class="hint">VIP = x2 продажа + бесплатный Иммортал раз в день. Игрок увидит статус в профиле после синка (≤15 сек).</div>
+    </div>
+    <div class="card">
+      <h3>⚠️ Аннулировать всё</h3>
+      <div class="chip-line"><button class="btn blue sm" onclick="openPlayerPicker()">👥</button><div class="cn" id="chipAnn">игрок не выбран</div></div>
+      <select id="annType">
+        <option value="coins">Осколки (обнулит баланс до 0)</option>
+        <option value="items">Предметы (очистит весь инвентарь)</option>
+      </select>
+      <button class="btn red" onclick="doAnnihilate()">АННУЛИРОВАТЬ ВСЁ</button>
+    </div>
+    <div class="card">
+      <h3>Массовая выдача всем</h3>
+      <input id="gaAmount" placeholder="Сколько осколков каждому" inputmode="numeric">
+      <input id="gaReason" placeholder="Причина (необязательно)">
+      <button class="btn pur" onclick="doGrantAll()">РАЗДАТЬ ВСЕМ ИГРОКАМ</button>
+    </div>
+  </section>
 
-<div class="tabs" id="tabs">
-  <div class="tab active" data-tab="players">👥 Игроки</div>
-  <div class="tab" data-tab="grants">💎 Выдачи</div>
-  <div class="tab" data-tab="gifts">🎁 Подарки</div>
-  <div class="tab" data-tab="promos">🎫 Промо</div>
-  <div class="tab" data-tab="payments">💳 Платежи</div>
-  <div class="tab" data-tab="messages">📢 Сообщения</div>
-</div>
+  <!-- ПОДАРКИ -->
+  <section id="t-gifts" hidden>
+    <div class="card">
+      <h3>Баланс бота</h3>
+      <div class="st" style="padding:12px"><div class="v" id="botStars">—</div><div class="l">Stars на балансе бота</div></div>
+      <button class="btn pur" onclick="topupBot()">ПОПОЛНИТЬ</button>
+      <div class="hint">Откроется окно оплаты Telegram: звёзды спишутся с твоего аккаунта и упадут на баланс бота.</div>
+    </div>
+    <div class="card">
+      <h3>Отправить подарок</h3>
+      <div class="chip-line"><button class="btn blue sm" onclick="openPlayerPicker()">👥</button><div class="cn" id="chipGift">игрок не выбран</div></div>
+      <div class="hint" style="margin-top:10px">Шаблоны подарков (нажми, чтобы выбрать):</div>
+      <div class="gift-grid" id="giftGrid"></div>
+      <button class="btn pur" onclick="doSendGift()">ОТПРАВИТЬ ПОДАРОК</button>
+    </div>
+  </section>
 
-<div class="card tab-pane" data-pane="players">
-  <div class="card-header">
-    <h2>Список игроков</h2>
-    <button class="btn ghost" id="refreshBtn" onclick="refreshAllData()" style="padding:8px 14px;font-size:13px">🔄 Обновить</button>
-  </div>
-  <div class="search-box">
-    <input id="playerSearch" placeholder="🔍 Поиск по ID, имени или username..." oninput="filterPlayers()">
-  </div>
-  <div id="playersBody"><div class="empty">Загрузка…</div></div>
-</div>
+  <!-- ПРОМО -->
+  <section id="t-promo" hidden>
+    <div class="card">
+      <h3>Создать промокод</h3>
+      <input id="prCode" placeholder="КОД (латиница, верхний регистр)">
+      <input id="prAmount" placeholder="Сумма осколков" inputmode="numeric">
+      <input id="prUses" placeholder="Максимум активаций (1)" inputmode="numeric">
+      <label><input type="checkbox" id="prSecret" style="width:auto;margin:0 6px 0 0">секретный (даёт ачивку, не осколки)</label>
+      <button class="btn pur" onclick="promoCreate()">СОЗДАТЬ</button>
+    </div>
+    <div class="card"><h3>Существующие</h3><div id="promoList"><div class="hint">Загрузка…</div></div></div>
+  </section>
 
-<div class="card tab-pane" data-pane="grants" style="display:none">
-  <h2>Выдать игроку</h2>
-  <div class="row">
-    <div class="field-with-select" style="flex:1">
-      <input id="gUid" type="number" placeholder="ID игрока">
-      <button class="btn ghost" onclick="openPlayerSelector('gUid')">👥</button>
-    </div>
-    <select id="gType">
-      <option value="coins">Осколки</option>
-      <option value="item">Предмет</option>
-    </select>
-  </div>
-  <div class="row">
-    <input id="gAmount" type="number" placeholder="Сумма (отрицательное = списать)">
-    <input id="gItem" placeholder="item_id (если предмет)" style="display:none">
-  </div>
-  <button id="btnPickItem" class="btn ghost" style="display:none;margin-bottom:8px" onclick="openItemPicker()">🔍 ВЫБРАТЬ ПРЕДМЕТ</button>
-  
-  <div class="hint" style="margin-bottom:6px">Быстрые шаблоны (только для осколков):</div>
-  <div class="btn-row">
-    <button class="btn ghost" onclick="setAmount(100)">+100</button>
-    <button class="btn ghost" onclick="setAmount(500)">+500</button>
-    <button class="btn ghost" onclick="setAmount(1000)">+1000</button>
-    <button class="btn ghost" onclick="setAmount(5000)">+5000</button>
-    <button class="btn ghost" onclick="setAmount(-500)">-500</button>
-  </div>
-  
-  <input id="gReason" placeholder="Причина (необязательно, для окошка игроку)" style="margin-top:8px">
-  <div class="row" style="margin-top:8px">
-    <button class="btn pur" onclick="grantOne()">ВЫДАТЬ</button>
-  </div>
-  
-  <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
-    <h2 style="color:var(--red)">⚠️ Аннулировать всё</h2>
-    <div class="hint" style="margin-bottom:8px">
-      Если выбрано "Осколки" — обнулит баланс игрока до 0.<br>
-      Если выбрано "Предметы" — очистит весь инвентарь игрока.
-    </div>
-    <button class="btn red" onclick="annihilate()" style="width:100%">АННУЛИРОВАТЬ ВСЁ</button>
-  </div>
-  
-  <hr style="margin:16px 0;border-color:var(--line)">
-  <h2>Массовая выдача всем</h2>
-  <div class="row">
-    <input id="gaAmount" type="number" placeholder="Сумма осколков">
-    <input id="gaReason" placeholder="Причина (для всех)">
-  </div>
-  <button class="btn red" onclick="grantAll()">РАЗДАТЬ ВСЕМ ИГРОКАМ</button>
-</div>
+  <!-- ПЛАТЕЖИ -->
+  <section id="t-pay" hidden>
+    <div class="card"><h3>Лента донатов</h3><div id="payList"><div class="hint">Загрузка…</div></div></div>
+  </section>
 
-<div class="card tab-pane" data-pane="gifts" style="display:none">
-  <h2>Баланс бота</h2>
-  <div class="balance-big"><span id="botStars">0</span> ⭐</div>
-  <div class="row">
-    <input id="topupStars" type="number" placeholder="Сколько звёзд внести">
-    <button class="btn grn" onclick="topupBot()">ПОПОЛНИТЬ</button>
-  </div>
-  <div class="hint">При нажатии "Пополнить" откроется окно оплаты Telegram. Звёзды спишутся с твоего аккаунта и зачислятся на баланс бота.</div>
-  <hr style="margin:16px 0;border-color:var(--line)">
-  <h2>Отправить подарок</h2>
-  <div class="row">
-    <div class="field-with-select" style="flex:1">
-      <input id="giftUid" type="number" placeholder="ID получателя">
-      <button class="btn ghost" onclick="openPlayerSelector('giftUid')">👥</button>
+  <!-- СООБЩЕНИЯ -->
+  <section id="t-send" hidden>
+    <div class="card">
+      <h3>Личное сообщение</h3>
+      <div class="chip-line"><button class="btn blue sm" onclick="openPlayerPicker()">👥</button><div class="cn" id="chipMsg">игрок не выбран</div></div>
+      <textarea id="msgText" placeholder="Текст сообщения"></textarea>
+      <button class="btn pur" onclick="sendOne()">ОТПРАВИТЬ</button>
     </div>
-    <input id="giftIdInput" type="text" placeholder="ID подарка">
-  </div>
-  
-  <div class="hint" style="margin-top:8px">Шаблоны подарков (нажми, чтобы подставить ID):</div>
-  <div class="gift-templates">
-    <div class="gift-temp" onclick="setGift('5170145012310081615')">
-      <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_heart.png" alt="">
-      <div class="gn">💝 Сердечко</div>
-      <div class="gp">15 ⭐</div>
+    <div class="card">
+      <h3>Рассылка всем</h3>
+      <textarea id="bcText" placeholder="Текст рассылки"></textarea>
+      <button class="btn red" onclick="sendAll()">РАЗОСЛАТЬ ВСЕМ</button>
     </div>
-    <div class="gift-temp" onclick="setGift('5170233102089322756')">
-      <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_teddy.png" alt="">
-      <div class="gn">🧸 Мишка</div>
-      <div class="gp">15 ⭐</div>
-    </div>
-    <div class="gift-temp" onclick="setGift('5170250947678437525')">
-      <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_box.png" alt="">
-      <div class="gn">🎁 Подарок</div>
-      <div class="gp">25 ⭐</div>
-    </div>
-    <div class="gift-temp" onclick="setGift('5168103777563050263')">
-      <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_rose.png" alt="">
-      <div class="gn">🌹 Роза</div>
-      <div class="gp">25 ⭐</div>
-    </div>
-    <div class="gift-temp" onclick="setGift('5170144170496491616')">
-      <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_cake.png" alt="">
-      <div class="gn">🎂 Торт</div>
-      <div class="gp">50 ⭐</div>
-    </div>
-    <div class="gift-temp" onclick="setGift('5170314324215857265')">
-      <img src="https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/gift_bouquet.png" alt="">
-      <div class="gn">💐 Букет</div>
-      <div class="gp">50 ⭐</div>
-    </div>
-  </div>
-  
-  <button class="btn pur" onclick="sendGiftManual()" style="margin-top:12px;width:100%">ОТПРАВИТЬ ПОДАРОК</button>
-</div>
+  </section>
+</main>
 
-<div class="card tab-pane" data-pane="promos" style="display:none">
-  <h2>Создать промокод</h2>
-  <div class="row">
-    <input id="pCode" placeholder="Код (напр. NEWYEAR)">
-    <input id="pAmount" type="number" placeholder="Сумма осколков">
-  </div>
-  <div class="row">
-    <input id="pMax" type="number" placeholder="Макс. активаций (1 = разовый)">
-    <label style="display:flex;align-items:center;gap:6px;color:var(--mut);font-size:13px">
-      <input id="pSecret" type="checkbox" style="width:auto"> секретный (ачивка)
-    </label>
-  </div>
-  <button class="btn pur" onclick="promoCreate()">СОЗДАТЬ</button>
-  <hr style="margin:16px 0;border-color:var(--line)">
-  <h2>Существующие</h2>
-  <div id="promosBody"><div class="empty">Загрузка…</div></div>
-</div>
-
-<div class="card tab-pane" data-pane="payments" style="display:none">
-  <h2>Лента донатов</h2>
-  <div id="paymentsBody"><div class="empty">Загрузка…</div></div>
-</div>
-
-<div class="card tab-pane" data-pane="messages" style="display:none">
-  <h2>Личное сообщение</h2>
-  <div class="row">
-    <div class="field-with-select" style="flex:1">
-      <input id="mUid" type="number" placeholder="ID игрока">
-      <button class="btn ghost" onclick="openPlayerSelector('mUid')">👥</button>
-    </div>
-  </div>
-  <textarea id="mText" rows="3" placeholder="Текст сообщения"></textarea>
-  <button class="btn pur" onclick="sendOne()" style="margin-top:8px;width:100%">ОТПРАВИТЬ</button>
-  <hr style="margin:16px 0;border-color:var(--line)">
-  <h2>Рассылка всем</h2>
-  <textarea id="bText" rows="3" placeholder="Текст для всех игроков"></textarea>
-  <button class="btn red" onclick="broadcast()" style="margin-top:8px;width:100%">РАЗослать ВСЕМ</button>
-</div>
-
-<!-- Пикер предметов -->
-<div class="picker-overlay" id="itemPicker" hidden>
-  <div class="picker-box">
-    <div class="picker-header">
-      <h3>Выбери предмет</h3>
-      <button class="picker-close" onclick="closeItemPicker()">✕</button>
-    </div>
-    <input id="pickerSearch" placeholder="🔍 Поиск предмета..." oninput="filterItems()">
-    <div class="picker-list" id="pickerList"></div>
+<!-- МОДАЛКА: ВЫБОР ИГРОКА -->
+<div class="overlay" id="mPlayer" hidden>
+  <div class="mbox">
+    <div class="case-top"><span>Выбрать игрока</span><button class="x" onclick="closeM('mPlayer')">✕</button></div>
+    <input id="mpSearch" placeholder="Поиск…" oninput="renderPickerPlayers()">
+    <div id="mpList" style="max-height:50vh;overflow-y:auto"></div>
   </div>
 </div>
 
-<!-- Модалка деталей игрока -->
-<div class="modal-overlay" id="playerModal" hidden>
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3 id="modalTitle">Детали игрока</h3>
-      <button class="modal-close" onclick="closePlayerModal()">✕</button>
-    </div>
-    <div id="modalContent">Загрузка…</div>
+<!-- МОДАЛКА: ВЫБОР ПРЕДМЕТА -->
+<div class="overlay" id="mItem" hidden>
+  <div class="mbox">
+    <div class="case-top"><span>Выбери предмет</span><button class="x" onclick="closeM('mItem')">✕</button></div>
+    <input id="miSearch" placeholder="Поиск…" oninput="renderPickerItems()">
+    <div id="miList" style="max-height:55vh;overflow-y:auto"></div>
   </div>
 </div>
 
-<!-- Модалка инвентаря игрока -->
-<div class="modal-overlay" id="inventoryModal" hidden>
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3 id="invModalTitle">Инвентарь игрока</h3>
-      <button class="modal-close" onclick="closeInventoryModal()">✕</button>
-    </div>
-    <div id="invModalContent">Загрузка…</div>
+<!-- МОДАЛКА: ДЕТАЛИ ИГРОКА -->
+<div class="overlay" id="mDetails" hidden>
+  <div class="mbox">
+    <div class="case-top"><span>Детали игрока</span><button class="x" onclick="closeM('mDetails')">✕</button></div>
+    <div id="detBody"><div class="hint">Загрузка…</div></div>
   </div>
 </div>
 
-<!-- Селектор игроков -->
-<div class="modal-overlay" id="playerSelectorModal" hidden>
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3>Выбрать игрока</h3>
-      <button class="modal-close" onclick="closePlayerSelector()">✕</button>
-    </div>
-    <input id="selectorSearch" placeholder="🔍 Поиск по ID, имени или username..." oninput="filterSelectorPlayers()" style="margin-bottom:12px">
-    <div id="selectorList" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+<!-- МОДАЛКА: ИНВЕНТАРЬ -->
+<div class="overlay" id="mInv" hidden>
+  <div class="mbox">
+    <div class="case-top"><span>Инвентарь игрока</span><button class="x" onclick="closeM('mInv')">✕</button></div>
+    <div id="invBody"><div class="hint">Загрузка…</div></div>
   </div>
 </div>
-
-<div id="toasts"></div>
 
 <script>
 const API = "https://dota-drop-telegram.onrender.com";
-const tg = window.Telegram?.WebApp;
-const initData = tg?.initData || "";
-
-if (!initData) {
-  document.body.innerHTML = '<div class="card"><h2>⛔ Открыть можно только из Telegram</h2></div>';
-}
-
-function escapeHtml(text){
-  if(text === null || text === undefined) return "";
-  if(typeof text !== "string") text = String(text);
-  return text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-}
-
-function sanitizeName(name){
-  if(!name) return "";
-  name = name.replace(/[\x00-\x1F\x7F\x80-\x9F]/g, "");
-  name = name.replace(/[\n\r\t]/g, " ");
-  name = name.replace(/\s+/g, " ").trim();
-  if(name.length > 40) name = name.slice(0, 37) + "...";
-  return name;
-}
-
-function formatPlayerName(p){
-  if(!p) return "Неизвестно";
-  let firstName = sanitizeName(p.first_name);
-  let lastName = sanitizeName(p.last_name);
-  let username = sanitizeName(p.username);
-  let fullName = (firstName + " " + lastName).trim();
-  if(!fullName && !username) return "Пользователь #" + p.user_id;
-  if(!fullName && username) return "@" + username;
-  if(fullName && !username) return fullName;
-  return fullName + " (@" + username + ")";
-}
-
-function formatDate(isoString){
-  if(!isoString) return "—";
-  try {
-    const d = new Date(isoString);
-    if(isNaN(d.getTime())) return "—";
-    return d.toLocaleString("ru");
-  } catch(e){ return "—"; }
-}
-
-function toast(m){
-  const t = document.createElement("div");
-  t.className = "toast"; t.textContent = m;
-  document.getElementById("toasts").appendChild(t);
-  setTimeout(()=>t.remove(), 2600);
-}
-
-async function api(path, body){
-  try {
-    const r = await fetch(API + path, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({initData, ...(body||{})})
-    });
-    const j = await r.json();
-    if (j.error === "forbidden") {
-      document.body.innerHTML = '<div class="card"><h2>⛔ Доступ только для администратора</h2></div>';
-      throw new Error("forbidden");
-    }
-    return j;
-  } catch(e) {
-    toast("Ошибка: " + e.message);
-    throw e;
-  }
-}
-
-// Переключение вкладок
-document.querySelectorAll(".tab").forEach(t => {
-  t.onclick = () => {
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    document.querySelectorAll(".tab-pane").forEach(p=>p.style.display="none");
-    document.querySelector(`[data-pane="${t.dataset.tab}"]`).style.display = "";
-  };
-});
-
-// Кнопка обновления всех данных без перезагрузки страницы
-window.refreshAllData = async () => {
-  const btn = document.getElementById("refreshBtn");
-  const oldHtml = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="refreshing">🔄</span> Обновление...';
-  try {
-    await Promise.all([
-      loadStats(),
-      loadPlayers(),
-      loadPromos(),
-      loadPayments(),
-      loadBotBalance()
-    ]);
-    toast("✅ Данные обновлены");
-  } catch(e) {
-    toast("Ошибка обновления");
-  }
-  btn.disabled = false;
-  btn.innerHTML = oldHtml;
-};
-
-// Смена типа выдачи
-document.getElementById("gType").onchange = e => {
-  const isItem = e.target.value === "item";
-  document.getElementById("gAmount").style.display = isItem ? "none" : "";
-  document.getElementById("gItem").style.display = isItem ? "" : "none";
-  document.getElementById("btnPickItem").style.display = isItem ? "" : "none";
-};
-
-window.setAmount = (val) => {
-  document.getElementById("gAmount").value = val;
-};
-
-// Статистика
-async function loadStats(){
-  try {
-    const j = await api("/admin/stats");
-    document.getElementById("statPlayers").textContent = j.players || 0;
-    document.getElementById("statStars").textContent = j.stars || 0;
-    document.getElementById("statGrants").textContent = j.grants || 0;
-    document.getElementById("statPromos").textContent = j.promos || 0;
-  } catch(e){}
-}
-
-// Данные для пикера предметов
-const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
 const GIFT_CDN = "https://raw.githubusercontent.com/haress484/Dota-Drop-Telegram/main/";
+let INIT = "";
+let PLAYERS = [];
+let BANS = {};
+let SEL_UID = null, SEL_NAME = "";
+let SEL_ITEM = null;
+let SEL_GIFT = null;
+let CUR_UID = null;
 
-const GIFT_NAMES = {
-  "gift_heart":"💝 Сердечко","gift_teddy":"🧸 Мишка","gift_box":"🎁 Подарок",
-  "gift_rose":"🌹 Роза","gift_cake":"🎂 Торт","gift_bouquet":"💐 Букет","gift_case":"🎁 Подарочный кейс"
-};
-
-const ITEMS = [
- {id:"royale_with_cheese",n:"Royale With Cheese",cost:2},{id:"tango_single",n:"Tango (Shared)",cost:30},{id:"blood_grenade",n:"Blood Grenade",cost:50},
- {id:"courier",n:"Animal Courier",cost:50},{id:"smoke_of_deceit",n:"Smoke of Deceit",cost:50},{id:"ward_dispenser",n:"Observer & Sentry Wards",cost:50},
- {id:"ward_sentry",n:"Sentry Ward",cost:50},{id:"branches",n:"Iron Branch",cost:55},{id:"clarity",n:"Clarity",cost:60},
- {id:"enchanted_mango",n:"Enchanted Mango",cost:65},{id:"faerie_fire",n:"Faerie Fire",cost:65},{id:"tome_of_knowledge",n:"Tome of Knowledge",cost:75},
- {id:"dust",n:"Dust of Appearance",cost:80},{id:"tango",n:"Tango",cost:90},{id:"flask",n:"Healing Salve",cost:100},
- {id:"flying_courier",n:"Flying Courier",cost:100},{id:"quelling_blade",n:"Quelling Blade",cost:100},{id:"stout_shield",n:"Stout Shield",cost:100},
- {id:"tpscroll",n:"Town Portal Scroll",cost:100},{id:"gauntlets",n:"Gauntlets of Strength",cost:140},{id:"mantle",n:"Mantle of Intelligence",cost:140},
- {id:"slippers",n:"Slippers of Agility",cost:140},{id:"circlet",n:"Circlet",cost:155},{id:"ring_of_protection",n:"Ring of Protection",cost:175},
- {id:"ring_of_regen",n:"Ring of Regen",cost:175},{id:"sobi_mask",n:"Sage's Mask",cost:175},{id:"magic_stick",n:"Magic Stick",cost:200},
- {id:"infused_raindrop",n:"Infused Raindrops",cost:225},{id:"wind_lace",n:"Wind Lace",cost:225},{id:"fluffy_hat",n:"Fluffy Hat",cost:250},
- {id:"wizard_hat",n:"Wizard Hat",cost:250},{id:"blight_stone",n:"Orb of Blight",cost:300},{id:"orb_of_frost",n:"Orb of Frost",cost:300},
- {id:"orb_of_venom",n:"Orb of Venom",cost:350},{id:"buckler",n:"Buckler",cost:425},{id:"headdress",n:"Headdress",cost:425},
- {id:"ring_of_basilius",n:"Ring of Basilius",cost:425},{id:"belt_of_strength",n:"Belt of Strength",cost:450},{id:"blades_of_attack",n:"Blades of Attack",cost:450},
- {id:"boots_of_elves",n:"Band of Elvenskin",cost:450},{id:"crown",n:"Crown",cost:450},{id:"gloves",n:"Gloves of Haste",cost:450},
- {id:"robe",n:"Robe of the Magi",cost:450},{id:"shawl",n:"Sparkling Shawl",cost:450},{id:"magic_wand",n:"Magic Wand",cost:460},
- {id:"boots",n:"Boots of Speed",cost:500},{id:"chainmail",n:"Chainmail",cost:500},{id:"bracer",n:"Bracer",cost:505},
- {id:"null_talisman",n:"Null Talisman",cost:505},{id:"wraith_band",n:"Wraith Band",cost:505},{id:"voodoo_mask",n:"Voodoo Mask",cost:650},
- {id:"bottle",n:"Bottle",cost:675},{id:"ring_of_health",n:"Ring of Health",cost:700},{id:"void_stone",n:"Void Stone",cost:700},
- {id:"energy_booster",n:"Energy Booster",cost:800},{id:"soul_ring",n:"Soul Ring",cost:805},{id:"urn_of_shadows",n:"Urn of Shadows",cost:825},
- {id:"quarterstaff",n:"Quarterstaff",cost:875},{id:"chasm_stone",n:"Chasm Stone",cost:900},{id:"cloak",n:"Cloak",cost:900},
- {id:"gem",n:"Gem of True Sight",cost:900},{id:"javelin",n:"Javelin",cost:900},{id:"lifesteal",n:"Morbid Mask",cost:900},
- {id:"shadow_amulet",n:"Shadow Amulet",cost:900},{id:"tranquil_boots",n:"Tranquil Boots",cost:900},{id:"splintmail",n:"Splintmail",cost:950},
- {id:"helm_of_iron_will",n:"Helm of Iron Will",cost:975},{id:"blade_of_alacrity",n:"Blade of Alacrity",cost:1000},{id:"blitz_knuckles",n:"Blitz Knuckles",cost:1000},
- {id:"broadsword",n:"Broadsword",cost:1000},{id:"cheese",n:"Cheese",cost:1000},{id:"diadem",n:"Diadem",cost:1000},
- {id:"ogre_axe",n:"Ogre Axe",cost:1000},{id:"pocket_roshan",n:"Pocket Roshan",cost:1000},{id:"refresher_shard",n:"Refresher Shard",cost:1000},
- {id:"staff_of_wizardry",n:"Staff of Wizardry",cost:1000},{id:"vitality_booster",n:"Vitality Booster",cost:1000},{id:"orb_of_corrosion",n:"Orb of Corrosion",cost:1050},
- {id:"falcon_blade",n:"Falcon Blade",cost:1125},{id:"cornucopia",n:"Cornucopia",cost:1200},{id:"point_booster",n:"Point Booster",cost:1200},
- {id:"talisman_of_evasion",n:"Talisman of Evasion",cost:1300},{id:"claymore",n:"Claymore",cost:1350},{id:"pavise",n:"Pavise",cost:1350},
- {id:"aghanims_shard",n:"Aghanim's Shard",cost:1400},{id:"pers",n:"Perseverance",cost:1400},{id:"platemail",n:"Platemail",cost:1400},
- {id:"power_treads",n:"Power Treads",cost:1400},{id:"phase_boots",n:"Phase Boots",cost:1450},{id:"arcane_boots",n:"Arcane Boots",cost:1500},
- {id:"ghost",n:"Ghost Scepter",cost:1500},{id:"mithril_hammer",n:"Mithril Hammer",cost:1600},{id:"drum",n:"Drum of Endurance",cost:1625},
- {id:"oblivion_staff",n:"Oblivion Staff",cost:1625},{id:"ring_of_tarrasque",n:"Ring of Tarrasque",cost:1700},{id:"tiara_of_selemene",n:"Tiara of Selemene",cost:1700},
- {id:"vanguard",n:"Vanguard",cost:1700},{id:"veil_of_discord",n:"Veil of Discord",cost:1700},{id:"essence_distiller",n:"Essence Distiller",cost:1775},
- {id:"mekansm",n:"Mekansm",cost:1775},{id:"dragon_lance",n:"Dragon Lance",cost:1900},{id:"mask_of_madness",n:"Mask of Madness",cost:1900},
- {id:"hyperstone",n:"Hyperstone",cost:2000},{id:"crystalys",n:"Crystalys",cost:2000},{id:"necronomicon",n:"Necronomicon",cost:2050},
- {id:"kaya",n:"Kaya",cost:2100},{id:"sange",n:"Sange",cost:2100},{id:"yasha",n:"Yasha",cost:2100},
- {id:"glimmer_cape",n:"Glimmer Cape",cost:2150},{id:"demon_edge",n:"Demon Edge",cost:2200},{id:"force_staff",n:"Force Staff",cost:2200},
- {id:"hand_of_midas",n:"Hand of Midas",cost:2200},{id:"vladmir",n:"Vladmir's Offering",cost:2200},{id:"blink",n:"Blink Dagger",cost:2250},
- {id:"holy_locket",n:"Holy Locket",cost:2250},{id:"rod_of_atos",n:"Rod of Atos",cost:2250},{id:"aether_lens",n:"Aether Lens",cost:2275},
- {id:"blade_mail",n:"Blade Mail",cost:2400},{id:"armlet",n:"Armlet of Mordiggian",cost:2500},{id:"diffusal_blade",n:"Diffusal Blade",cost:2500},
- {id:"travel_boots",n:"Boots of Travel",cost:2500},{id:"helm_of_the_dominator",n:"Helm of the Dominator",cost:2550},{id:"specialists_array",n:"Specialist's Array",cost:2550},
- {id:"solar_crest",n:"Solar Crest",cost:2575},{id:"consecrated_wraps",n:"Consecrated Wraps",cost:2600},{id:"cyclone",n:"Eul's Scepter",cost:2600},
- {id:"phylactery",n:"Phylactery",cost:2600},{id:"echo_sabre",n:"Echo Sabre",cost:2700},{id:"spirit_vessel",n:"Spirit Vessel",cost:2725},
- {id:"witch_blade",n:"Witch Blade",cost:2775},{id:"eagle",n:"Eaglesong",cost:2800},{id:"mystic_staff",n:"Mystic Staff",cost:2800},
- {id:"reaver",n:"Reaver",cost:2800},{id:"ultimate_orb",n:"Ultimate Orb",cost:2800},{id:"meteor_hammer",n:"Meteor Hammer",cost:2850},
- {id:"basher",n:"Skull Basher",cost:2875},{id:"maelstrom",n:"Maelstrom",cost:2950},{id:"aeon_disk",n:"Aeon Disk",cost:3000},
- {id:"dagon",n:"Dagon",cost:3000},{id:"soul_booster",n:"Soul Booster",cost:3000},{id:"mage_slayer",n:"Mage Slayer",cost:3100},
- {id:"invis_sword",n:"Shadow Blade",cost:3250},{id:"orchid",n:"Orchid Malevolence",cost:3275},{id:"necronomicon_2",n:"Necronomicon 2",cost:3300},
- {id:"revenants_brooch",n:"Revenant's Brooch",cost:3300},{id:"heavens_halberd",n:"Heaven's Halberd",cost:3400},{id:"relic",n:"Sacred Relic",cost:3400},
- {id:"desolator",n:"Desolator",cost:3500},{id:"crimson_guard",n:"Crimson Guard",cost:3725},{id:"pipe",n:"Pipe of Insight",cost:3725},
- {id:"wraith_pact",n:"Wraith Pact",cost:3800},{id:"lotus_orb",n:"Lotus Orb",cost:3850},{id:"bfury",n:"Battle Fury",cost:3900},
- {id:"eternal_shroud",n:"Eternal Shroud",cost:3900},{id:"moon_shard",n:"Moon Shard",cost:4000},{id:"black_king_bar",n:"Black King Bar",cost:4050},
- {id:"dagon_2",n:"Dagon 2",cost:4100},{id:"kaya_and_sange",n:"Kaya and Sange",cost:4200},{id:"sange_and_yasha",n:"Sange and Yasha",cost:4200},
- {id:"ultimate_scepter",n:"Aghanim's Scepter",cost:4200},{id:"yasha_and_kaya",n:"Yasha and Kaya",cost:4200},{id:"boots_of_bearing",n:"Boots of Bearing",cost:4225},
- {id:"nullifier",n:"Nullifier",cost:4350},{id:"guardian_greaves",n:"Guardian Greaves",cost:4450},{id:"hurricane_pike",n:"Hurricane Pike",cost:4450},
- {id:"shivas",n:"Shiva's Guard",cost:4500},{id:"travel_boots_2",n:"Boots of Travel 2",cost:4500},{id:"necronomicon_3",n:"Necronomicon 3",cost:4550},
- {id:"gungir",n:"Gleipnir",cost:4650},{id:"manta",n:"Manta Style",cost:4650},{id:"bloodstone",n:"Bloodstone",cost:4700},
- {id:"harpoon",n:"Harpoon",cost:4700},{id:"radiance",n:"Radiance",cost:4700},{id:"crellas_crozier",n:"Crelia's Crozier",cost:4800},
- {id:"sphere",n:"Linken's Sphere",cost:4800},{id:"octarine_core",n:"Octarine Core",cost:4900},{id:"monkey_king_bar",n:"Monkey King Bar",cost:5000},
- {id:"refresher",n:"Refresher Orb",cost:5000},{id:"satanic",n:"Satanic",cost:5050},{id:"daedalus",n:"Daedalus",cost:5100},
- {id:"assault",n:"Assault Cuirass",cost:5125},{id:"dagon_3",n:"Dagon 3",cost:5200},{id:"ethereal_blade",n:"Ethereal Blade",cost:5200},
- {id:"heart",n:"Heart of Tarrasque",cost:5200},{id:"scythe_of_vyse",n:"Scythe of Vyse",cost:5200},{id:"butterfly",n:"Butterfly",cost:5450},
- {id:"mjollnir",n:"Mjollnir",cost:5500},{id:"angels_demise",n:"Angel's Demise",cost:5600},{id:"casters_rapier",n:"Caster's Rapier",cost:5600},
- {id:"rapier",n:"Divine Rapier",cost:5600},{id:"helm_of_the_overlord",n:"Helm of the Overlord",cost:5650},{id:"silver_edge",n:"Silver Edge",cost:5700},
- {id:"ultimate_scepter_2",n:"Aghanim's Blessing",cost:5800},{id:"hydras_breath",n:"Hydra's Breath",cost:5900},{id:"skadi",n:"Eye of Skadi",cost:5900},
- {id:"devastator",n:"Devastator",cost:5975},{id:"disperser",n:"Disperser",cost:6100},{id:"abyssal_blade",n:"Abyssal Blade",cost:6250},
- {id:"dagon_4",n:"Dagon 4",cost:6300},{id:"trident",n:"Trident",cost:6301},{id:"bloodthorn",n:"Bloodthorn",cost:6400},
- {id:"arcane_blink",n:"Arcane Blink",cost:6800},{id:"overwhelming_blink",n:"Overwhelming Blink",cost:6800},{id:"swift_blink",n:"Swift Blink",cost:6800},
- {id:"wind_waker",n:"Wind Waker",cost:6800},{id:"dagon_5",n:"Dagon 5",cost:7400}
+const GIFT_TPL = [
+  {id:"gift_heart", n:"💝 Сердечко", p:15},
+  {id:"gift_teddy", n:"🧸 Мишка", p:15},
+  {id:"gift_box", n:"🎁 Подарок", p:25},
+  {id:"gift_rose", n:"🌹 Роза", p:25},
+  {id:"gift_cake", n:"🎂 Торт", p:50},
+  {id:"gift_bouquet", n:"💐 Букет", p:50}
 ];
 
-// Пикер предметов
-window.openItemPicker = () => {
-  document.getElementById("itemPicker").hidden = false;
-  document.getElementById("pickerSearch").value = "";
-  renderPickerList(ITEMS);
-};
-window.closeItemPicker = () => {
-  document.getElementById("itemPicker").hidden = true;
-};
-window.filterItems = () => {
-  const q = document.getElementById("pickerSearch").value.toLowerCase();
-  const filtered = ITEMS.filter(i => i.n.toLowerCase().includes(q) || i.id.toLowerCase().includes(q));
-  renderPickerList(filtered);
-};
-function renderPickerList(list){
-  const giftKeys = Object.keys(GIFT_NAMES);
-  const giftHtml = giftKeys.map(key => {
-    const name = GIFT_NAMES[key];
-    const isCase = key === "gift_case";
-    const price = isCase ? "Кейс" : (key.includes("heart") || key.includes("teddy") ? "15⭐" : key.includes("box") || key.includes("rose") ? "25⭐" : "50⭐");
-    return `<div class="pick-row" onclick="selectItem('${key}','${escapeHtml(name)}')" style="border-color:var(--tg)">
-      <img src="${GIFT_CDN}${key}.png" alt="${escapeHtml(name)}" onerror="this.style.visibility='hidden'">
-      <span class="pn" style="color:var(--tg)">${escapeHtml(name)}</span>
-      <span class="pc">${price}</span>
-    </div>`;
-  }).join("");
-  
-  const itemsHtml = list.map(it => `
-    <div class="pick-row" onclick="selectItem('${escapeHtml(it.id)}','${escapeHtml(it.n)}')">
-      <img src="${CDN}${it.id}.png" alt="${escapeHtml(it.n)}" onerror="this.style.visibility='hidden'">
-      <span class="pn">${escapeHtml(it.n)}</span>
-      <span class="pc">${it.cost}</span>
-    </div>
-  `).join("");
-  
-  document.getElementById("pickerList").innerHTML = 
-    `<div class="section-divider">🎁 Подарки и кейсы</div>${giftHtml}` +
-    `<div class="section-divider">⚔️ Предметы Dota 2</div>${itemsHtml || '<div class="empty">Ничего не найдено</div>'}`;
-}
-window.selectItem = (id, name) => {
-  document.getElementById("gItem").value = id;
-  document.getElementById("itemPicker").hidden = true;
-  toast(`Выбран: ${name}`);
-};
+const ITEMS = [
+["royale_with_cheese","Royale With Cheese",2],["tango_single","Tango (Shared)",30],["blood_grenade","Blood Grenade",50],["courier","Animal Courier",50],["smoke_of_deceit","Smoke of Deceit",50],["ward_dispenser","Observer & Sentry Wards",50],["ward_sentry","Sentry Ward",50],["branches","Iron Branch",55],["clarity","Clarity",60],["enchanted_mango","Enchanted Mango",65],["faerie_fire","Faerie Fire",65],["tome_of_knowledge","Tome of Knowledge",75],["dust","Dust of Appearance",80],["tango","Tango",90],["flask","Healing Salve",100],["flying_courier","Flying Courier",100],["quelling_blade","Quelling Blade",100],["stout_shield","Stout Shield",100],["tpscroll","Town Portal Scroll",100],["gauntlets","Gauntlets of Strength",140],["mantle","Mantle of Intelligence",140],["slippers","Slippers of Agility",140],["circlet","Circlet",155],["ring_of_protection","Ring of Protection",175],["ring_of_regen","Ring of Regen",175],["sobi_mask","Sage's Mask",175],["magic_stick","Magic Stick",200],["infused_raindrop","Infused Raindrops",225],["wind_lace","Wind Lace",225],["fluffy_hat","Fluffy Hat",250],["wizard_hat","Wizard Hat",250],["blight_stone","Orb of Blight",300],["orb_of_frost","Orb of Frost",300],["orb_of_venom","Orb of Venom",350],["buckler","Buckler",425],["headdress","Headdress",425],["ring_of_basilius","Ring of Basilius",425],["belt_of_strength","Belt of Strength",450],["blades_of_attack","Blades of Attack",450],["boots_of_elves","Band of Elvenskin",450],["crown","Crown",450],["gloves","Gloves of Haste",450],["robe","Robe of the Magi",450],["shawl","Sparkling Shawl",450],["magic_wand","Magic Wand",460],["boots","Boots of Speed",500],["chainmail","Chainmail",500],["bracer","Bracer",505],["null_talisman","Null Talisman",505],["wraith_band","Wraith Band",505],["voodoo_mask","Voodoo Mask",650],["bottle","Bottle",675],["ring_of_health","Ring of Health",700],["void_stone","Void Stone",700],["energy_booster","Energy Booster",800],["soul_ring","Soul Ring",805],["urn_of_shadows","Urn of Shadows",825],["quarterstaff","Quarterstaff",875],["chasm_stone","Chasm Stone",900],["cloak","Cloak",900],["gem","Gem of True Sight",900],["javelin","Javelin",900],["lifesteal","Morbid Mask",900],["shadow_amulet","Shadow Amulet",900],["tranquil_boots","Tranquil Boots",900],["splintmail","Splintmail",950],["helm_of_iron_will","Helm of Iron Will",975],["blade_of_alacrity","Blade of Alacrity",1000],["blitz_knuckles","Blitz Knuckles",1000],["broadsword","Broadsword",1000],["cheese","Cheese",1000],["diadem","Diadem",1000],["ogre_axe","Ogre Axe",1000],["pocket_roshan","Pocket Roshan",1000],["refresher_shard","Refresher Shard",1000],["staff_of_wizardry","Staff of Wizardry",1000],["vitality_booster","Vitality Booster",1000],["orb_of_corrosion","Orb of Corrosion",1050],["falcon_blade","Falcon Blade",1125],["cornucopia","Cornucopia",1200],["point_booster","Point Booster",1200],["talisman_of_evasion","Talisman of Evasion",1300],["claymore","Claymore",1350],["pavise","Pavise",1350],["aghanims_shard","Aghanim's Shard",1400],["pers","Perseverance",1400],["platemail","Platemail",1400],["power_treads","Power Treads",1400],["phase_boots","Phase Boots",1450],["arcane_boots","Arcane Boots",1500],["ghost","Ghost Scepter",1500],["mithril_hammer","Mithril Hammer",1600],["drum","Drum of Endurance",1625],["oblivion_staff","Oblivion Staff",1625],["ring_of_tarrasque","Ring of Tarrasque",1700],["tiara_of_selemene","Tiara of Selemene",1700],["vanguard","Vanguard",1700],["veil_of_discord","Veil of Discord",1700],["essence_distiller","Essence Distiller",1775],["mekansm","Mekansm",1775],["dragon_lance","Dragon Lance",1900],["mask_of_madness","Mask of Madness",1900],["hyperstone","Hyperstone",2000],["crystalys","Crystalys",2000],["necronomicon","Necronomicon",2050],["kaya","Kaya",2100],["sange","Sange",2100],["yasha","Yasha",2100],["glimmer_cape","Glimmer Cape",2150],["demon_edge","Demon Edge",2200],["force_staff","Force Staff",2200],["hand_of_midas","Hand of Midas",2200],["vladmir","Vladmir's Offering",2200],["blink","Blink Dagger",2250],["holy_locket","Holy Locket",2250],["rod_of_atos","Rod of Atos",2250],["aether_lens","Aether Lens",2275],["blade_mail","Blade Mail",2400],["armlet","Armlet of Mordiggian",2500],["diffusal_blade","Diffusal Blade",2500],["travel_boots","Boots of Travel",2500],["helm_of_the_dominator","Helm of the Dominator",2550],["specialists_array","Specialist's Array",2550],["solar_crest","Solar Crest",2575],["consecrated_wraps","Consecrated Wraps",2600],["cyclone","Eul's Scepter",2600],["phylactery","Phylactery",2600],["echo_sabre","Echo Sabre",2700],["spirit_vessel","Spirit Vessel",2725],["witch_blade","Witch Blade",2775],["eagle","Eaglesong",2800],["mystic_staff","Mystic Staff",2800],["reaver","Reaver",2800],["ultimate_orb","Ultimate Orb",2800],["meteor_hammer","Meteor Hammer",2850],["basher","Skull Basher",2875],["maelstrom","Maelstrom",2950],["aeon_disk","Aeon Disk",3000],["dagon","Dagon",3000],["soul_booster","Soul Booster",3000],["mage_slayer","Mage Slayer",3100],["invis_sword","Shadow Blade",3250],["orchid","Orchid Malevolence",3275],["necronomicon_2","Necronomicon 2",3300],["revenants_brooch","Revenant's Brooch",3300],["heavens_halberd","Heaven's Halberd",3400],["relic","Sacred Relic",3400],["desolator","Desolator",3500],["crimson_guard","Crimson Guard",3725],["pipe","Pipe of Insight",3725],["wraith_pact","Wraith Pact",3800],["lotus_orb","Lotus Orb",3850],["bfury","Battle Fury",3900],["eternal_shroud","Eternal Shroud",3900],["moon_shard","Moon Shard",4000],["black_king_bar","Black King Bar",4050],["dagon_2","Dagon 2",4100],["kaya_and_sange","Kaya and Sange",4200],["sange_and_yasha","Sange and Yasha",4200],["ultimate_scepter","Aghanim's Scepter",4200],["yasha_and_kaya","Yasha and Kaya",4200],["boots_of_bearing","Boots of Bearing",4225],["nullifier","Nullifier",4350],["guardian_greaves","Guardian Greaves",4450],["hurricane_pike","Hurricane Pike",4450],["shivas","Shiva's Guard",4500],["travel_boots_2","Boots of Travel 2",4500],["necronomicon_3","Necronomicon 3",4550],["gungir","Gleipnir",4650],["manta","Manta Style",4650],["bloodstone","Bloodstone",4700],["harpoon","Harpoon",4700],["radiance","Radiance",4700],["crellas_crozier","Crelia's Crozier",4800],["sphere","Linken's Sphere",4800],["octarine_core","Octarine Core",4900],["monkey_king_bar","Monkey King Bar",5000],["refresher","Refresher Orb",5000],["satanic","Satanic",5050],["daedalus","Daedalus",5100],["assault","Assault Cuirass",5125],["dagon_3","Dagon 3",5200],["ethereal_blade","Ethereal Blade",5200],["heart","Heart of Tarrasque",5200],["scythe_of_vyse","Scythe of Vyse",5200],["butterfly","Butterfly",5450],["mjollnir","Mjollnir",5500],["angels_demise","Angel's Demise",5600],["casters_rapier","Caster's Rapier",5600],["rapier","Divine Rapier",5600],["helm_of_the_overlord","Helm of the Overlord",5650],["silver_edge","Silver Edge",5700],["ultimate_scepter_2","Aghanim's Blessing",5800],["hydras_breath","Hydra's Breath",5900],["skadi","Eye of Skadi",5900],["devastator","Devastator",5975],["disperser","Disperser",6100],["abyssal_blade","Abyssal Blade",6250],["dagon_4","Dagon 4",6300],["trident","Trident",6301],["bloodthorn","Bloodthorn",6400],["arcane_blink","Arcane Blink",6800],["overwhelming_blink","Overwhelming Blink",6800],["swift_blink","Swift Blink",6800],["wind_waker","Wind Waker",6800],["dagon_5","Dagon 5",7400],
+["gift_case","🎁 Подарочный кейс",0],["gift_heart","💝 Сердечко",0],["gift_teddy","🧸 Мишка",0],["gift_box","🎁 Подарок",0],["gift_rose","🌹 Роза",0],["gift_cake","🎂 Торт",0],["gift_bouquet","💐 Букет",0]
+];
 
-// Игроки и баны
-let allPlayers = [];
-let allBans = [];
+const $ = s => document.querySelector(s);
+const fmt = n => Number(n||0).toLocaleString("ru-RU");
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const fmtDate = s => s ? String(s).slice(0,16).replace("T"," ") : "—";
+function isVip(until){ if(!until) return false; const d = new Date(until); return !isNaN(d) && d > new Date(); }
+function closeM(id){ $("#"+id).hidden = true; }
 
-async function loadPlayers(){
-  try {
-    const j = await api("/admin/players");
-    allPlayers = j.players || [];
-    allBans = j.bans || [];
-    renderPlayers(allPlayers);
-  } catch(e) {
-    document.getElementById("playersBody").innerHTML = '<div class="empty" style="color:var(--red)">Ошибка загрузки</div>';
-  }
-}
-
-function renderPlayers(players){
-  const banSet = new Set(allBans.map(b=>String(b.user_id)));
-  const body = document.getElementById("playersBody");
-  if (!players.length){ body.innerHTML = '<div class="empty">Никого не найдено</div>'; return; }
-  body.innerHTML = `<table>
-    <tr><th>ID</th><th>Имя / Баланс / Предметы</th><th>Заходил</th><th>Действия</th></tr>
-    ${players.map(p => {
-      const banned = banSet.has(String(p.user_id));
-      const displayName = formatPlayerName(p);
-      const seen = formatDate(p.last_seen);
-      const balance = p.stats?.balance || 0;
-      const inv = p.stats?.inventory || {};
-      const itemCount = Object.keys(inv).length;
-      const totalItems = Object.values(inv).reduce((sum, count) => sum + count, 0);
-      return `<tr>
-        <td>${p.user_id}</td>
-        <td>
-          <div class="player-info">
-            <div class="player-name">${escapeHtml(displayName)}</div>
-            <div class="player-balance">💰 ${balance} осколков</div>
-            <div class="player-items">🎒 ${itemCount} видов (${totalItems} шт.) ${itemCount > 0 ? `<a onclick="showInventory(${p.user_id})">[?]</a>` : ''}</div>
-            ${banned?'<div style="color:var(--red);font-size:11px">🚫 ЗАБАНЕН</div>':""}
-          </div>
-        </td>
-        <td>${seen}</td>
-        <td>
-          <div class="tr-actions">
-            <button class="btn sm blue" onclick="showPlayerDetails(${p.user_id})">👁️</button>
-            ${banned
-              ? `<button class="btn sm grn" onclick="unban(${p.user_id})">Разбан</button>`
-              : `<button class="btn sm red" onclick="ban(${p.user_id})">Бан</button>`}
-            <button class="btn sm ghost" onclick="resetPlayer(${p.user_id})">Сброс</button>
-            <button class="btn sm ghost" onclick="quickGrant(${p.user_id})">+оск</button>
-            <button class="btn sm ghost" onclick="quickSend(${p.user_id})">💬</button>
-            <button class="btn sm ghost" onclick="quickGift(${p.user_id})">🎁</button>
-          </div>
-        </td>
-      </tr>`;
-    }).join("")}
-  </table>`;
-}
-
-window.filterPlayers = () => {
-  const q = document.getElementById("playerSearch").value.toLowerCase().trim();
-  if(!q){ renderPlayers(allPlayers); return; }
-  const filtered = allPlayers.filter(p => {
-    const name = formatPlayerName(p).toLowerCase();
-    const username = (p.username || "").toLowerCase();
-    const id = String(p.user_id);
-    return name.includes(q) || username.includes(q) || id.includes(q);
+async function api(path, body){
+  const r = await fetch(API + path, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(Object.assign({initData: INIT}, body || {}))
   });
-  renderPlayers(filtered);
-};
+  const j = await r.json();
+  if(j.error === "forbidden"){ alert("⛔ Доступ запрещён (только владелец)"); }
+  return j;
+}
 
-// Инвентарь игрока
-window.showInventory = async (uid) => {
-  const modal = document.getElementById("inventoryModal");
-  const content = document.getElementById("invModalContent");
-  const title = document.getElementById("invModalTitle");
-  modal.hidden = false;
-  content.innerHTML = "Загрузка…";
-  title.textContent = "Инвентарь игрока #" + uid;
-  
-  try {
-    const j = await api("/admin/player_inventory", {user_id: uid});
-    const inv = j.inventory || {};
-    const items = Object.entries(inv);
-    
-    if(!items.length){
-      content.innerHTML = '<div class="empty">Инвентарь пуст</div>';
-      return;
-    }
-    
-    content.innerHTML = items.map(([itemId, count]) => {
-      const isGift = itemId in GIFT_NAMES || itemId === "gift_case";
-      const name = isGift ? (GIFT_NAMES[itemId] || itemId) : itemId;
-      const src = isGift ? `${GIFT_CDN}${itemId === "gift_case" ? "gift_chest" : itemId}.png` : `${CDN}${itemId}.png`;
-      return `<div class="inv-item">
-        <img src="${src}" alt="${escapeHtml(name)}" onerror="this.style.visibility='hidden'">
-        <span class="in">${escapeHtml(name)}</span>
-        <span class="ic">x${count}</span>
-      </div>`;
-    }).join("");
-  } catch(e) {
-    content.innerHTML = '<div class="empty" style="color:var(--red)">Ошибка загрузки</div>';
+// ===== ТАБЫ =====
+document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll("main > section").forEach(x=>x.hidden = true);
+  b.classList.add("active");
+  $("#t-"+b.dataset.t).hidden = false;
+  refreshCurrent();
+});
+function refreshCurrent(){
+  loadStats();
+  const t = document.querySelector(".tab-btn.active").dataset.t;
+  if(t==="players") loadPlayers();
+  if(t==="gifts"){ loadBotBalance(); renderGiftGrid(); }
+  if(t==="promo") loadPromos();
+  if(t==="pay") loadPayments();
+}
+
+// ===== СТАТИСТИКА =====
+async function loadStats(){
+  const j = await api("/admin/stats");
+  if(j.players !== undefined){
+    $("#stPlayers").textContent = fmt(j.players);
+    $("#stStars").textContent = fmt(j.stars);
+    $("#stGrants").textContent = fmt(j.grants);
+    $("#stPromos").textContent = fmt(j.promos);
   }
-};
+}
 
-window.closeInventoryModal = () => {
-  document.getElementById("inventoryModal").hidden = true;
-};
+// ===== ИГРОКИ =====
+async function loadPlayers(){
+  const j = await api("/admin/players");
+  PLAYERS = j.players || [];
+  BANS = {};
+  (j.bans||[]).forEach(b => BANS[b.user_id] = b);
+  renderPlayers();
+}
+function renderPlayers(){
+  const q = ($("#pSearch").value||"").trim().toLowerCase();
+  const list = PLAYERS.filter(p => {
+    if(!q) return true;
+    const st = p.stats||{};
+    return String(p.user_id).includes(q) || (p.first_name||"").toLowerCase().includes(q) || (st.name||"").toLowerCase().includes(q) || (p.username||"").toLowerCase().includes(q);
+  });
+  $("#playerList").innerHTML = list.length ? list.slice(0,120).map(p => {
+    const st = p.stats||{};
+    const name = st.name || p.first_name || "Игрок";
+    const vip = isVip(st.vip_until);
+    const ban = BANS[p.user_id];
+    return `<div class="prow" onclick="openDetails(${p.user_id})">
+      <div class="ava">${esc((name||"?")[0].toUpperCase())}</div>
+      <div class="nm"><b>${esc(name)}${vip?'<span class="badge-vip">VIP</span>':''}${ban?'<span class="badge-ban">BAN</span>':''}</b>
+      <span>id ${p.user_id}${p.username?" · @"+esc(p.username):""} · ${fmtDate(p.last_seen)}</span></div>
+      <div class="bl">${fmt(st.balance)} ⚡<small>кейсов ${fmt(st.casesOpened)}</small></div>
+    </div>`;
+  }).join("") : '<div class="hint">Никого не найдено</div>';
+}
 
-// Детали игрока
-window.showPlayerDetails = async (uid) => {
-  const modal = document.getElementById("playerModal");
-  const content = document.getElementById("modalContent");
-  const title = document.getElementById("modalTitle");
-  modal.hidden = false;
-  content.innerHTML = "Загрузка…";
-  title.textContent = "Игрок #" + uid;
-  
-  try {
-    const j = await api("/admin/player_details", {user_id: uid});
-    const p = j.player || {};
-    const grants = j.grants || [];
-    const banned = j.banned || false;
-    
-    const displayName = formatPlayerName(p);
-    const stats = p.stats || {};
-    const balance = stats.balance || 0;
-    const inv = stats.inventory || {};
-    const itemCount = Object.keys(inv).length;
-    const casesOpened = stats.casesOpened || 0;
-    const coinsSpent = stats.coinsSpent || 0;
-    
-    content.innerHTML = `
-      <div class="detail-row"><span class="dl">ID</span><span class="dv">${p.user_id}</span></div>
-      <div class="detail-row"><span class="dl">Имя</span><span class="dv">${escapeHtml(displayName)}</span></div>
-      <div class="detail-row"><span class="dl">Username</span><span class="dv">${escapeHtml(p.username || "—")}</span></div>
-      <div class="detail-row"><span class="dl">Баланс</span><span class="dv" style="color:var(--gold)">${balance} осколков</span></div>
-      <div class="detail-row"><span class="dl">Предметов</span><span class="dv">${itemCount} видов</span></div>
-      <div class="detail-row"><span class="dl">Последний заход</span><span class="dv">${formatDate(p.last_seen)}</span></div>
-      <div class="detail-row"><span class="dl">Статус</span><span class="dv" style="color:${banned?'var(--red)':'var(--grn)'}">${banned?'🚫 Забанен':'✅ Активен'}</span></div>
-      
-      <div class="detail-section">
-        <h4>📊 Статистика</h4>
-        <div class="detail-row"><span class="dl">Кейсов открыто</span><span class="dv">${casesOpened}</span></div>
-        <div class="detail-row"><span class="dl">Осколков потрачено</span><span class="dv">${coinsSpent}</span></div>
-      </div>
-      
-      <div class="detail-section">
-        <h4>📜 Последние выдачи (${grants.length})</h4>
-        ${grants.length ? grants.map(g => `
-          <div class="detail-row">
-            <span class="dl">${formatDate(g.created_at)}</span>
-            <span class="dv">${g.type === 'coins' ? (g.amount > 0 ? '+'+g.amount : g.amount)+' осколков' : 'Предмет: '+escapeHtml(g.item_id||'')}</span>
-          </div>
-        `).join("") : '<div class="hint">Выдач не было</div>'}
-      </div>
-      
-      <div class="btn-row" style="margin-top:16px">
-        <button class="btn pur" onclick="quickGrant(${uid});closePlayerModal()">+оск</button>
-        <button class="btn ghost" onclick="quickSend(${uid});closePlayerModal()">💬</button>
-        <button class="btn red" onclick="if(confirm('Забанить?')){ban(${uid});closePlayerModal()}">Бан</button>
-      </div>
-    `;
-  } catch(e) {
-    content.innerHTML = '<div class="empty" style="color:var(--red)">Ошибка загрузки</div>';
-  }
-};
+// ===== ДЕТАЛИ ИГРОКА =====
+async function openDetails(uid){
+  CUR_UID = uid;
+  $("#mDetails").hidden = false;
+  $("#detBody").innerHTML = '<div class="hint">Загрузка…</div>';
+  const det = await api("/admin/player_details",{user_id:uid});
+  const p = det.player || {};
+  const st = p.stats || {};
+  const vip = isVip(st.vip_until);
+  const grants = (det.grants||[]).map(g =>
+    `<div class="grline"><span><b>${esc(g.type)}</b> ${g.amount?fmt(g.amount):""} ${g.item_id?esc(g.item_id):""}${g.reason?" · "+esc(g.reason):""}</span><span class="dim">${fmtDate(g.created_at)}</span></div>`
+  ).join("") || '<div class="hint">Грантов не было</div>';
+  $("#detBody").innerHTML = `
+    <div class="st" style="padding:12px"><div class="v">${fmt(st.balance)}</div><div class="l">осколков · кейсов ${fmt(st.casesOpened)} · потрачено ${fmt(st.coinsSpent)}</div></div>
+    <div class="hint" style="margin-top:8px">Имя: <b>${esc(st.name||p.first_name||"—")}</b> · @${esc(p.username||"—")}<br>Вход: ${fmtDate(p.last_seen)}${vip?` · <span class="badge-vip">VIP до ${String(st.vip_until).slice(0,10)}</span>`:""}${det.banned?' · <span class="badge-ban">ЗАБАНЕН</span>':""}</div>
+    <label>Последние гранты</label>
+    <div class="invlist" style="max-height:150px">${grants}</div>
+    <button class="btn outline" onclick="openInventory(${uid})">🎒 Инвентарь</button>
+    <button class="btn pur" onclick="detVip(${uid})">💎 Выдать VIP</button>
+    <button class="btn grn" onclick="detCoins(${uid})">⚡ Выдать осколки</button>
+    <button class="btn" onclick="detMsg(${uid})">📢 Отправить сообщение</button>
+    <button class="btn red" onclick="detAnn(${uid},'coins')">⚠️ Аннулировать баланс</button>
+    <button class="btn red" onclick="detAnn(${uid},'items')">⚠️ Аннулировать инвентарь</button>
+    <button class="btn red" onclick="detReset(${uid})">🔄 Сброс прогресса</button>
+    ${det.banned
+      ? `<button class="btn grn" onclick="detUnban(${uid})">✅ Разбанить</button>`
+      : `<button class="btn red" onclick="detBan(${uid})">🚫 Забанить</button>`}
+  `;
+}
+async function openInventory(uid){
+  $("#mInv").hidden = false;
+  $("#invBody").innerHTML = '<div class="hint">Загрузка…</div>';
+  const j = await api("/admin/player_inventory",{user_id:uid});
+  const entries = Object.entries(j.inventory||{});
+  $("#invBody").innerHTML = entries.length
+    ? `<div class="invlist">${entries.map(([id,n])=>`<div>${esc(id)} × ${n}</div>`).join("")}</div>`
+    : '<div class="hint">Инвентарь пуст</div>';
+}
+async function detVip(uid){
+  const days = parseInt(prompt("На сколько дней выдать VIP?","30")||"30",10);
+  const j = await api("/admin/grant",{user_id:uid,type:"vip",amount:days,reason:"Выдано админом"});
+  alert(j.ok?`✅ VIP выдан на ${days} дн.`:"❌ "+(j.error||"ошибка"));
+  openDetails(uid); loadPlayers();
+}
+async function detCoins(uid){
+  const amount = parseInt(prompt("Сколько осколков? (можно отрицательное)","1000")||"0",10);
+  if(!amount) return;
+  const reason = prompt("Причина?","") || null;
+  const j = await api("/admin/grant",{user_id:uid,type:"coins",amount,reason});
+  alert(j.ok?"✅ Выдано":"❌ "+(j.error||""));
+  openDetails(uid);
+}
+async function detMsg(uid){
+  const text = prompt("Текст сообщения:");
+  if(!text) return;
+  const j = await api("/admin/send",{user_id:uid,text});
+  alert(j.ok?"✅ Отправлено":"❌ "+(j.error||""));
+}
+async function detAnn(uid,type){
+  if(!confirm(type==="coins"?"Обнулить баланс?":"Очистить инвентарь?")) return;
+  const j = await api("/admin/annihilate",{user_id:uid,type});
+  alert(j.ok?"✅ Готово":"❌");
+  openDetails(uid);
+}
+async function detReset(uid){
+  if(!confirm("Полный сброс прогресса?")) return;
+  const j = await api("/admin/reset",{user_id:uid});
+  alert(j.ok?"✅ Готово":"❌");
+  openDetails(uid);
+}
+async function detBan(uid){
+  const reason = prompt("Причина бана?","") || null;
+  const price = parseInt(prompt("Цена разбана в звёздах (0 = без выкупа)","0")||"0",10);
+  const j = await api("/admin/ban",{user_id:uid,reason,ban_price:price});
+  alert(j.ok?"✅ Забанен":"❌ "+(j.error||""));
+  openDetails(uid); loadPlayers();
+}
+async function detUnban(uid){
+  const j = await api("/admin/unban",{user_id:uid});
+  alert(j.ok?"✅ Разбанен":"❌");
+  openDetails(uid); loadPlayers();
+}
 
-window.closePlayerModal = () => {
-  document.getElementById("playerModal").hidden = true;
-};
+// ===== ПИКЕР ИГРОКА =====
+function openPlayerPicker(){
+  $("#mpSearch").value = "";
+  renderPickerPlayers();
+  $("#mPlayer").hidden = false;
+}
+function renderPickerPlayers(){
+  const q = ($("#mpSearch").value||"").trim().toLowerCase();
+  const list = PLAYERS.filter(p => {
+    if(!q) return true;
+    const st = p.stats||{};
+    return String(p.user_id).includes(q) || (p.first_name||"").toLowerCase().includes(q) || (st.name||"").toLowerCase().includes(q) || (p.username||"").toLowerCase().includes(q);
+  });
+  $("#mpList").innerHTML = list.length ? list.slice(0,80).map(p => {
+    const st = p.stats||{};
+    const name = st.name || p.first_name || "Игрок";
+    return `<div class="pick-row" onclick="pickPlayer(${p.user_id},'${esc(name).replace(/'/g,"\\'")}')">
+      <div class="ava" style="width:34px;height:34px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-weight:900">${esc(name[0].toUpperCase())}</div>
+      <span class="pn">${esc(name)}</span><span class="pc">id ${p.user_id}</span>
+    </div>`;
+  }).join("") : '<div class="hint">Никого не найдено</div>';
+}
+function pickPlayer(uid, name){
+  SEL_UID = uid; SEL_NAME = name;
+  ["chipGrant","chipVip","chipAnn","chipGift","chipMsg"].forEach(id => {
+    const el = $("#"+id);
+    if(el) el.innerHTML = `${esc(name)} <small>id ${uid}</small>`;
+  });
+  closeM("mPlayer");
+}
 
-// Быстрые действия
-window.quickGrant = uid => {
-  document.querySelector('[data-tab="grants"]').click();
-  document.getElementById("gUid").value = uid;
-};
-window.quickSend = uid => {
-  document.querySelector('[data-tab="messages"]').click();
-  document.getElementById("mUid").value = uid;
-};
-window.quickGift = uid => {
-  document.querySelector('[data-tab="gifts"]').click();
-  document.getElementById("giftUid").value = uid;
-};
+// ===== ПИКЕР ПРЕДМЕТА =====
+function openItemPicker(){
+  $("#miSearch").value = "";
+  renderPickerItems();
+  $("#mItem").hidden = false;
+}
+function renderPickerItems(){
+  const q = ($("#miSearch").value||"").trim().toLowerCase();
+  const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
+  const list = ITEMS.filter(([id,n]) => !q || n.toLowerCase().includes(q) || id.includes(q));
+  $("#miList").innerHTML = list.map(([id,n,c]) => `<div class="pick-row" onclick="pickItem('${id}','${esc(n).replace(/'/g,"\\'")}')">
+    <img src="${id.startsWith("gift") ? GIFT_CDN+id+".png" : CDN+id+".png}" onerror="this.style.visibility='hidden'">
+    <span class="pn">${esc(n)}</span><span class="pc">${c?fmt(c):"особый"}</span>
+  </div>`).join("") || '<div class="hint">Ничего не найдено</div>';
+}
+function pickItem(id, name){
+  SEL_ITEM = id;
+  $("#itemSelName").textContent = "выбрано: " + name + " (" + id + ")";
+  closeM("mItem");
+}
 
-// Бан/разбан/сброс (С ИСПРАВЛЕНИЕМ: честная проверка ответа сервера)
-window.ban = async uid => {
-  const reason = prompt("Причина бана (можно пусто):");
-  if (reason === null) return;
-  const price = prompt("Цена разбана в звёздах (оставь пустым для обычного бана):") || "0";
-  const j = await api("/admin/ban", {user_id: uid, reason, ban_price: parseInt(price)||0});
-  if (j.ok) toast("🚫 Забанен");
-  else toast("❌ Ошибка: " + (j.error || "не удалось сохранить бан"));
+// ===== ВЫДАЧА =====
+function toggleItemRow(){ $("#itemRow").hidden = $("#gType").value !== "item"; }
+function setAmt(v){ $("#gAmount").value = v; }
+async function doGrant(){
+  if(!SEL_UID) return alert("Сначала выбери игрока (👥)");
+  const type = $("#gType").value;
+  const amount = parseInt($("#gAmount").value||"0",10);
+  const item_id = type==="item" ? SEL_ITEM : null;
+  if(type==="item" && !item_id) return alert("Выбери предмет (🔍)");
+  const reason = $("#gReason").value.trim() || null;
+  const j = await api("/admin/grant",{user_id:SEL_UID,type,amount,item_id,reason});
+  alert(j.ok?"✅ Выдано (игрок получит при синке ≤15 сек)":"❌ "+(j.error||""));
+}
+async function doGrantVip(){
+  const uid = SEL_UID || parseInt(prompt("ID игрока для VIP?")||"0",10);
+  if(!uid) return alert("Выбери игрока");
+  const days = parseInt($("#vipDays").value.trim()||"30",10);
+  const j = await api("/admin/grant",{user_id:uid,type:"vip",amount:days,reason:"Выдано админом"});
+  alert(j.ok?`✅ VIP на ${days} дн. выдан (продлевается к остатку)`:"❌ "+(j.error||""));
   loadPlayers();
-};
-window.unban = async uid => {
-  const j = await api("/admin/unban", {user_id: uid});
-  if (j.ok) toast("✅ Разбанен");
-  else toast("❌ Ошибка: " + (j.error || "не удалось снять бан"));
-  loadPlayers();
-};
+}
+async function doAnnihilate(){
+  if(!SEL_UID) return alert("Сначала выбери игрока (👥)");
+  const type = $("#annType").value;
+  if(!confirm(type==="coins"?"Обнулить баланс игрока?":"Очистить инвентарь игрока?")) return;
+  const j = await api("/admin/annihilate",{user_id:SEL_UID,type});
+  alert(j.ok?"✅ Готово":"❌ "+(j.error||""));
+}
+async function doGrantAll(){
+  const amount = parseInt($("#gaAmount").value||"0",10);
+  if(!amount) return alert("Введи сумму");
+  const reason = $("#gaReason").value.trim() || null;
+  if(!confirm(`Выдать ${fmt(amount)} осколков ВСЕМ игрокам?`)) return;
+  const j = await api("/admin/grant_all",{amount,reason});
+  alert(j.ok?`✅ Выдано ${j.count} игрокам`:"❌ "+(j.error||""));
+}
 
-window.resetPlayer = async uid => {
-  if(!confirm("Сбросить прогресс игрока? Баланс станет 2000, инвентарь очистится.")) return;
-  await api("/admin/reset", {user_id: uid});
-  toast("Прогресс сброшен"); loadPlayers();
-};
-
-// Выдачи
-window.grantOne = async () => {
-  const user_id = +document.getElementById("gUid").value;
-  const type = document.getElementById("gType").value;
-  const amount = +document.getElementById("gAmount").value || 0;
-  const item_id = document.getElementById("gItem").value.trim() || null;
-  const reason = document.getElementById("gReason").value.trim() || null;
-  if (!user_id) return toast("Укажи ID");
-  if (type === "coins" && amount === 0) return toast("Укажи сумму");
-  if (type === "item" && !item_id) return toast("Укажи item_id или выбери предмет");
-  await api("/admin/grant", {user_id, type, amount, item_id, reason});
-  toast(amount < 0 ? "Осколки списаны" : "Выдача добавлена в очередь");
-  document.getElementById("gUid").value = "";
-  document.getElementById("gAmount").value = "";
-  document.getElementById("gItem").value = "";
-  document.getElementById("gReason").value = "";
-};
-
-window.annihilate = async () => {
-  const user_id = +document.getElementById("gUid").value;
-  const type = document.getElementById("gType").value;
-  if (!user_id) return toast("Укажи ID игрока");
-  const action = type === "coins" ? "обнулить баланс до 0" : "очистить весь инвентарь";
-  if(!confirm(`Аннулировать всё для игрока ${user_id}? Это ${action}.`)) return;
-  await api("/admin/annihilate", {user_id, type});
-  toast(type === "coins" ? "Баланс обнулён" : "Инвентарь очищен");
-};
-
-window.grantAll = async () => {
-  const amount = +document.getElementById("gaAmount").value;
-  const reason = document.getElementById("gaReason").value.trim() || null;
-  if (amount <= 0) return toast("Укажи сумму");
-  if (!confirm(`Раздать ${amount} осколков ВСЕМ игрокам?`)) return;
-  const j = await api("/admin/grant_all", {amount, reason});
-  toast(`Раздано: ${j.count} игрокам`);
-};
-
-// Баланс бота и подарки
+// ===== ПОДАРКИ =====
 async function loadBotBalance(){
   const j = await api("/admin/bot_balance");
-  if (j.bot_stars !== undefined) document.getElementById("botStars").textContent = j.bot_stars;
+  $("#botStars").textContent = fmt(j.bot_stars) + " ⭐";
 }
-window.topupBot = async () => {
-  const stars = +document.getElementById("topupStars").value;
-  if (stars <= 0) return toast("Укажи количество звёзд");
-  const j = await api("/admin/topup_bot", {stars});
-  if (!j.invoice_link) return toast("Ошибка: " + (j.error||""));
-  tg.openInvoice(j.invoice_link, status => {
-    if (status === "paid") { toast("Баланс пополнен!"); loadBotBalance(); }
-    else if (status === "cancelled") toast("Отменено");
-    else if (status === "failed") toast("Ошибка оплаты");
-  });
-};
+async function topupBot(){
+  const stars = parseInt(prompt("Сколько звёзд пополнить?","100")||"0",10);
+  if(!stars) return;
+  const j = await api("/admin/topup_bot",{stars});
+  if(j.invoice_link && window.Telegram){ Telegram.WebApp.openInvoice(j.invoice_link, s => { alert(s==="paid"?"✅ Оплачено":"Оплата не завершена"); loadBotBalance(); }); }
+  else alert("❌ "+(j.error||""));
+}
+function renderGiftGrid(){
+  $("#giftGrid").innerHTML = GIFT_TPL.map(g => `
+    <div class="gift-cell ${SEL_GIFT===g.id?"active":""}" onclick="pickGift('${g.id}')">
+      <img src="${GIFT_CDN}${g.id}.png" onerror="this.style.visibility='hidden'">
+      <div class="gn">${g.n}</div><div class="gp">${g.p} ⭐</div>
+    </div>`).join("");
+}
+function pickGift(id){ SEL_GIFT = id; renderGiftGrid(); }
+async function doSendGift(){
+  if(!SEL_UID) return alert("Сначала выбери игрока (👥)");
+  if(!SEL_GIFT) return alert("Выбери подарок из шаблонов");
+  const j = await api("/admin/send_gift",{user_id:SEL_UID,gift_id:SEL_GIFT});
+  alert(j.ok?`✅ Подарок отправлен! Баланс бота: ${j.new_balance}⭐`:"❌ "+(j.error||""));
+  loadBotBalance();
+}
 
-window.setGift = id => {
-  document.getElementById("giftIdInput").value = id;
-  toast("ID подарка подставлен");
-};
-
-window.sendGiftManual = async () => {
-  const user_id = +document.getElementById("giftUid").value;
-  const gift_id = document.getElementById("giftIdInput").value.trim();
-  if (!user_id) return toast("Укажи ID получателя");
-  if (!gift_id) return toast("Укажи ID подарка");
-  if (!confirm(`Отправить подарок ${gift_id} игроку ${user_id}?`)) return;
-  const j = await api("/admin/send_gift", {user_id, gift_id});
-  if (j.ok) {
-    toast("Подарок отправлен!");
-    loadBotBalance();
-    document.getElementById("giftIdInput").value = "";
-  }
-  else toast("Ошибка: " + (j.error||""));
-};
-
-// Промокоды
-window.promoCreate = async () => {
-  const code = document.getElementById("pCode").value.trim().toUpperCase();
-  const amount = +document.getElementById("pAmount").value;
-  const max_uses = +document.getElementById("pMax").value || 1;
-  const secret = document.getElementById("pSecret").checked;
-  if (!code) return toast("Укажи код");
-  if (amount < 0) return toast("Укажи сумму");
-  await api("/admin/promo_create", {code, amount, max_uses, secret});
-  toast("Промо создан");
-  document.getElementById("pCode").value = "";
-  document.getElementById("pAmount").value = "";
-  document.getElementById("pMax").value = "";
+// ===== ПРОМО =====
+async function promoCreate(){
+  const code = ($("#prCode").value||"").trim().toUpperCase();
+  const amount = parseInt($("#prAmount").value||"0",10);
+  const max_uses = parseInt($("#prUses").value||"1",10);
+  const secret = $("#prSecret").checked;
+  if(!code) return alert("Введи код");
+  const j = await api("/admin/promo_create",{code,amount,max_uses,secret});
+  alert(j.ok?"✅ Создан":"❌ "+(j.error||""));
+  $("#prCode").value=""; $("#prAmount").value=""; $("#prUses").value="";
   loadPromos();
-};
+}
 async function loadPromos(){
   const j = await api("/admin/promo_list");
-  const promos = j.promos || [];
-  const body = document.getElementById("promosBody");
-  if (!promos.length){ body.innerHTML = '<div class="empty">Промокодов пока нет</div>'; return; }
-  body.innerHTML = `<table>
-    <tr><th>Код</th><th>Сумма</th><th>Исп/Макс</th><th></th></tr>
-    ${promos.map(p=>`
-      <tr>
-        <td>${escapeHtml(p.code)}${p.secret?' 🏆':''}</td>
-        <td>${p.amount}</td>
-        <td>${p.uses}/${p.max_uses}</td>
-        <td><button class="btn sm red" onclick="promoDelete('${escapeHtml(p.code)}')">×</button></td>
-      </tr>
-    `).join("")}
-  </table>`;
+  $("#promoList").innerHTML = (j.promos||[]).length ? (j.promos||[]).map(p =>
+    `<div class="grline"><span><b>${esc(p.code)}</b> · ${p.secret?"🔑 секретный":fmt(p.amount)+" оск."} · ${p.uses}/${p.max_uses}${p.active?"":" · ВЫКЛ"}</span>
+     <button class="btn red sm" onclick="promoDel('${esc(p.code)}')">✕</button></div>`
+  ).join("") : '<div class="hint">Промокодов нет</div>';
 }
-window.promoDelete = async code => {
-  if (!confirm(`Удалить промо ${code}?`)) return;
-  await api("/admin/promo_delete", {code});
-  toast("Удалён"); loadPromos();
-};
+async function promoDel(code){
+  if(!confirm("Удалить промокод "+code+"?")) return;
+  const j = await api("/admin/promo_delete",{code});
+  alert(j.ok?"✅ Удалён":"❌");
+  loadPromos();
+}
 
-// Платежи
+// ===== ПЛАТЕЖИ =====
 async function loadPayments(){
   const j = await api("/admin/payments");
-  const payments = j.payments || [];
-  const body = document.getElementById("paymentsBody");
-  if (!payments.length){ body.innerHTML = '<div class="empty">Платежей пока нет</div>'; return; }
-  body.innerHTML = `<table>
-    <tr><th>Время</th><th>ID</th><th>Звёзд</th><th>Осколки</th></tr>
-    ${payments.map(p=>`
-      <tr>
-        <td>${formatDate(p.created_at)}</td>
-        <td>${p.user_id}</td>
-        <td>${p.stars} ⭐</td>
-        <td>${p.coins}</td>
-      </tr>
-    `).join("")}
-  </table>`;
+  $("#payList").innerHTML = (j.payments||[]).length ? (j.payments||[]).map(p =>
+    `<div class="grline"><span><b>${fmt(p.stars)}⭐</b> → ${fmt(p.coins)} оск. · id ${p.user_id}</span><span class="dim">${fmtDate(p.created_at)}</span></div>`
+  ).join("") : '<div class="hint">Платежей нет</div>';
 }
 
-// Сообщения
-window.sendOne = async () => {
-  const user_id = +document.getElementById("mUid").value;
-  const text = document.getElementById("mText").value.trim();
-  if (!user_id || !text) return toast("Заполни ID и текст");
-  const j = await api("/admin/send", {user_id, text});
-  if (j.ok) { toast("Отправлено"); document.getElementById("mText").value=""; }
-  else toast("Ошибка: " + (j.error||""));
-};
-window.broadcast = async () => {
-  const text = document.getElementById("bText").value.trim();
-  if (!text) return toast("Введи текст");
-  if (!confirm("Разослать ВСЕМ игрокам?")) return;
-  const j = await api("/admin/broadcast", {text});
-  toast(`Отправлено: ${j.sent}`);
-};
-
-// Селектор игроков
-let selectorTargetField = null;
-
-window.openPlayerSelector = (fieldId) => {
-  selectorTargetField = fieldId;
-  document.getElementById("playerSelectorModal").hidden = false;
-  document.getElementById("selectorSearch").value = "";
-  renderSelectorList(allPlayers);
-};
-
-window.closePlayerSelector = () => {
-  document.getElementById("playerSelectorModal").hidden = true;
-  selectorTargetField = null;
-};
-
-window.filterSelectorPlayers = () => {
-  const q = document.getElementById("selectorSearch").value.toLowerCase().trim();
-  if(!q){ renderSelectorList(allPlayers); return; }
-  const filtered = allPlayers.filter(p => {
-    const name = formatPlayerName(p).toLowerCase();
-    const username = (p.username || "").toLowerCase();
-    const id = String(p.user_id);
-    return name.includes(q) || username.includes(q) || id.includes(q);
-  });
-  renderSelectorList(filtered);
-};
-
-function renderSelectorList(players){
-  const list = document.getElementById("selectorList");
-  if(!players.length){
-    list.innerHTML = '<div class="empty">Никого не найдено</div>';
-    return;
-  }
-  list.innerHTML = players.map(p => {
-    const name = formatPlayerName(p);
-    return `<div class="selector-item" onclick="selectPlayer(${p.user_id},'${escapeHtml(name)}')">
-      <div style="flex:1">
-        <div class="si-name">${escapeHtml(name)}</div>
-        <div class="si-id">ID: ${p.user_id} · Баланс: ${p.stats?.balance||0}</div>
-      </div>
-    </div>`;
-  }).join("");
+// ===== СООБЩЕНИЯ =====
+async function sendOne(){
+  if(!SEL_UID) return alert("Сначала выбери игрока (👥)");
+  const text = $("#msgText").value.trim();
+  if(!text) return alert("Введи текст");
+  const j = await api("/admin/send",{user_id:SEL_UID,text});
+  alert(j.ok?"✅ Отправлено":"❌ "+(j.error||""));
+}
+async function sendAll(){
+  const text = $("#bcText").value.trim();
+  if(!text) return alert("Введи текст");
+  if(!confirm("Отправить ВСЕМ игрокам?")) return;
+  const j = await api("/admin/broadcast",{text});
+  alert(j.ok?`✅ Отправлено: ${j.sent}`:"❌ "+(j.error||""));
 }
 
-window.selectPlayer = (uid, name) => {
-  if(selectorTargetField){
-    document.getElementById(selectorTargetField).value = uid;
-    toast(`Выбран: ${name}`);
-  }
-  closePlayerSelector();
-};
-
-// Инициализация
-(async () => {
-  document.getElementById("ownerBadge").textContent = "OWNER";
-  await loadStats();
-  await loadPlayers();
-  loadPromos();
-  loadPayments();
-  loadBotBalance();
-})();
+// ===== СТАРТ =====
+window.addEventListener("DOMContentLoaded", () => {
+  if(window.Telegram && Telegram.WebApp){ Telegram.WebApp.ready(); INIT = Telegram.WebApp.initData || ""; }
+  if(!INIT){ document.body.innerHTML = '<div class="card" style="margin:40px 16px"><h3>⛔ Открой админку через Telegram</h3><div class="hint">Кнопка «🛠 АДМИНКА» в меню бота.</div></div>'; return; }
+  loadStats();
+  loadPlayers();
+});
 </script>
 </body>
 </html>
