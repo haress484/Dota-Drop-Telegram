@@ -48,6 +48,10 @@ SNIPER_MANUAL_COOLDOWN = 5
 # ПАКИ: прогрессивная выгода
 PACKS = {1: 150, 5: 1000, 10: 2500, 25: 7500, 50: 20000}
 
+# VIP
+VIP_PRICE_STARS = 100
+VIP_DAYS = 30
+
 # РУЛЕТКА
 ROULETTE_POSITIONS = [
     {"id": "x2", "weight": 20},
@@ -289,6 +293,19 @@ async def apply_balance_delta(uid, data):
             _, err = await add_balance(uid, delta)
             if err:
                 print(f"🚨 BALANCE DELTA ERROR uid={uid}: {err}")
+
+def vip_info_from_until(until):
+    if not until:
+        return False, 0
+    try:
+        dt = datetime.fromisoformat(until)
+    except Exception:
+        return False, 0
+    now = datetime.now(timezone.utc)
+    if dt <= now:
+        return False, 0
+    delta = dt - now
+    return True, delta.days + (1 if delta.seconds else 0)
 
 async def touch_player(user_id, username=None, first_name=None):
     row = {"user_id": user_id, "last_seen": now_iso()}
@@ -917,6 +934,34 @@ async def on_payment(message: Message):
         await message.answer(f"✅ Оплачено! Получен 1 кредит рулетки ({ROULETTE_STARS_PRICE}⭐). Крути сверх лимита!")
         return
 
+    if payload.startswith("vip_"):
+        if stars != VIP_PRICE_STARS:
+            await message.answer("⚠️ Ошибка оплаты VIP.")
+            return
+        now = datetime.now(timezone.utc)
+        base = now
+        st = await get_stats(user_id) or {}
+        old = st.get("vip_until")
+        if old:
+            try:
+                old_dt = datetime.fromisoformat(old)
+                if old_dt > now:
+                    base = old_dt
+            except Exception:
+                pass
+        new_until = base + timedelta(days=VIP_DAYS)
+        err = await merge_player_stats(user_id, {"vip_until": new_until.isoformat()})
+        if err:
+            print(f"🚨 VIP WRITE ERROR uid={user_id}: {err}")
+        await db.insert("payments", [{"user_id": user_id, "stars": stars, "coins": 0}])
+        await db.insert("grants", [{
+            "user_id": user_id, "type": "item", "item_id": "gift_case",
+            "amount": 1, "reason": "Покупка VIP",
+        }])
+        await log_player_action(user_id, "vip_purchase", {"stars": stars, "until": new_until.isoformat()})
+        await message.answer("💎 VIP активирован на 30 дней! x2 продажа, Иммортал раз в день, подарочный кейс уже в инвентаре.")
+        return
+
     if payload.startswith("bot_topup_"):
         try:
             add = int(payload.split("_", 2)[2])
@@ -1053,6 +1098,14 @@ async def handle_create_invoice(request):
         return json_resp({"error": "No user_id"}, 400)
     is_gift_case = request.query.get("gift_case") == "1"
     try:
+        if request.query.get("vip") == "1":
+            link = await bot.create_invoice_link(
+                title="Dota Drop VIP",
+                description="VIP на 30 дней: x2 продажа, Иммортал раз в день, подарочный кейс",
+                payload=f"vip_{uid}",
+                currency="XTR",
+                prices=[LabeledPrice(label="VIP 30 дней", amount=VIP_PRICE_STARS)])
+            return json_resp({"invoice_link": link})
         if is_gift_case:
             stars = 25
             link = await bot.create_invoice_link(
@@ -1142,6 +1195,10 @@ async def handle_sync(request):
     ev = await get_active_events()
     if ev: response["events"] = ev
     response["server_balance"] = await get_balance(uid)
+    st = await get_stats(uid)
+    v_on, v_days = vip_info_from_until((st or {}).get("vip_until"))
+    response["vip"] = v_on
+    response["vip_days"] = v_days
     return json_resp(response)
 
 async def handle_game_profile(request):
@@ -1152,7 +1209,7 @@ async def handle_game_profile(request):
     if not rows:
         return json_resp({"balance": 2000, "name": "", "avatar": "", "achievements": [],
                           "fake_achievements": [], "price_overrides": {}, "art_overrides": {},
-                          "fake_add": 0, "events": [], "frozen": False})
+                          "fake_add": 0, "events": [], "frozen": False, "vip": False, "vip_days": 0})
     stats = rows[0].get("stats") or {}
     extras = await get_troll_extras(uid)
     name = stats.get("name", "")
@@ -1161,6 +1218,7 @@ async def handle_game_profile(request):
         name = extras["fake_name"]
     if extras.get("fake_avatar"):
         avatar = extras["fake_avatar"]
+    v_on, v_days = vip_info_from_until(stats.get("vip_until"))
     return json_resp({
         "balance": stats.get("balance", 2000),
         "name": name,
@@ -1172,6 +1230,8 @@ async def handle_game_profile(request):
         "fake_add": await get_fake_add(uid),
         "events": await get_active_events(),
         "frozen": extras.get("frozen", False),
+        "vip": v_on,
+        "vip_days": v_days,
     })
 
 async def handle_game_avatar(request):
@@ -1224,7 +1284,7 @@ async def handle_game_case_drop(request):
     return json_resp({"override": pick})
 
 async def handle_game_top100(request):
-    rows = await db.select("players", "?select=user_id,first_name,username,balance:stats->>balance,avatar:stats->>avatar&limit=5000")
+    rows = await db.select("players", "?select=user_id,first_name,username,balance:stats->>balance,avatar:stats->>avatar,vip_until:stats->>vip_until&limit=5000")
     for r in rows:
         try:
             r["balance"] = int(r.get("balance") or 0)
@@ -1247,6 +1307,7 @@ async def handle_game_top100(request):
             "name": t.get("fake_name") or r.get("first_name") or "Игрок",
             "avatar": t.get("fake_avatar") or r.get("avatar") or "",
             "balance": r["balance"],
+            "vip": vip_info_from_until(r.get("vip_until"))[0],
         })
     return json_resp({"top": out})
 
@@ -1508,6 +1569,15 @@ async def pvp_room_state(code):
     b = battles[0]
     players = await db.select("pvp_players", f"?battle_code=eq.{code}&order=seat.asc")
     rounds = await db.select("pvp_rounds", f"?battle_code=eq.{code}&order=round_num.asc")
+    uids = [p["user_id"] for p in players]
+    vip_map = {}
+    if uids:
+        ustr = ",".join(str(u) for u in uids)
+        prow = await db.select("players", f"?user_id=in.({ustr})&select=user_id,stats")
+        for pr in prow:
+            vip_map[pr["user_id"]] = vip_info_from_until((pr.get("stats") or {}).get("vip_until"))[0]
+    for p in players:
+        p["vip"] = vip_map.get(p["user_id"], False)
     return {"battle": b, "players": players, "rounds": rounds}
 
 async def pvp_finalize(b, players):
@@ -2004,6 +2074,24 @@ async def handle_admin(request):
             cur["inventory"] = {}
             cur["gift_inv"] = {}
             await db.update("players", f"?user_id=eq.{uid}", {"stats": cur})
+            pre = True
+        elif gtype == "vip":
+            days = amount if amount and amount > 0 else VIP_DAYS
+            now = datetime.now(timezone.utc)
+            base = now
+            st = await get_stats(uid) or {}
+            old = st.get("vip_until")
+            if old:
+                try:
+                    old_dt = datetime.fromisoformat(old)
+                    if old_dt > now:
+                        base = old_dt
+                except Exception:
+                    pass
+            new_until = base + timedelta(days=days)
+            err = await merge_player_stats(uid, {"vip_until": new_until.isoformat()})
+            if err:
+                return json_resp({"ok": False, "error": err}, 500)
             pre = True
         res = await db.insert("grants", [{
             "user_id": uid, "type": gtype, "amount": amount,
