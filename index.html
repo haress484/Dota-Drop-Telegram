@@ -297,6 +297,14 @@ body.has-frozen .event-banner{top:52px}
 .win-banner{font-size:19px;font-weight:900;margin-bottom:6px}
 .win-banner.me{color:var(--grn)}
 .win-banner.opp{color:var(--red)}
+/* ===== VIP BADGE ===== */
+.vip-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;margin-left:6px;border:1.5px solid #f5c842;border-radius:14px;font-size:9px;font-weight:800;color:#f5c842;letter-spacing:.5px;line-height:1;white-space:nowrap;vertical-align:middle;text-shadow:0 0 6px rgba(245,200,66,.5);box-shadow:0 0 8px rgba(245,200,66,.25);pointer-events:none}
+.vip-particle{position:absolute;top:50%;left:50%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:radial-gradient(circle,#ffe066,#f5c842);border-radius:50%;pointer-events:none;animation:vipParticleFly 2.4s ease-out infinite;animation-delay:var(--d);box-shadow:0 0 4px #f5c842}
+@keyframes vipParticleFly{0%{transform:translate(0,0) scale(1);opacity:1}70%{opacity:.6}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
+.vip-badge-slot{min-height:14px;margin-top:2px;text-align:center}
+.top-row .nm{position:relative}
+.pcard .pn{position:relative}
+.top-profile-box .tp-name{position:relative}
 </style>
 </head>
 <body>
@@ -488,6 +496,7 @@ body.has-frozen .event-banner{top:52px}
       <input type="file" id="avatarInput" accept="image/*" style="display:none">
       <div class="profile-name">
         <input id="profileName" placeholder="Твоё имя">
+        <div class="vip-badge-slot" id="vipBadgeSlot"></div>
         <div class="vip-days-line" id="vipDaysLine"></div>
         <div class="hint" style="text-align:center;margin:0;font-size:11px">Имя сохраняется автоматически</div>
       </div>
@@ -972,7 +981,8 @@ async function loadTop(){
     $("#topList").innerHTML = _topList.length ? _topList.map((p, i) => {
       const medal = p.place===1?"🥇":p.place===2?"🥈":p.place===3?"🥉":p.place;
       const ava = p.avatar ? `<img class="ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;ava-ph&quot;>?</div>'">` : `<div class="ava-ph">?</div>`;
-      return `<div class="top-row${p.user_id===uid?" me":""}" onclick="showTopProfile(${i})"><div class="place p${p.place}">${medal}</div>${ava}<div class="nm">${escHtml(p.name)}</div><div class="bl">${fmt(p.balance)} ${SHARD_SM}</div></div>`;
+      const vipTag = p.vip ? vipBadgeHTML() : '';
+      return `<div class="top-row${p.user_id===uid?" me":""}" onclick="showTopProfile(${i})"><div class="place p${p.place}">${medal}</div>${ava}<div class="nm">${escHtml(p.name)}${vipTag}</div><div class="bl">${fmt(p.balance)} ${SHARD_SM}</div></div>`;
     }).join("") : '<div class="hint">Пока пусто</div>';
   }catch(e){ $("#topList").innerHTML = '<div class="hint">Ошибка загрузки топа</div>'; }
 }
@@ -981,9 +991,10 @@ window.showTopProfile = async function(i){
   window._currentTopIdx = i;
   const medal = p.place===1?"🥇 1 место":p.place===2?"🥈 2 место":p.place===3?"🥉 3 место":`#${p.place} место`;
   const ava = p.avatar ? `<img class="tp-ava" src="${p.avatar}" onerror="this.outerHTML='<div class=&quot;tp-ava-ph&quot;>?</div>'">` : `<div class="tp-ava-ph">?</div>`;
+  const vipTag = p.vip ? vipBadgeHTML() : '';
   $("#topProfileContent").innerHTML = `
     ${ava}
-    <div class="tp-name">${escHtml(p.name)}</div>
+    <div class="tp-name">${escHtml(p.name)}${vipTag}</div>
     <div class="tp-place">🏆 ${medal} в топе</div>
     <div class="tp-row"><span class="l">ID игрока</span><span class="v">${p.user_id}</span></div>
     <div class="tp-row"><span class="l">Баланс</span><span class="v" style="color:var(--gold)">${fmt(p.balance)} ${SHARD_SM}</span></div>
@@ -1463,11 +1474,26 @@ window.claimGiftFromInv = async (giftId) => {
   } catch(e) { toast("Ошибка сети"); addInv(giftId); renderInv(); pushProfile(); }
 };
 
+// ===== VIP BADGE GENERATOR =====
+function vipBadgeHTML() {
+  let p = '';
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const dist = 15 + Math.random() * 7;
+    const tx = (Math.cos(angle) * dist).toFixed(1);
+    const ty = (Math.sin(angle) * dist).toFixed(1);
+    const delay = (i * 0.3).toFixed(2);
+    p += `<i class="vip-particle" style="--tx:${tx}px;--ty:${ty}px;--d:${delay}s"></i>`;
+  }
+  return `<span class="vip-badge">VIP${p}</span>`;
+}
+
 function renderProfile(){
   $("#profileName").value = S.name || "";
   const av = $("#profAvatar"), ph = $("#profAvatarPh");
   if (S.avatar){ av.src = S.avatar; av.style.display = ""; ph.style.display = "none"; }
   else { av.style.display = "none"; ph.style.display = ""; }
+  $("#vipBadgeSlot").innerHTML = S.vip ? vipBadgeHTML() : "";
   $("#vipDaysLine").innerHTML = S.vip ? `💎 VIP · осталось ${S.vipDays} дн.` : "";
   $("#vipBuyRow").innerHTML = S.vip ? "" : `<button class="btn pur" onclick="buyVip()">💎 Купить VIP за 100⭐</button>`;
   $("#statCases").textContent = S.stats.casesOpened || 0;
@@ -1569,6 +1595,7 @@ async function syncWithServer(){
     if(typeof j.server_balance === "number"){ adoptBalance(j.server_balance); }
     S.vip = !!j.vip; S.vipDays = j.vip_days || 0;
     save(); balance();
+    if(!$("#profileOverlay").hidden) renderProfile();
   } catch(e){ console.log("Sync error:", e); }
 }
 
@@ -1960,7 +1987,8 @@ function pvpRenderRoom(room){
     const p = (room.players||[])[i];
     if(p){
       $("#pva"+i).innerHTML = p.avatar ? `<img src="${p.avatar}">` : escHtml((p.name||"?")[0].toUpperCase());
-      $("#pvn"+i).textContent = p.user_id===myUid ? p.name+" (ты)" : (p.name||"?");
+      const vipTag = p.vip ? vipBadgeHTML() : '';
+      $("#pvn"+i).innerHTML = escHtml(p.user_id===myUid ? p.name+" (ты)" : (p.name||"?")) + vipTag;
       $("#pvs"+i).textContent = fmt(p.score);
       $("#pvpc"+i).classList.remove("waiting-pulse");
     } else {
