@@ -878,8 +878,9 @@ const ACHIEVEMENTS = [
 
 let musicOn = localStorage.getItem("dotaDrop_music") !== "0";
 const music = new Audio(); music.loop = true; music.volume = 0.25;
+let musicReadyPromise = null;
 if (MUSIC_URL) {
-  fetch(MUSIC_URL).then(r => r.blob()).then(b => { music.src = URL.createObjectURL(b); }).catch(() => { music.src = MUSIC_URL; });
+  musicReadyPromise = fetch(MUSIC_URL).then(r => r.blob()).then(b => { music.src = URL.createObjectURL(b); }).catch(() => { music.src = MUSIC_URL; });
 }
 const tickAudio = SOUND_CASE ? new Audio(SOUND_CASE) : null; if (tickAudio) tickAudio.volume = 1.0;
 const sellAudio = SOUND_SELL ? new Audio(SOUND_SELL) : null; if (sellAudio) sellAudio.volume = 0.8;
@@ -2352,7 +2353,6 @@ document.addEventListener("visibilitychange", () => {
   allImgs.push(GIFT_CDN + "gift_chest.png");
 
   const auds = [];
-  if (MUSIC_URL && music.src) auds.push(music);
   if (SOUND_CASE && tickAudio && tickAudio.src) auds.push(tickAudio);
   if (SOUND_SELL && sellAudio && sellAudio.src) auds.push(sellAudio);
   Object.values(multiAudios).forEach(a => { if(a && a.src) auds.push(a); });
@@ -2366,7 +2366,8 @@ document.addEventListener("visibilitychange", () => {
     vids.push(v);
   });
 
-  const total = allImgs.length + auds.length + vids.length; let loaded = 0, ready = false;
+  const proms = musicReadyPromise ? [musicReadyPromise] : [];
+  const total = allImgs.length + auds.length + vids.length + proms.length; let loaded = 0, ready = false;
   function bump(){
     if(ready) return;
     loaded++;
@@ -2393,6 +2394,7 @@ document.addEventListener("visibilitychange", () => {
     }catch(e){ fin(); }
   });
   vids.forEach(v => {
+    proms.forEach(p => p.then(bump, bump));
     let done = false;
     const fin = () => { if(done) return; done = true; bump(); };
     if(v.readyState >= 3){ fin(); return; }
@@ -2400,19 +2402,12 @@ document.addEventListener("visibilitychange", () => {
     v.onerror = fin;
     try{ v.load(); }catch(e){ fin(); }
   });
-  setTimeout(() => {
-    if(!ready){
-      ready = true;
-      btn.disabled = false;
-      btn.textContent = "ВОЙТИ";
-      $("#loadTxt").textContent = `Загружено ${loaded}/${total}`;
-    }
-  }, 25000);
-  setTimeout(() => { 
+    // Принудительного таймаута нет: кнопка станет доступной ТОЛЬКО при loaded >= total
+  setInterval(() => { 
     if (!ready){ 
       $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; 
     } 
-  }, 8000);
+  }, 5000);
 
   btn.onclick = async () => {
     if (btn.disabled) return;
