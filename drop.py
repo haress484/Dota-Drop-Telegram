@@ -35,7 +35,7 @@ CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
 ADMIN_URL = WEB_APP_URL + "admin.html"
 
-# ✅ FIX #2: OWNER_ID теперь в env (с дефолтом на случай, если env пустой)
+# ✅ FIX #2: OWNER_ID теперь в env (с дефолтом)
 OWNER_ID = int(os.environ.get("OWNER_ID", "1837442717"))
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -52,6 +52,10 @@ PACKS = {1: 150, 5: 1000, 10: 2500, 25: 7500, 50: 20000}
 
 VIP_PRICE_STARS = 100
 VIP_DAYS = 30
+# ✅ VIP v2: рулетка — 7 крутов вместо 5 для VIP-игроков
+VIP_ROULETTE_DAILY_LIMIT = 7
+# ✅ VIP v2: PVP комиссия 2% для VIP вместо 5%
+VIP_PVP_COMMISSION = 0.02
 
 ROULETTE_POSITIONS = [
     {"id": "x2", "weight": 20},
@@ -88,6 +92,14 @@ PRICE_TO_GIFTS = {
 
 ALLOWED_PUSH_FIELDS = {"casesOpened", "coinsSpent", "balance", "inventory", "name", "achievements"}
 
+# ✅ VIP v2: whitelist ID-ов бейджей (должен совпадать с массивом BADGES на клиенте)
+BADGE_WHITELIST = {
+    "Pavel_Durov", "Snoop_Dogg", "Teddy_Builder", "Teddy_C4", "Teddy_Clown",
+    "Teddy_Football", "Teddy_Money", "Teddy_bunny", "Telegram", "Telegram_backpack",
+    "Telegram_cap", "Telegram_jacket", "Telegram_ring", "button", "cat",
+    "cigar", "crystal", "flashlight", "mask", "pepe", "staff",
+}
+
 # ================= ФИКСЫ ТЕХДОЛГОВ =================
 
 # ✅ FIX #3: Rate-limiter (sliding window, per-uid, in-memory)
@@ -98,7 +110,6 @@ class RateLimiter:
     def check(self, uid, max_per_minute=30):
         now = time.time()
         key = str(uid)
-        # Оставляем только хиты за последние 60 секунд
         self.hits[key] = [t for t in self.hits[key] if now - t < 60]
         if len(self.hits[key]) >= max_per_minute:
             return False
@@ -107,8 +118,7 @@ class RateLimiter:
 
 RATE = RateLimiter()
 
-# ✅ FIX #1: Lock-и по uid для атомарности операций с балансом.
-# Гарантирует, что два параллельных запроса на одного игрока не перезатирают баланс друг друга.
+# ✅ FIX #1: Lock-и по uid для атомарности операций с балансом
 _balance_locks: dict[int, asyncio.Lock] = {}
 _balance_locks_mu = asyncio.Lock()
 
@@ -309,6 +319,7 @@ async def get_display_identity(uid):
     avatar = st.get("avatar") or ""
     return name, avatar
 
+# ✅ FIX #1: merge_player_stats тоже под локом (чтобы patch не затёр параллельный add_balance)
 async def merge_player_stats(uid, patch):
     lock = await _get_balance_lock(int(uid))
     async with lock:
@@ -340,6 +351,12 @@ def vip_info_from_until(until):
         return False, 0
     delta = dt - now
     return True, delta.days + (1 if delta.seconds else 0)
+
+# ✅ VIP v2: helper для проверки VIP по stats
+def is_vip_from_stats(stats):
+    if not stats:
+        return False
+    return vip_info_from_until(stats.get("vip_until"))[0]
 
 async def touch_player(user_id, username=None, first_name=None):
     row = {"user_id": user_id, "last_seen": now_iso()}
@@ -993,7 +1010,16 @@ async def on_payment(message: Message):
             "amount": 1, "reason": "Покупка VIP",
         }])
         await log_player_action(user_id, "vip_purchase", {"stars": stars, "until": new_until.isoformat()})
-        await message.answer("💎 VIP активирован на 30 дней! x2 продажа, Иммортал раз в день, подарочный кейс уже в инвентаре.")
+        await message.answer(
+            "💎 VIP активирован на 30 дней!\n\n"
+            "🎁 Бонусы VIP v2:\n"
+            "• +7 крутов рулетки в день (вместо 5)\n"
+            "• PVP комиссия 2% (вместо 5%)\n"
+            "• Иммортал-кейс раз в день бесплатно\n"
+            "• Настраиваемый VIP-бейдж\n"
+            "• Золотой ник\n"
+            "• Подарочный кейс уже в инвентаре"
+        )
         return
 
     if payload.startswith("bot_topup_"):
@@ -1089,7 +1115,6 @@ def validate_tg(init_data):
         pairs = dict(parse_qsl(init_data, strict_parsing=True))
     except Exception:
         return None
-    # Свежесть initData
     try:
         auth_date = int(pairs.get("auth_date", 0))
         if auth_date <= 0 or time.time() - auth_date > 86400:
@@ -1143,7 +1168,7 @@ async def handle_create_invoice(request):
         if request.query.get("vip") == "1":
             link = await bot.create_invoice_link(
                 title="Dota Drop VIP",
-                description="VIP на 30 дней: x2 продажа, Иммортал раз в день, подарочный кейс",
+                description="VIP на 30 дней: 7 крутов рулетки, PVP комиссия 2%, Иммортал раз в день, настраиваемый бейдж",
                 payload=f"vip_{uid}",
                 currency="XTR",
                 prices=[LabeledPrice(label="VIP 30 дней", amount=VIP_PRICE_STARS)])
@@ -1237,10 +1262,12 @@ async def handle_sync(request):
     ev = await get_active_events()
     if ev: response["events"] = ev
     response["server_balance"] = await get_balance(uid)
-    st = await get_stats(uid)
-    v_on, v_days = vip_info_from_until((st or {}).get("vip_until"))
+    st = await get_stats(uid) or {}
+    v_on, v_days = vip_info_from_until(st.get("vip_until"))
     response["vip"] = v_on
     response["vip_days"] = v_days
+    # ✅ VIP v2: отдаём выбранный бейдж
+    response["vip_badge"] = st.get("vip_badge")
     return json_resp(response)
 
 async def handle_game_profile(request):
@@ -1251,7 +1278,7 @@ async def handle_game_profile(request):
     if not rows:
         return json_resp({"balance": 2000, "name": "", "avatar": "", "achievements": [],
                           "fake_achievements": [], "price_overrides": {}, "art_overrides": {},
-                          "fake_add": 0, "events": [], "frozen": False, "vip": False, "vip_days": 0})
+                          "fake_add": 0, "events": [], "frozen": False, "vip": False, "vip_days": 0, "vip_badge": None})
     stats = rows[0].get("stats") or {}
     extras = await get_troll_extras(uid)
     name = stats.get("name", "")
@@ -1274,6 +1301,7 @@ async def handle_game_profile(request):
         "frozen": extras.get("frozen", False),
         "vip": v_on,
         "vip_days": v_days,
+        "vip_badge": stats.get("vip_badge"),
     })
 
 async def handle_game_avatar(request):
@@ -1329,7 +1357,10 @@ async def handle_game_case_drop(request):
     return json_resp({"override": pick})
 
 async def handle_game_top100(request):
-    rows = await db.select("players", "?select=user_id,first_name,username,balance:stats->>balance,avatar:stats->>avatar,vip_until:stats->>vip_until&limit=5000")
+    # ✅ VIP v2: добавили vip_badge в SELECT
+    rows = await db.select("players",
+        "?select=user_id,first_name,username,balance:stats->>balance,avatar:stats->>avatar,"
+        "vip_until:stats->>vip_until,vip_badge:stats->>vip_badge&limit=5000")
     for r in rows:
         try:
             r["balance"] = int(r.get("balance") or 0)
@@ -1353,8 +1384,44 @@ async def handle_game_top100(request):
             "avatar": t.get("fake_avatar") or r.get("avatar") or "",
             "balance": r["balance"],
             "vip": vip_info_from_until(r.get("vip_until"))[0],
+            "vip_badge": r.get("vip_badge"),
         })
     return json_resp({"top": out})
+
+# ✅ VIP v2: эндпоинт смены бейджа
+async def handle_game_badge(request):
+    try:
+        d = await request.json()
+    except Exception:
+        return json_resp({"ok": False, "error": "bad request"}, 400)
+    init = d.get("initData") or ""
+    user = validate_init_data(init)
+    if not user:
+        return json_resp({"ok": False, "error": "forbidden"}, 403)
+    uid = int(user["id"])
+
+    # rate-limit: 10 смен бейджа в минуту — более чем достаточно
+    if not RATE.check(f"badge_{uid}", max_per_minute=10):
+        return json_resp({"ok": False, "error": "Слишком часто. Подожди минуту."}, 429)
+
+    badge_id = d.get("badge_id")
+    # None или "" → сброс на стандартный овал
+    if badge_id in (None, ""):
+        badge_id = None
+    elif not isinstance(badge_id, str) or badge_id not in BADGE_WHITELIST:
+        return json_resp({"ok": False, "error": "Неверный ID бейджа"}, 400)
+
+    # Проверка: игрок должен быть VIP (иначе сбрасываем, но не блокируем)
+    st = await get_stats(uid) or {}
+    is_vip = vip_info_from_until(st.get("vip_until"))[0]
+    if not is_vip:
+        return json_resp({"ok": False, "error": "Бейдж доступен только VIP-игрокам"}, 403)
+
+    err = await merge_player_stats(uid, {"vip_badge": badge_id})
+    if err:
+        return json_resp({"ok": False, "error": f"DB error: {err}"}, 500)
+    await log_player_action(uid, "badge_change", {"badge": badge_id})
+    return json_resp({"ok": True, "vip_badge": badge_id})
 
 async def handle_push_stats(request):
     uid = int(request.query.get("user_id", 0))
@@ -1530,17 +1597,23 @@ async def handle_roulette(request):
     uid = int(user["id"])
     today = now_iso()[:10]
 
+    # ✅ VIP v2: VIP-игроки получают 7 крутов вместо 5
+    st = await get_stats(uid) or {}
+    is_vip = vip_info_from_until(st.get("vip_until"))[0]
+    daily_limit = VIP_ROULETTE_DAILY_LIMIT if is_vip else ROULETTE_DAILY_LIMIT
+
     if path == "/roulette/status":
         spins = await db.select("roulette_spins", f"?user_id=eq.{uid}&spin_date=eq.{today}&paid_stars=eq.false")
         n = len(spins)
         return json_resp({
             "spins_today": n,
-            "daily_limit": ROULETTE_DAILY_LIMIT,
-            "next_price": ROULETTE_PRICES[n] if n < ROULETTE_DAILY_LIMIT else None,
+            "daily_limit": daily_limit,
+            "next_price": ROULETTE_PRICES[n] if n < len(ROULETTE_PRICES) else ROULETTE_PRICES[-1],
             "stars_price": ROULETTE_STARS_PRICE,
             "star_credits": await get_roulette_credits(uid),
             "prices": ROULETTE_PRICES,
             "balance": await get_balance(uid),
+            "is_vip": is_vip,
         })
 
     if path == "/roulette/buy_credits":
@@ -1561,9 +1634,9 @@ async def handle_roulette(request):
             return json_resp({"error": "Слишком много попыток. Подожди минуту."}, 429)
         spins = await db.select("roulette_spins", f"?user_id=eq.{uid}&spin_date=eq.{today}&paid_stars=eq.false")
         n = len(spins)
-        if n >= ROULETTE_DAILY_LIMIT:
+        if n >= daily_limit:
             return json_resp({"error": "limit", "stars_price": ROULETTE_STARS_PRICE}, 402)
-        price = ROULETTE_PRICES[n]
+        price = ROULETTE_PRICES[n] if n < len(ROULETTE_PRICES) else ROULETTE_PRICES[-1]
         bal = await get_balance(uid)
         if bal < price:
             return json_resp({"error": f"Не хватает осколков: нужно {price}"}, 400)
@@ -1603,11 +1676,11 @@ async def handle_roulette(request):
         }])
         await log_player_action(uid, "roulette_spin_stars", {"pos": pos["id"]})
         return json_resp({"ok": True, "paid_stars": True, "price": ROULETTE_STARS_PRICE,
-                          "spins_today": ROULETTE_DAILY_LIMIT, **prize})
+                          "spins_today": daily_limit, **prize})
 
     return json_resp({"error": "unknown path"}, 404)
 
-# ================= PVP БАТТЛЫ (2-5 игроков, JSONB round_data) =================
+# ================= PVP БАТТЛЫ (2-5 игроков, VIP комиссия 2%) =================
 def gen_battle_code():
     s = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     return "".join(random.choice(s) for _ in range(4))
@@ -1619,54 +1692,69 @@ async def pvp_room_state(code):
     b = battles[0]
     players = await db.select("pvp_players", f"?battle_code=eq.{code}&order=seat.asc")
     rounds = await db.select("pvp_rounds", f"?battle_code=eq.{code}&order=round_num.asc")
-    # Нормализация round_data (старые записи могут не иметь поля)
+    # Нормализация round_data для старых записей с p0/p1 колонками
     for r in rounds:
         rd = r.get("round_data")
         if rd is None:
-            # Миграция на лету для старых записей с p0/p1 колонками
             r["round_data"] = [
                 {"item": r.get("p0_item"), "cost": int(r.get("p0_cost") or 0)},
                 {"item": r.get("p1_item"), "cost": int(r.get("p1_cost") or 0)},
             ]
     uids = [p["user_id"] for p in players]
     vip_map = {}
+    badge_map = {}
     if uids:
         ustr = ",".join(str(u) for u in uids)
         prow = await db.select("players", f"?user_id=in.({ustr})&select=user_id,stats")
         for pr in prow:
-            vip_map[pr["user_id"]] = vip_info_from_until((pr.get("stats") or {}).get("vip_until"))[0]
+            stats = pr.get("stats") or {}
+            vip_map[pr["user_id"]] = vip_info_from_until(stats.get("vip_until"))[0]
+            badge_map[pr["user_id"]] = stats.get("vip_badge")
     for p in players:
         p["vip"] = vip_map.get(p["user_id"], False)
+        # ✅ VIP v2: отдаём выбранный бейдж каждому игроку
+        p["vip_badge"] = badge_map.get(p["user_id"])
     return {"battle": b, "players": players, "rounds": rounds}
 
 async def pvp_finalize(b, players):
     """Финализация батла для 2-5 игроков.
-    Победитель — игрок с max score. При ничьей — возврат stake всем.
-    Приз = банк * (1 - комиссия), делится поровну если ничья."""
+    ✅ VIP v2: если хоть один из призёров VIP → комиссия 2%, иначе 5%."""
     stake = int(b["stake"])
     num_players = len(players)
     bank = stake * num_players
-    prize_pool = int(bank * (1 - PVP_COMMISSION))
 
     scores = [int(p.get("score", 0) or 0) for p in players]
     max_score = max(scores) if scores else 0
-    winners = [i for i, s in enumerate(scores) if s == max_score]
+    winners_idx = [i for i, s in enumerate(scores) if s == max_score]
+    winner_uids = [players[i]["user_id"] for i in winners_idx]
 
-    if len(winners) > 1:
-        # Ничья — всем возвращается stake (комиссия съедается, как пенальти)
+    # Получаем VIP-статусы победителей
+    uids_str = ",".join(str(u) for u in winner_uids)
+    prow = await db.select("players", f"?user_id=in.({uids_str})&select=user_id,stats")
+    any_vip_winner = False
+    for pr in prow:
+        stats = pr.get("stats") or {}
+        if vip_info_from_until(stats.get("vip_until"))[0]:
+            any_vip_winner = True
+            break
+
+    commission = VIP_PVP_COMMISSION if any_vip_winner else PVP_COMMISSION
+    prize_pool = int(bank * (1 - commission))
+
+    if len(winners_idx) > 1:
+        # Ничья — всем возвращается stake
         for p in players:
             await add_balance(p["user_id"], stake)
         await db.update("pvp_battles", f"?code=eq.{b['code']}",
                         {"status": "finished", "winner_uid": None, "prize": 0})
-        return None, 0
+        return None, 0, commission
     else:
-        # Один победитель
-        winner_idx = winners[0]
+        winner_idx = winners_idx[0]
         winner_uid = players[winner_idx]["user_id"]
         await add_balance(winner_uid, prize_pool)
         await db.update("pvp_battles", f"?code=eq.{b['code']}",
                         {"status": "finished", "winner_uid": winner_uid, "prize": prize_pool})
-        return winner_uid, prize_pool
+        return winner_uid, prize_pool, commission
 
 async def handle_pvp(request):
     path = request.path
@@ -1708,9 +1796,8 @@ async def handle_pvp(request):
         if max_players < PVP_MIN_PLAYERS or max_players > PVP_MAX_PLAYERS:
             return json_resp({"error": f"Игроков должно быть от {PVP_MIN_PLAYERS} до {PVP_MAX_PLAYERS}"}, 400)
 
-        stake = CHEST_DEFS[case_id][3] * rounds  # Взнос с одного игрока
+        stake = CHEST_DEFS[case_id][3] * rounds
 
-        # Проверка: нет ли уже открытого батла этого игрока
         my_seats = await db.select("pvp_players", f"?user_id=eq.{uid}&seat=eq.0")
         for ms in my_seats:
             bs = await db.select("pvp_battles", f"?code=eq.{ms['battle_code']}&status=eq.waiting")
@@ -1788,7 +1875,6 @@ async def handle_pvp(request):
             await add_balance(uid, stake)
             return json_resp({"error": err or "место занято"}, 500)
 
-        # Если батл заполнен — переходим в active
         if next_seat + 1 >= max_players:
             await db.update("pvp_battles", f"?code=eq.{code}&status=eq.waiting",
                             {"status": "active", "updated_at": now_iso()})
@@ -1820,14 +1906,12 @@ async def handle_pvp(request):
         if int(b["round_now"]) >= int(b["rounds"]):
             return json_resp({"error": "no rounds left"}, 400)
         old_round = int(b["round_now"])
-        # Оптимистичная блокировка: обновляем только если round_now не изменился
         guard = await db.update("pvp_battles", f"?code=eq.{code}&round_now=eq.{old_round}",
                                 {"round_now": old_round + 1, "updated_at": now_iso()})
         if not guard:
             room = await pvp_room_state(code)
             return json_resp({"ok": True, "race": True, **room})
 
-        # Для каждого игрока кидаем предмет
         pool = chest_pool(b["case_id"])
         decay = CHEST_DEFS[b["case_id"]][2]
         round_data = []
@@ -1835,22 +1919,21 @@ async def handle_pvp(request):
             item_id, item_cost = weighted_pick(pool, decay)
             round_data.append({"item": item_id, "cost": item_cost})
 
-        # Вставляем раунд с JSONB массивом
         await db.insert("pvp_rounds", [{
             "battle_code": code, "round_num": old_round + 1,
             "round_data": round_data,
         }])
-        # Обновляем score каждого игрока
         for i, p in enumerate(ps):
             new_score = int(p.get("score", 0)) + round_data[i]["cost"]
             await db.update("pvp_players", f"?battle_code=eq.{code}&seat=eq.{i}", {"score": new_score})
 
         room = await pvp_room_state(code)
         if old_round + 1 >= int(b["rounds"]):
-            winner_uid, prize = await pvp_finalize(b, room["players"])
+            winner_uid, prize, commission = await pvp_finalize(b, room["players"])
             room["battle"]["status"] = "finished"
             room["battle"]["winner_uid"] = winner_uid
             room["battle"]["prize"] = prize
+            room["battle"]["commission"] = commission
             await log_player_action(uid, "pvp_finish", {"code": code, "winner": winner_uid})
         room["balance"] = await get_balance(uid)
         return json_resp({"ok": True, **room})
@@ -1868,7 +1951,6 @@ async def handle_pvp(request):
         stake = int(b["stake"])
 
         if b["status"] == "waiting":
-            # Возврат взноса, удаление игрока
             await add_balance(uid, stake)
             await db.delete("pvp_players", f"?battle_code=eq.{code}&user_id=eq.{uid}")
             remaining = await db.select("pvp_players", f"?battle_code=eq.{code}")
@@ -1877,13 +1959,25 @@ async def handle_pvp(request):
             return json_resp({"ok": True, "refunded": stake, "new_balance": await get_balance(uid)})
 
         if b["status"] == "active":
-            # В активном батле выход = поражение. Банк делится между оставшимися.
             opponents = [p for p in ps if p["user_id"] != uid]
             num_players = len(ps)
             bank = stake * num_players
-            prize = int(bank * (1 - PVP_COMMISSION))
+
+            # ✅ VIP v2: комиссия 2% если хоть один из оставшихся VIP
+            opp_uids = [o["user_id"] for o in opponents]
+            any_vip_remaining = False
+            if opp_uids:
+                uids_str = ",".join(str(u) for u in opp_uids)
+                prow = await db.select("players", f"?user_id=in.({uids_str})&select=user_id,stats")
+                for pr in prow:
+                    stats = pr.get("stats") or {}
+                    if vip_info_from_until(stats.get("vip_until"))[0]:
+                        any_vip_remaining = True
+                        break
+            commission = VIP_PVP_COMMISSION if any_vip_remaining else PVP_COMMISSION
+            prize = int(bank * (1 - commission))
+
             if opponents:
-                # Банк делится поровну между оставшимися
                 share = prize // len(opponents)
                 for opp in opponents:
                     await add_balance(opp["user_id"], share)
@@ -2031,6 +2125,54 @@ async def handle_pc_admin(request):
             return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
         return json_resp({"ok": True, "revert_at": revert_at})
 
+    # ✅ VIP v2: админская установка/сброс бейджа
+    if path == "/admin_pc/set_badge":
+        uid = int(data.get("user_id", 0))
+        badge_id = data.get("badge_id")
+        if not uid:
+            return json_resp({"error": "bad request"})
+        if badge_id not in (None, "") and badge_id not in BADGE_WHITELIST:
+            return json_resp({"error": f"Неверный ID бейджа. Допустимые: {sorted(BADGE_WHITELIST)}"}, 400)
+        if badge_id in (None, "", "null"):
+            badge_id = None
+        err = await merge_player_stats(uid, {"vip_badge": badge_id})
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
+        await log_player_action(uid, "admin_set_badge", {"badge": badge_id, "by": "pc_admin"})
+        return json_resp({"ok": True, "vip_badge": badge_id})
+
+    # ✅ VIP v2: админская выдача VIP (без звёзд, сразу на N дней)
+    if path == "/admin_pc/grant_vip":
+        uid = int(data.get("user_id", 0))
+        days = int(data.get("days", VIP_DAYS))
+        if not uid or days <= 0:
+            return json_resp({"error": "bad request"})
+        now = datetime.now(timezone.utc)
+        base = now
+        st = await get_stats(uid) or {}
+        old = st.get("vip_until")
+        if old:
+            try:
+                old_dt = datetime.fromisoformat(old)
+                if old_dt > now:
+                    base = old_dt
+            except Exception:
+                pass
+        new_until = base + timedelta(days=days)
+        err = await merge_player_stats(uid, {"vip_until": new_until.isoformat()})
+        if err:
+            return json_resp({"ok": False, "error": f"База не приняла запись: {err}"}, 500)
+        # grant gift_case как бонус
+        await db.insert("grants", [{
+            "user_id": uid, "type": "item", "item_id": "gift_case",
+            "amount": 1, "reason": "VIP выдан администратором",
+        }])
+        stats, ginv = await get_gift_inv(uid)
+        ginv["gift_case"] = ginv.get("gift_case", 0) + 1
+        await set_gift_inv(uid, stats, ginv)
+        await log_player_action(uid, "admin_grant_vip", {"days": days, "until": new_until.isoformat()})
+        return json_resp({"ok": True, "vip_until": new_until.isoformat()})
+
     if path == "/admin_pc/set_balance":
         uid = int(data.get("user_id", 0))
         bal = int(data.get("balance", 0))
@@ -2120,6 +2262,10 @@ async def handle_pc_admin(request):
         notes = await db.select("admin_notes", q)
         return json_resp({"notes": notes})
 
+    # ✅ VIP v2: список доступных бейджей для админки
+    if path == "/admin_pc/badges_list":
+        return json_resp({"badges": sorted(list(BADGE_WHITELIST))})
+
     return json_resp({"error": "unknown path"}, 404)
 
 # ================= МОБИЛЬНАЯ АДМИНКА =================
@@ -2208,6 +2354,10 @@ async def handle_admin(request):
             err = await merge_player_stats(uid, {"vip_until": new_until.isoformat()})
             if err:
                 return json_resp({"ok": False, "error": err}, 500)
+            # grant gift_case как бонус
+            stats, ginv = await get_gift_inv(uid)
+            ginv["gift_case"] = ginv.get("gift_case", 0) + 1
+            await set_gift_inv(uid, stats, ginv)
             pre = True
         res = await db.insert("grants", [{
             "user_id": uid, "type": gtype, "amount": amount,
@@ -2407,6 +2557,7 @@ async def start_web_server():
     app.router.add_route("*", "/game/case_drop", handle_game_case_drop)
     app.router.add_get("/game/top100", handle_game_top100)
     app.router.add_route("*", "/game/avatar", handle_game_avatar)
+    app.router.add_route("*", "/game/badge", handle_game_badge)  # ✅ VIP v2
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/push_stats", handle_push_stats)
     app.router.add_route("*", "/promo", handle_promo)
@@ -2425,6 +2576,7 @@ async def start_web_server():
         "/admin_pc/logs", "/admin_pc/fake_tx", "/admin_pc/set_balance",
         "/admin_pc/set_inventory", "/admin_pc/transfer_item",
         "/admin_pc/events_list", "/admin_pc/notes_list",
+        "/admin_pc/set_badge", "/admin_pc/grant_vip", "/admin_pc/badges_list",  # ✅ VIP v2
     ]
     for p in pc_paths:
         app.router.add_route("*", p, handle_pc_admin)
