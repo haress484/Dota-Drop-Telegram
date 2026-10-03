@@ -301,7 +301,7 @@ body.has-frozen .event-banner{top:52px}
 .win-banner{font-size:19px;font-weight:900;margin-bottom:6px}
 .win-banner.me{color:var(--grn)}
 .win-banner.opp{color:var(--red)}
-/* ===== VIP BADGE: овал не тронут, эмодзи 64px (в шторке 112px) ===== */
+/* ===== VIP BADGE: овал не тронут; эмодзи: список 54px, профиль 64px, шторка 112px ===== */
 .vip-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:3px 11px;border-radius:999px;
   background:linear-gradient(180deg,#2a2410,#1d1a08) padding-box,
              linear-gradient(135deg,#ffe95c,#f7c948 40%,#c8860a 70%,#ffd35c) border-box;
@@ -313,8 +313,10 @@ body.has-frozen .event-banner{top:52px}
 .vip-badge.big{transform:scale(1.25)}
 .vip-emoji-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;vertical-align:middle;flex-shrink:0;pointer-events:none}
 .vip-emoji-badge .vbe-img{width:64px;height:64px;object-fit:contain;transform:scale(1.7)}
+.vip-emoji-badge.sm{width:54px;height:54px}
+.vip-emoji-badge.sm .vbe-img{width:54px;height:54px}
 .vip-emoji-badge.huge{width:112px;height:112px}
-.vip-emoji-badge.huge .vbe-img{width:112px;height:112px;object-fit:contain;transform:scale(1.7)}
+.vip-emoji-badge.huge .vbe-img{width:112px;height:112px}
 .vip-parts{position:absolute;inset:0;pointer-events:none;overflow:visible}
 .vip-parts i{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;
   background:#ffe95c;box-shadow:0 0 6px #ffd35c,0 0 12px rgba(255,211,92,.55);
@@ -332,7 +334,7 @@ body.has-frozen .event-banner{top:52px}
 .badge-click{display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0}
 .profile-name-row{display:flex;align-items:center;gap:8px;min-width:0}
 .profile-name-row input{flex:1;min-width:0}
-/* ===== ПИКЕР БЕЙДЖЕЙ ===== */
+/* ===== ПИКЕР БЕЙДЖЕЙ (превью статичные, играет только выбранный) ===== */
 .badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
 .badge-cell{background:var(--panel2);border:2px solid var(--line);border-radius:12px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s;overflow:visible}
 .badge-cell:active{transform:scale(.92)}
@@ -554,7 +556,7 @@ body.has-frozen .event-banner{top:52px}
 <div class="overlay" id="badgePickerOverlay" hidden>
   <div class="picker-box">
     <div class="case-top"><span>💎 Выбери VIP-бейдж</span><button class="x" id="badgePickerClose">✕</button></div>
-    <div class="hint" style="margin:0;text-align:left">Первый — стандартный овал VIP (возврат). Остальные — анимированные стикеры. Бейдж виден всем в топе, PVP и профиле.</div>
+    <div class="hint" style="margin:0;text-align:left">Первый — стандартный овал VIP (возврат). Превью статичные, чтобы не лагало; выбранный бейдж проигрывается. Нажми на ячейку, чтобы выбрать.</div>
     <div class="badge-grid" id="badgeGrid"></div>
   </div>
 </div>
@@ -1047,7 +1049,7 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
 // ===== VIP BADGE: РЕНДЕР =====
-// variant: "list" (топ/PVP/чужой профиль, 64px) | "profile" (свой профиль, 64px + овал big) | "sheet" (шторка, 112px)
+// variant: "list" (топ/PVP/чужой профиль, 54px) | "profile" (свой профиль, 64px) | "sheet" (шторка, 112px)
 function particlesHTML(big){
   let out = '<span class="vip-parts">';
   for(let i=0;i<10;i++){
@@ -1063,10 +1065,11 @@ function badgeHTML(variant="list", badgeId=undefined, vip=true){
   if(!vip) return "";
   const bid = (badgeId === undefined) ? S.vip_badge : badgeId;
   const huge = (variant === "sheet");
+  const sizeCls = huge ? "huge" : (variant === "list" ? "sm" : "");
   const parts = particlesHTML(huge);
   const b = bid ? BADGES.find(x=>x.id===bid) : null;
   if(b){
-    return `<span class="vip-emoji-badge ${huge?"huge":""}">${parts}<video class="vbe-img" src="${b.url}" autoplay muted loop playsinline preload="auto"></video></span>`;
+    return `<span class="vip-emoji-badge ${sizeCls}">${parts}<video class="vbe-img" src="${b.url}" autoplay muted loop playsinline preload="auto"></video></span>`;
   }
   return `<span class="vip-badge ${(variant!=="list")?"big":""}">${parts}<span class="vip-label">VIP</span></span>`;
 }
@@ -1083,6 +1086,10 @@ window.showVipSheet = function(badgeId){
 function hideVipSheet(){
   $("#vipSheet").classList.remove("show");
   $("#vipSheetBack").classList.remove("show");
+  // ✅ FIX ЛАГОВ: убиваем видео после анимации закрытия шторки
+  setTimeout(() => {
+    if(!$("#vipSheet").classList.contains("show")) $("#vipSheetBadge").innerHTML = "";
+  }, 400);
 }
 $("#vipSheetBack").onclick = hideVipSheet;
 
@@ -1093,10 +1100,14 @@ function openBadgePicker(){
   $("#badgePickerOverlay").hidden = false;
 }
 window.openBadgePicker = openBadgePicker;
+// ✅ FIX ЛАГОВ: превью статичные (preload metadata), играет ТОЛЬКО выбранный бейдж
 function renderBadgePicker(){
   const cur = S.vip_badge || "";
   let html = `<div class="badge-cell ${cur===""?"active":""}" data-b="">${badgeHTML("list", null, true)}</div>`;
-  html += BADGES.map(b => `<div class="badge-cell ${cur===b.id?"active":""}" data-b="${b.id}"><video src="${b.url}" muted loop autoplay playsinline preload="metadata"></video></div>`).join("");
+  html += BADGES.map(b => {
+    const active = cur === b.id;
+    return `<div class="badge-cell ${active?"active":""}" data-b="${b.id}"><video src="${b.url}" muted loop playsinline preload="metadata" ${active?"autoplay":""}></video></div>`;
+  }).join("");
   $("#badgeGrid").innerHTML = html;
   document.querySelectorAll("#badgeGrid .badge-cell").forEach(el => {
     el.onclick = () => setVipBadge(el.dataset.b || null);
@@ -1122,7 +1133,8 @@ async function setVipBadge(badgeId){
     }
   }catch(e){ toast("Ошибка сети"); }
 }
-$("#badgePickerClose").onclick = () => { $("#badgePickerOverlay").hidden = true; };
+// ✅ FIX ЛАГОВ: при закрытии пикера уничтожаем все видео
+$("#badgePickerClose").onclick = () => { $("#badgePickerOverlay").hidden = true; $("#badgeGrid").innerHTML = ""; };
 
 // ===== ТОП-100 =====
 let _topList = [];
@@ -1972,6 +1984,7 @@ let pvpFinishedShown = false;
 let pvpMySeat = 0;
 let pvpCreating = false;
 let pvpJoining = false;
+let pvpCardsSig = "";
 
 async function apiPvp(path, body){
   const r = await fetch(API_URL + path, {
@@ -2126,6 +2139,7 @@ function pvpOpenRoom(room){
   pvpSeenRounds = (room.rounds||[]).length;
   pvpFinishedShown = false;
   pvpSpinning = false;
+  pvpCardsSig = "";
   window._pvpLastCase = room.battle.case_id;
   window._pvpLastRounds = room.battle.rounds;
   window._pvpLastPlayers = room.battle.max_players || 2;
@@ -2144,6 +2158,8 @@ function pvpOpenRoom(room){
     pvpFinish(room);
   }
 }
+// ✅ FIX ЛАГОВ: карточки пересоздаются ТОЛЬКО при смене состава игроков,
+// иначе autoplay-видео бейджей перезапускались каждый полл (2.5с)
 function pvpRenderRoom(room){
   const b = room.battle;
   const ch = CHESTS.find(c=>c.id===b.case_id);
@@ -2156,25 +2172,35 @@ function pvpRenderRoom(room){
   const players = room.players || [];
   pvpMySeat = players.findIndex(p=>p.user_id===myUid);
   if(pvpMySeat < 0) pvpMySeat = 0;
-  let cards = "";
-  for(let i=0;i<maxPl;i++){
-    const p = players[i];
-    if(p){
-      const gold = p.vip ? "gold-name" : "";
-      cards += `<div class="pcard" id="pvpc${i}">
-        <div class="pa">${p.avatar ? `<img src="${p.avatar}">` : escHtml((p.name||"?")[0].toUpperCase())}</div>
-        <div class="pn"><span class="pn-t ${gold}">${escHtml(p.user_id===myUid ? (p.name||"?")+" (ты)" : (p.name||"?"))}</span>${badgeClickHTML(p)}</div>
-        <div class="ps">${fmt(p.score)}</div>
-      </div>`;
-    } else {
-      cards += `<div class="pcard waiting-pulse" id="pvpc${i}">
-        <div class="pa">…</div>
-        <div class="pn"><span class="pn-t">Поиск соперника…</span></div>
-        <div class="ps">0</div>
-      </div>`;
+  const sig = maxPl + "|" + players.map(p=>p.user_id).join(",");
+  if (sig !== pvpCardsSig){
+    let cards = "";
+    for(let i=0;i<maxPl;i++){
+      const p = players[i];
+      if(p){
+        const gold = p.vip ? "gold-name" : "";
+        cards += `<div class="pcard" id="pvpc${i}">
+          <div class="pa">${p.avatar ? `<img src="${p.avatar}">` : escHtml((p.name||"?")[0].toUpperCase())}</div>
+          <div class="pn"><span class="pn-t ${gold}">${escHtml(p.user_id===myUid ? (p.name||"?")+" (ты)" : (p.name||"?"))}</span>${badgeClickHTML(p)}</div>
+          <div class="ps">${fmt(p.score)}</div>
+        </div>`;
+      } else {
+        cards += `<div class="pcard waiting-pulse" id="pvpc${i}">
+          <div class="pa">…</div>
+          <div class="pn"><span class="pn-t">Поиск соперника…</span></div>
+          <div class="ps">0</div>
+        </div>`;
+      }
+    }
+    $("#pvCards").innerHTML = cards;
+    pvpCardsSig = sig;
+  } else {
+    for(let i=0;i<maxPl;i++){
+      const p = players[i];
+      const scEl = document.querySelector(`#pvpc${i} .ps`);
+      if (scEl && p) scEl.textContent = fmt(p.score);
     }
   }
-  $("#pvCards").innerHTML = cards;
   pvpBuildStrips(b.code, maxPl);
   for(let i=0;i<maxPl;i++){
     const p = players[i];
@@ -2429,4 +2455,4 @@ document.addEventListener("visibilitychange", () => {
 })();
 </script>
 </body>
-</html>
+  </html>
