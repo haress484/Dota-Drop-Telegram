@@ -301,7 +301,7 @@ body.has-frozen .event-banner{top:52px}
 .win-banner{font-size:19px;font-weight:900;margin-bottom:6px}
 .win-banner.me{color:var(--grn)}
 .win-banner.opp{color:var(--red)}
-/* ===== VIP BADGE (прототип, увеличенные размеры) ===== */
+/* ===== VIP BADGE: овал НЕ тронут, эмодзи x2 ===== */
 .vip-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:3px 11px;border-radius:999px;
   background:linear-gradient(180deg,#2a2410,#1d1a08) padding-box,
              linear-gradient(135deg,#ffe95c,#f7c948 40%,#c8860a 70%,#ffd35c) border-box;
@@ -310,14 +310,11 @@ body.has-frozen .event-banner{top:52px}
   vertical-align:middle;flex-shrink:0;pointer-events:none}
 .vip-badge .vip-label{font-size:11px;font-weight:900;letter-spacing:1px;
   background:linear-gradient(180deg,#ffe95c,#f7c948 45%,#c8860a);-webkit-background-clip:text;background-clip:text;color:transparent}
-/* базовый размер (топ-100, PVP, чужой профиль): вровень с текстом ника */
-.vip-emoji-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;vertical-align:middle;flex-shrink:0;pointer-events:none}
-.vip-emoji-badge .vbe-img{width:34px;height:34px;object-fit:contain;transform:scale(1.7)}
-/* увеличенный (свой профиль, шторка): вровень с текстом поля имени */
 .vip-badge.big{transform:scale(1.25)}
-.vip-emoji-badge.big{width:56px;height:56px}
-.vip-emoji-badge.big .vbe-img{width:56px;height:56px;object-fit:contain;transform:scale(1.7)}
-/* частицы: старт из центра → разлёт → испарение */
+.vip-emoji-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;width:68px;height:68px;vertical-align:middle;flex-shrink:0;pointer-events:none}
+.vip-emoji-badge .vbe-img{width:68px;height:68px;object-fit:contain;transform:scale(1.7)}
+.vip-emoji-badge.big{width:112px;height:112px}
+.vip-emoji-badge.big .vbe-img{width:112px;height:112px;object-fit:contain;transform:scale(1.7)}
 .vip-parts{position:absolute;inset:0;pointer-events:none;overflow:visible}
 .vip-parts i{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;
   background:#ffe95c;box-shadow:0 0 6px #ffd35c,0 0 12px rgba(255,211,92,.55);
@@ -335,19 +332,19 @@ body.has-frozen .event-banner{top:52px}
 .badge-click{display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0}
 .profile-name-row{display:flex;align-items:center;gap:8px;min-width:0}
 .profile-name-row input{flex:1;min-width:0}
-/* ===== ПИКЕР БЕЙДЖЕЙ ===== */
-.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
-.badge-cell{background:var(--panel2);border:2px solid var(--line);border-radius:12px;height:64px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s;overflow:visible}
+/* ===== ПИКЕР БЕЙДЖЕЙ (3 колонки под увеличенные превью) ===== */
+.badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.badge-cell{background:var(--panel2);border:2px solid var(--line);border-radius:12px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s;overflow:visible}
 .badge-cell:active{transform:scale(.92)}
 .badge-cell.active{border-color:var(--gold);box-shadow:0 0 10px rgba(247,201,72,.35)}
-.badge-cell video{width:52px;height:52px;object-fit:contain;pointer-events:none;transform:scale(1.3)}
+.badge-cell video{width:96px;height:96px;object-fit:contain;pointer-events:none;transform:scale(1.3)}
 /* ===== ШТОРКА "VIP ИГРОК" ===== */
 .vip-sheet-backdrop{position:fixed;inset:0;z-index:69;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s}
 .vip-sheet-backdrop.show{opacity:1;pointer-events:auto}
 .vip-sheet{position:fixed;left:0;right:0;bottom:0;z-index:70;background:linear-gradient(180deg,#1d3324,#14251a);border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:22px 16px 30px;text-align:center;transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
 .vip-sheet.show{transform:translateY(0)}
-.vip-sheet .vs-badge{min-height:96px;display:flex;align-items:center;justify-content:center}
-.vip-sheet .vs-title{font-size:16px;font-weight:900;color:var(--gold);margin-top:14px;letter-spacing:.5px}
+.vip-sheet .vs-badge{min-height:140px;display:flex;align-items:center;justify-content:center}
+.vip-sheet .vs-title{font-size:20px;font-weight:900;color:var(--gold);margin-top:18px;letter-spacing:.5px}
 /* ===== ЗОЛОТОЙ НИК ===== */
 @keyframes goldShine{to{background-position:200% center}}
 @supports (-webkit-background-clip: text){
@@ -784,7 +781,7 @@ const SHARD_SM = `<img class="shard sm" src="${SHARD_URL}" alt="">`;
 
 const TROLL = { priceOverrides:{}, artOverrides:{}, fakeAchievements:[], fakeAdd:0, events:[] };
 
-// ✅ VIP v2: x2 продажа УБРАНА. Продажа = базовая цена (событие x2_sell остаётся).
+// ✅ VIP v2: x2 продажа УБРАНА
 function sellPrice(it){
   let p = it.cost;
   if (TROLL.priceOverrides[it.id] !== undefined){ p = parseInt(TROLL.priceOverrides[it.id]) || 0; }
@@ -1049,7 +1046,7 @@ document.querySelectorAll(".nav-btn").forEach(b => b.onclick = () => {
 });
 const goTab = n => document.querySelector(`.nav-btn[data-tab="${n}"]`).click();
 
-// ===== VIP BADGE: РЕНДЕР (прототип) =====
+// ===== VIP BADGE: РЕНДЕР =====
 function particlesHTML(big){
   let out = '<span class="vip-parts">';
   for(let i=0;i<10;i++){
@@ -1414,7 +1411,6 @@ async function startSpin(){
   if (!freeNow){
     S.coins -= ch.price;
     S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
-    // ✅ VIP v2: кешбэк 10% с платных открытий
     if (S.vip){ cashback = Math.floor(ch.price * CONFIG.vipCashback); S.coins += cashback; }
   }
   S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
@@ -2339,7 +2335,7 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) syncWithServer();
 });
 
-// ===== ПРЕЛОАДЕР (картинки + аудио + WebM-бейджи + музыка-blob) =====
+// ===== ПРЕЛОАДЕР =====
 (function preloader(){
   const pr = $("#preloader"), orbit = $("#orbit"), chest = $("#loaderChest"), btn = $("#loadBtn");
   const N = 8, shards = [];
@@ -2361,7 +2357,6 @@ document.addEventListener("visibilitychange", () => {
   Object.values(multiAudios).forEach(a => { if(a && a.src) auds.push(a); });
   if (achieveAudio && achieveAudio.src) auds.push(achieveAudio);
 
-  // WebM-стикеры бейджей — грузим до входа
   const vids = [];
   BADGES.forEach(b => {
     const v = document.createElement("video");
@@ -2369,7 +2364,6 @@ document.addEventListener("visibilitychange", () => {
     vids.push(v);
   });
 
-  // Музыка (blob) — отдельный ресурс в счётчике
   const proms = musicReadyPromise ? [musicReadyPromise] : [];
 
   const total = allImgs.length + auds.length + vids.length + proms.length; let loaded = 0, ready = false;
@@ -2407,7 +2401,6 @@ document.addEventListener("visibilitychange", () => {
     try{ v.load(); }catch(e){ fin(); }
   });
   proms.forEach(p => p.then(bump, bump));
-  // Принудительного таймаута НЕТ: кнопка появится только при loaded >= total
   setInterval(() => { 
     if (!ready){ 
       $("#loadTxt").textContent = `Загрузка ${Math.min(loaded,total)}/${total} (медленная сеть, ждём…)`; 
