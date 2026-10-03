@@ -279,7 +279,7 @@ body.has-frozen .event-banner{top:52px}
 .pcard.win{border-color:var(--gold);box-shadow:0 0 14px rgba(247,201,72,.25)}
 .pcard .pa{width:40px;height:40px;border-radius:50%;background:var(--panel2);border:2px solid var(--line);margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;overflow:hidden}
 .pcard .pa img{width:100%;height:100%;object-fit:cover}
-.pcard .pn{font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;overflow:hidden}
+.pcard .pn{font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;overflow:visible}
 .pcard .pn .pn-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcard .ps{font-size:17px;font-weight:900;color:var(--gold);margin-top:3px}
 .pv-strip-row{margin-bottom:8px}
@@ -311,12 +311,12 @@ body.has-frozen .event-banner{top:52px}
 .vip-badge .vip-label{font-size:11px;font-weight:900;letter-spacing:1px;
   background:linear-gradient(180deg,#ffe95c,#f7c948 45%,#c8860a);-webkit-background-clip:text;background-clip:text;color:transparent}
 /* базовый размер (топ-100, PVP, чужой профиль): вровень с текстом ника */
-.vip-emoji-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;flex-shrink:0;pointer-events:none}
-.vip-emoji-badge .vbe-img{width:26px;height:26px;object-fit:contain;transform:scale(1.4)}
+.vip-emoji-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;vertical-align:middle;flex-shrink:0;pointer-events:none}
+.vip-emoji-badge .vbe-img{width:34px;height:34px;object-fit:contain;transform:scale(1.7)}
 /* увеличенный (свой профиль, шторка): вровень с текстом поля имени */
 .vip-badge.big{transform:scale(1.25)}
-.vip-emoji-badge.big{width:44px;height:44px}
-.vip-emoji-badge.big .vbe-img{width:44px;height:44px;object-fit:contain;transform:scale(1.4)}
+.vip-emoji-badge.big{width:56px;height:56px}
+.vip-emoji-badge.big .vbe-img{width:56px;height:56px;object-fit:contain;transform:scale(1.7)}
 /* частицы: старт из центра → разлёт → испарение */
 .vip-parts{position:absolute;inset:0;pointer-events:none;overflow:visible}
 .vip-parts i{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;
@@ -340,13 +340,13 @@ body.has-frozen .event-banner{top:52px}
 .badge-cell{background:var(--panel2);border:2px solid var(--line);border-radius:12px;height:64px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s;overflow:visible}
 .badge-cell:active{transform:scale(.92)}
 .badge-cell.active{border-color:var(--gold);box-shadow:0 0 10px rgba(247,201,72,.35)}
-.badge-cell video{width:44px;height:44px;object-fit:contain;pointer-events:none}
+.badge-cell video{width:52px;height:52px;object-fit:contain;pointer-events:none;transform:scale(1.3)}
 /* ===== ШТОРКА "VIP ИГРОК" ===== */
 .vip-sheet-backdrop{position:fixed;inset:0;z-index:69;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s}
 .vip-sheet-backdrop.show{opacity:1;pointer-events:auto}
 .vip-sheet{position:fixed;left:0;right:0;bottom:0;z-index:70;background:linear-gradient(180deg,#1d3324,#14251a);border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:22px 16px 30px;text-align:center;transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
 .vip-sheet.show{transform:translateY(0)}
-.vip-sheet .vs-badge{min-height:70px;display:flex;align-items:center;justify-content:center}
+.vip-sheet .vs-badge{min-height:96px;display:flex;align-items:center;justify-content:center}
 .vip-sheet .vs-title{font-size:16px;font-weight:900;color:var(--gold);margin-top:14px;letter-spacing:.5px}
 /* ===== ЗОЛОТОЙ НИК ===== */
 @keyframes goldShine{to{background-position:200% center}}
