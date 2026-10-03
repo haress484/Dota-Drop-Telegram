@@ -301,7 +301,7 @@ body.has-frozen .event-banner{top:52px}
 .win-banner{font-size:19px;font-weight:900;margin-bottom:6px}
 .win-banner.me{color:var(--grn)}
 .win-banner.opp{color:var(--red)}
-/* ===== VIP BADGE: овал не тронут; эмодзи: список 54px, профиль 64px, шторка 112px ===== */
+/* ===== VIP BADGE: овал и частицы не тронуты; эмодзи: список 54px, профиль 64px, шторка 112px ===== */
 .vip-badge{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:3px 11px;border-radius:999px;
   background:linear-gradient(180deg,#2a2410,#1d1a08) padding-box,
              linear-gradient(135deg,#ffe95c,#f7c948 40%,#c8860a 70%,#ffd35c) border-box;
@@ -334,7 +334,7 @@ body.has-frozen .event-banner{top:52px}
 .badge-click{display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0}
 .profile-name-row{display:flex;align-items:center;gap:8px;min-width:0}
 .profile-name-row input{flex:1;min-width:0}
-/* ===== ПИКЕР БЕЙДЖЕЙ (превью статичные, играет только выбранный) ===== */
+/* ===== ПИКЕР БЕЙДЖЕЙ: превью статичные, играет только выбранный ===== */
 .badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
 .badge-cell{background:var(--panel2);border:2px solid var(--line);border-radius:12px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s;overflow:visible}
 .badge-cell:active{transform:scale(.92)}
@@ -1086,7 +1086,6 @@ window.showVipSheet = function(badgeId){
 function hideVipSheet(){
   $("#vipSheet").classList.remove("show");
   $("#vipSheetBack").classList.remove("show");
-  // ✅ FIX ЛАГОВ: убиваем видео после анимации закрытия шторки
   setTimeout(() => {
     if(!$("#vipSheet").classList.contains("show")) $("#vipSheetBadge").innerHTML = "";
   }, 400);
@@ -1100,15 +1099,22 @@ function openBadgePicker(){
   $("#badgePickerOverlay").hidden = false;
 }
 window.openBadgePicker = openBadgePicker;
-// ✅ FIX ЛАГОВ: превью статичные (preload metadata), играет ТОЛЬКО выбранный бейдж
+// ✅ FIX: превью статичные (кадр через #t=0.1 + seek), играет ТОЛЬКО выбранный бейдж
 function renderBadgePicker(){
   const cur = S.vip_badge || "";
   let html = `<div class="badge-cell ${cur===""?"active":""}" data-b="">${badgeHTML("list", null, true)}</div>`;
   html += BADGES.map(b => {
     const active = cur === b.id;
-    return `<div class="badge-cell ${active?"active":""}" data-b="${b.id}"><video src="${b.url}" muted loop playsinline preload="metadata" ${active?"autoplay":""}></video></div>`;
+    const src = active ? b.url : b.url + "#t=0.1";
+    return `<div class="badge-cell ${active?"active":""}" data-b="${b.id}"><video src="${src}" muted loop playsinline preload="auto" ${active?"autoplay":""}></video></div>`;
   }).join("");
   $("#badgeGrid").innerHTML = html;
+  document.querySelectorAll("#badgeGrid .badge-cell video").forEach(v => {
+    if (v.autoplay) return;
+    const paint = () => { try { if (v.currentTime < 0.05) v.currentTime = 0.1; } catch(e){} };
+    v.addEventListener("loadeddata", paint, { once:true });
+    if (v.readyState >= 2) paint();
+  });
   document.querySelectorAll("#badgeGrid .badge-cell").forEach(el => {
     el.onclick = () => setVipBadge(el.dataset.b || null);
   });
@@ -1133,7 +1139,7 @@ async function setVipBadge(badgeId){
     }
   }catch(e){ toast("Ошибка сети"); }
 }
-// ✅ FIX ЛАГОВ: при закрытии пикера уничтожаем все видео
+// ✅ FIX: при закрытии пикера уничтожаем все видео
 $("#badgePickerClose").onclick = () => { $("#badgePickerOverlay").hidden = true; $("#badgeGrid").innerHTML = ""; };
 
 // ===== ТОП-100 =====
@@ -2158,8 +2164,7 @@ function pvpOpenRoom(room){
     pvpFinish(room);
   }
 }
-// ✅ FIX ЛАГОВ: карточки пересоздаются ТОЛЬКО при смене состава игроков,
-// иначе autoplay-видео бейджей перезапускались каждый полл (2.5с)
+// ✅ FIX ЛАГОВ: карточки пересоздаются только при смене состава, иначе autoplay-видео бейджей перезапускались каждый полл
 function pvpRenderRoom(room){
   const b = room.battle;
   const ch = CHESTS.find(c=>c.id===b.case_id);
