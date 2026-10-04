@@ -674,7 +674,7 @@ body.has-frozen .event-banner{top:52px}
   <div class="badge-picker-box">
     <div class="badge-picker-header">
       <div class="case-top"><span>💎 Выбери VIP-бейдж</span><button class="x" id="badgePickerClose">✕</button></div>
-      <div class="hint" style="margin:0;text-align:left">Первый — стандартный овал VIP (возврат). Превью статичные, играет только выбранный. Листай вниз — все стикеры доступны.</div>
+      <div class="hint" style="margin:0;text-align:left"></div>
     </div>
     <div class="badge-picker-scroll">
       <div class="badge-grid" id="badgeGrid"></div>
@@ -1076,7 +1076,7 @@ $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры (кроме платных)", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
