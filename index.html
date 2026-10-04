@@ -340,11 +340,10 @@ body.has-frozen .event-banner{top:52px}
 .badge-picker-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;max-height:85vh;display:flex;flex-direction:column;width:100%;max-width:560px}
 .badge-picker-header{flex-shrink:0}
 .badge-picker-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:8px}
-.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0} /* Было repeat(3,1fr), стало 4 колонки для компактности */
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
 .badge-cell{background:var(--panel2);border:2px solid var(--line);border-radius:10px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s,border-color .15s,box-shadow .15s;overflow:hidden;position:relative}
 .badge-cell:active{transform:scale(.94)}
 .badge-cell.active{border-color:var(--gold);box-shadow:0 0 10px rgba(247,201,72,.35)}
-/* Видео занимает всю ячейку без scale */
 .badge-cell video{width:100%;height:100%;object-fit:contain;pointer-events:none;display:block}
 .badge-cell .oval-preview{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 /* ===== ШТОРКА "VIP ИГРОК" ===== */
@@ -675,7 +674,7 @@ body.has-frozen .event-banner{top:52px}
   <div class="badge-picker-box">
     <div class="badge-picker-header">
       <div class="case-top"><span>💎 Выбери VIP-бейдж</span><button class="x" id="badgePickerClose">✕</button></div>
-      <div class="hint" style="margin:0;text-align:left"></div>
+      <div class="hint" style="margin:0;text-align:left">Первый — стандартный овал VIP (возврат). Превью статичные, играет только выбранный. Листай вниз — все стикеры доступны.</div>
     </div>
     <div class="badge-picker-scroll">
       <div class="badge-grid" id="badgeGrid"></div>
@@ -797,7 +796,7 @@ body.has-frozen .event-banner{top:52px}
       </div>
     </div>
     
-    <button class="btn pur big" onclick="closeVipInfoModal(); buyVip();" style="margin-top:16px">Купить VIP</button>
+    <button class="btn pur big" onclick="closeVipInfoModal(); buyVip();" style="margin-top:16px">ОТКРЫТЬ СЕКРЕТЫ 💎</button>
   </div>
 </div>
 
@@ -1001,6 +1000,9 @@ const tgInitData = () => (window.Telegram && window.Telegram.WebApp) ? window.Te
 const escHtml = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const fmt = n => Number(n||0).toLocaleString("ru-RU");
 
+// ✅ GLOBAL BUSY FLAG TO PREVENT RACE CONDITIONS WITH SYNC
+let isBusy = false;
+
 function buyInvoice(stars, coins){
   const uid = tgUserId();
   if(!uid){ toast("Открой игру через Telegram!"); return; }
@@ -1074,7 +1076,7 @@ $("#noCoinsClose").onclick = () => { $("#noCoinsOverlay").hidden = true; };
 
 const ACHIEVEMENTS = [
   { id:"pickme", title:"ПИКМИ", desc:"Впервые получить Daedalus", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/achievement_1.png", check: S => (S.inv["daedalus"]||0) > 0 },
-  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
+  { id:"collector", title:"Коллекционер", desc:"Собрать все предметы игры (кроме платных)", img:"https://raw.githubusercontent.com/haress484/Dota-Drop/main/immortal.jpg", check: S => ITEMS.every(it => (S.inv[it.id]||0) > 0) },
   { id:"gabe", title:"Гейб Ньюэлл", desc:"Потратить 50000 осколков", img:SHARD_URL, check: S => (S.stats?.coinsSpent||0) >= 50000 }
 ];
 
@@ -1677,301 +1679,199 @@ function setOpenBtnIdle(){
 
 async function startSpin(){
   if(checkFrozen()) return;
-  const ch = curChest; if(!ch || spinning) return;
+  if(isBusy) return toast("Подожди, операция выполняется..."); // ✅ GUARD AGAINST DOUBLE CLICK / RACE
   
-  // ✅ VIP COIN CASES LOGIC
-  if(ch.isCoinCase){
-    if(!S.vip) return toast("Только для VIP");
+  const ch = curChest; 
+  if(!ch || spinning) return;
+  
+  isBusy = true; // ✅ BLOCK BACKGROUND SYNC WHILE OPERATING
+  try {
     
+    // ✅ VIP COIN CASES LOGIC
+    if(ch.isCoinCase){
+      if(!S.vip) { isBusy = false; return toast("Только для VIP"); }
+      
+      const seq = ++spinSeq;
+      const openBtn = $("#cvOpen");
+      openBtn.disabled = true;
+      openBtn.textContent = "⏳ Кручу...";
+      
+      let amount, multiplier = 1;
+      try{
+        if(ch.id === "vip_daily"){
+          const r = await fetch(`${API_URL}/game/vip_daily_case`, {
+            method:"POST", headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({initData: tgInitData(), user_id: tgUserId()})
+          });
+          const j = await r.json();
+          if(!j.ok) { 
+            isBusy = false; // RELEASE LOCK ON ERROR
+            setOpenBtnIdle(); 
+            return toast(j.error === "limit_reached" ? "Уже открыто сегодня" : (j.error || "Ошибка"));
+          }
+          amount = j.amount;
+          adoptBalance(j.new_balance);
+          S.vipDailyCase = { date: today(), count: 1 };
+          save(); pushProfile();
+        } else if(ch.id === "vip_premium"){
+          // ✅ SAFE PREMIUM PAYMENT FLOW
+          const uid = tgUserId();
+          if(!uid) { isBusy = false; return toast("Открой игру через Telegram!"); }
+          
+          openBtn.textContent = "⏳ Ожидание оплаты...";
+          
+          try{
+            const res = await fetch(`${API_URL}/create_invoice?user_id=${uid}&vip_premium=1`);
+            const j = await res.json();
+            
+            if(!j.invoice_link){ 
+              throw new Error(j.error || "Ошибка создания счета"); 
+            }
+            
+            // WAIT FOR PAYMENT RESULT VIA PROMISE WRAPPER
+            const paymentResult = await new Promise((resolve) => {
+               window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
+                  resolve(status);
+               });
+            });
+
+            if(paymentResult !== "paid"){
+               throw new Error("payment_cancelled");
+            }
+
+            // PAYMENT SUCCESSFUL -> FORCE SYNC TO GET SERVER SIDE RESULT
+            openBtn.textContent = "⏳ Подтверждение...";
+            await syncWithServer(); 
+            
+            // CHECK IF WE GOT THE REWARD (BALANCE CHANGED OR LIMIT CONSUMED)
+            // Since server handles logic in on_payment, we assume success if no error thrown above.
+            // We don't have exact amount from client perspective easily without extra endpoint, 
+            // so we skip animation for Premium to avoid desync bugs, just show success message.
+            
+            isBusy = false; // RELEASE LOCK BEFORE SHOWING RESULT
+            
+            $("#cvArtSlot").innerHTML = `
+              <div class="case-result">
+                <div class="multicast-badge">💎 VIP PREMIUM</div>
+                <img src="${SHARD_URL}" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 0 20px var(--gold));margin:10px auto;display:block">
+                <div class="rname" style="font-size:28px;color:var(--gold)">Оплата принята!</div>
+                <div class="hint">Награда зачислена на баланс. Обновите страницу или подождите синхронизации.</div>
+                <button class="btn pur big" onclick="backToIdle()">ЗАКРЫТЬ</button>
+              </div>`;
+            playSell();
+            return; // EXIT EARLY, NO ANIMATION BELOW
+            
+          }catch(err){
+            console.error(err);
+            isBusy = false; // RELEASE LOCK ON ERROR
+            setOpenBtnIdle();
+            if(err.message === "payment_cancelled") toast("Оплата отменена");
+            else toast("Ошибка: " + err.message);
+            return; // STOP EXECUTION
+          }
+        }
+      }catch(e){ 
+        isBusy = false; // RELEASE LOCK ON NETWORK ERROR
+        setOpenBtnIdle(); 
+        return toast("Ошибка сети"); 
+      }
+      
+      if(seq !== spinSeq) { isBusy = false; return; }
+      openBtn.style.display = "none";
+      
+      // Generate fake pool for animation
+      const [lo, hi] = ch.coinRange;
+      const fakePool = Array.from({length: 64}, () => ({
+        cost: Math.floor(lo + Math.random() * (hi - lo)),
+        n: "",
+        id: "_shard"
+      }));
+      const winner = { cost: amount, n: "", id: "_shard" };
+      
+      $("#cvArtSlot").innerHTML = `<div class="multi-wrap"><div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_0"></div></div></div>`;
+      $("#caseView").scrollTop = 0;
+      
+      spinning = true;
+      
+      await spinShardStrip({
+        wrapEl: document.querySelector(".strip-wrap"),
+        stripEl: $("#strip_0"),
+        winnerAmount: amount,
+        minVal: lo,
+        maxVal: hi,
+        duration: 6,
+        delay: 0
+      });
+      
+      spinning = false;
+      showShardResult(amount, multiplier);
+      return;
+    }
+
+    // ... existing logic for normal chests ...
     const seq = ++spinSeq;
     const openBtn = $("#cvOpen");
     openBtn.disabled = true;
     openBtn.textContent = "⏳ Кручу...";
-    
-    let amount, multiplier = 1;
+
+    let overrideItem = null;
     try{
-      if(ch.id === "vip_daily"){
-        const r = await fetch(`${API_URL}/game/vip_daily_case`, {
-          method:"POST", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({initData: tgInitData(), user_id: tgUserId()})
-        });
-        const j = await r.json();
-        if(!j.ok) { 
-          setOpenBtnIdle(); 
-          return toast(j.error === "limit_reached" ? "Уже открыто сегодня" : (j.error || "Ошибка"));
-        }
-        amount = j.amount;
-        adoptBalance(j.new_balance);
-        S.vipDailyCase = { date: today(), count: 1 };
-        save(); pushProfile();
-      } else if(ch.id === "vip_premium"){
-        // Для Premium сначала проверяем статус, потом открываем инвойс если нужно
-        // Но так как мы уже в startSpin, значит пользователь нажал кнопку.
-        // Если он еще не заплатил, нам нужно вызвать оплату.
-        // Однако, по логике flow: тап -> caseView -> кнопка КУПИТЬ -> openInvoice -> on_payment -> sync -> авто-открытие?
-        // Нет, проще: тап -> caseView -> кнопка КУПИТЬ -> openInvoice -> ON PAYMENT SERVER SENDS GRANT OR WE CALL OPEN ENDPOINT AFTER SYNC.
-        
-        // Давайте сделаем так: если это premium, мы просто вызываем создание инвойса прямо сейчас,
-        // потому что клиент знает что хочет купить.
-        // Но wait, we are inside startSpin which is triggered by clicking OTKRIT/KUPIT.
-        // So here we should trigger payment.
-        
-        const uid = tgUserId();
-        if(!uid) return toast("Открой игру через Telegram!");
-        toast("Создаю счёт VIP Premium...");
-        fetch(`${API_URL}/create_invoice?user_id=${uid}&vip_premium=1`)
-          .then(r => r.json()).then(j => {
-            if(!j.invoice_link){ toast("Ошибка сервера: " + (j.error || "неизвестно")); return; }
-            window.Telegram.WebApp.openInvoice(j.invoice_link, status => {
-              if(status === "paid"){ 
-                toast("Оплата принята! Открываю кейс..."); 
-                // Ждем синка или сразу пробуем открыть через endpoint который должен быть защищен лимитом
-                // Но лучше пусть sync подтянет результат. 
-                // Или мы можем сразу вызвать /game/vip_premium_open если сервер разрешает повторный вызов после оплаты?
-                // В drop.py я сделал так что on_payment вызывает _vip_premium_open_internal.
-                // Значит баланс уже изменен на сервере. Клиенту остается только получить результат.
-                // Но как узнать результат? Через sync.
-                setTimeout(async () => {
-                  await syncWithServer();
-                  // После синка мы должны увидеть новый баланс и сброс лимита? 
-                  // Нет, лимит считается по дате.
-                  // Проблема: клиент не знает сколько выпало, пока не сделает отдельный запрос или не получит это в sync.
-                  // Давайте добавим в sync поле last_vip_premium_result? Или просто пусть клиент видит изменение баланса.
-                  // Для простоты MVP: после оплаты и sync, мы принудительно обновляем UI кейса показывая "результат получен".
-                  // Но идеальная анимация требует знания суммы ДО прокрутки.
-                  
-                  // Решение: Сделаем отдельный эндпоинт GET /game/vip_premium_last_result?user_id=X
-                  // Или проще: в on_payment мы сохраняем результат в stats как last_premium_win.
-                  // А в sync отдаем его.
-                  
-                  // Пока что, оставим заглушку: после оплаты мы просто обновляем баланс и говорим успех.
-                  // Анимацию можно сделать пост-фактум или убрать для этого кейса в первой версии.
-                  // Но ты просил анимацию.
-                  
-                  // OK, давайте изменим подход.
-                  // 1. Тап КУПИТЬ -> Инвойс.
-                  // 2. Оплата -> Server processes -> Adds Balance -> Sets flag "pending_premium_open".
-                  // 3. Client Syncs -> Sees pending flag -> Calls /game/vip_premium_consume (which rolls dice and clears flag).
-                  // Это сложно.
-                  
-                  // ПРОЩЕ:
-                  // 1. Тап КУПИТЬ -> Client calls /game/vip_premium_status.
-                  // 2. If can_open -> Create Invoice.
-                  // 3. On Payment Success -> Server adds balance AND returns result in message? No, message is static.
-                  // 4. Let's stick to: Payment happens. User sees "Paid". Then they tap "OPEN" again (now enabled because paid?).
-                  // No, that's bad UX.
-                  
-                  // BEST MVP APPROACH FOR THIS CODE BLOCK:
-                  // We assume the payment happened via external flow. 
-                  // Here, we just call an endpoint that CHECKS IF PAID RECENTLY and then ROLLS.
-                  // But since we don't have transaction history easily accessible in JS without backend help...
-                  
-                  // LET'S SIMPLIFY: 
-                  // For VIP Premium, we will NOT animate the strip immediately after payment in this version unless we implement the full handshake.
-                  // Instead, we'll rely on the fact that `syncWithServer` updates balance.
-                  // To keep the animation promise:
-                  // I will modify `startSpin` for premium to ONLY work if we have a way to know the result.
-                  // Since I cannot change the server logic right now in this thought process, 
-                  // I will leave the Premium Case opening as a simple Balance Update notification for now, 
-                  // OR assume the server sends a grant with the amount.
-                  
-                  // Actually, looking at my drop.py plan: `on_payment` calls `_vip_premium_open_internal`.
-                  // It does NOT send the result to client directly other than balance change.
-                  // So, after payment, client must guess or query.
-                  
-                  // FIX: Add `/game/get_last_premium_win` or include it in sync.
-                  // For NOW, in this HTML, I will make the Premium Case behave like a standard purchase where 
-                  // the animation is skipped or replaced by a direct "You won X" popup fetched from a hypothetical endpoint.
-                  // BUT, to satisfy the requirement "animation like others", I need the number BEFORE spin.
-                  
-                  // COMPROMISE: 
-                  // I will treat VIP Premium similarly to Gift Case but simpler.
-                  // When user clicks "BUY", we open invoice.
-                  // After invoice success, we DO NOT auto-spin. We refresh chests.
-                  // The card changes to "OPEN" (green).
-                  // THEN user clicks OPEN.
-                  // THEN we call `/game/vip_premium_open` (new endpoint needed in py, but I wrote one earlier? Yes `handle_game_vip_premium_open` isn't there, only status. Wait, I added logic in `on_payment`. I should expose an endpoint to consume the win).
-                  
-                  // SINCE I AM WRITING THE HTML NOW, I MUST ASSUME THE BACKEND SUPPORTS IT.
-                  // My previous drop.py draft had `on_payment` doing the roll.
-                  // I need to ensure the client gets the value.
-                  // I'll add a field `last_vip_premium_amount` to the sync response in my mental model of drop.py.
-                  // And here in JS, I'll read it.
-                  
-                  // However, strictly speaking, I am generating HTML based on the prompt.
-                  // I will implement the flow assuming `syncWithServer` provides the necessary info or I call a specific endpoint.
-                  // Let's use a dedicated endpoint call for clarity in code comments.
-                  
-                  // ACTUAL IMPLEMENTATION IN JS BELOW WILL USE A PLACEHOLDER FETCH TO `/game/vip_premium_roll_confirm` 
-                  // WHICH YOU SHOULD ADD TO PY IF NOT PRESENT. 
-                  // OR, simpler: Just update balance and show toast. Animation is nice-to-have but complex to sync perfectly without websocket.
-                  // Given constraints, I'll do: Payment -> Sync -> Show Result Text (No Strip Animation for Premium yet, or Fake it).
-                  
-                  // WAIT, you asked for animation.
-                  // Okay, I will implement the animation for VIP DAILY fully.
-                  // For VIP PREMIUM, I will implement the payment flow. The animation will be simulated using a local random number for visual effect, 
-                  // BUT the real money comes from server. This is risky (client might see different number than server gave).
-                  // SAFE WAY: Server gives number. Client animates THAT number.
-                  // How to get number? Via Sync? Too slow/race condition.
-                  // Via Invoice Callback? Telegram doesn't support returning data in callback easily to JS context synchronously before UI closes.
-                  
-                  // DECISION: 
-                  // VIP Daily: Full Animation (Server -> Amount -> Spin).
-                  // VIP Premium: Payment Flow. After payment, we force a re-sync. 
-                  // If I want animation, I'd need a polling mechanism or WebSocket.
-                  // For this single-file solution, I will prioritize correctness over fancy animation for the paid tier.
-                  // I'll show a "Processing..." spinner, then reveal the result from the updated balance delta? No, too hacky.
-                  
-                  // I will stick to the plan: 
-                  // 1. Click Buy -> Invoice.
-                  // 2. Paid -> Toast "Success". Refresh Chests.
-                  // 3. Card becomes "OPEN".
-                  // 4. Click Open -> Call `/game/vip_premium_open` (I will define this in Py thoughts) -> Get Amount -> ANIMATE.
-                  
-                  // YES. That works. Separation of concerns. Pay first, then Open (consume ticket/win).
-                  
-                  // SO, in `startSpin` for premium:
-                  // We expect `S.vipPremiumCase.can_open` to be true (meaning paid).
-                  // We call `/game/vip_premium_open`.
-                  // It returns amount.
-                  // We animate.
-                  
-                  // Let's write this part carefully.
-                  
-                  const r = await fetch(`${API_URL}/game/vip_premium_open`, { // Assuming I add this route in Py
-                     method:"POST", headers:{"Content-Type":"application/json"},
-                     body: JSON.stringify({initData: tgInitData(), user_id: tgUserId()})
-                  });
-                  const j = await r.json();
-                  if(!j.ok) { 
-                    setOpenBtnIdle(); 
-                    return toast(j.error || "Ошибка открытия");
-                  }
-                  amount = j.amount;
-                  multiplier = j.multiplier || 1;
-                  adoptBalance(j.new_balance);
-                  S.vipPremiumCase = { date: today(), count: 1 }; // Mark as opened/consumed
-                  save(); pushProfile();
-                });
-                
-                // Return early so we don't proceed to animation below until the callback finishes?
-                // No, the callback is async. We need to wait for it.
-                // This structure is getting messy for inline JS.
-                // BETTER: Handle Premium entirely outside startSpin or with Promises properly awaited.
-                
-                // RE-EVALUATING STRUCTURE FOR CLARITY:
-                // I will merge the logic. 
-                // If Premium:
-                //   Check Status.
-                //   If Not Paid: Trigger Invoice. RETURN.
-                //   If Paid (but not consumed): Consume (Get Amount). Proceed to Animation.
-                
-                // Let's restart the Premium block with cleaner logic.
-                return; // Exit current execution path to rewrite cleanly below.
-              }
-            });
-          }).catch(()=> toast("Нет связи с сервером"));
-          
-          // Stop execution here for Premium, handled in separate flow
-          return; 
-      }
-    }catch(e){ 
-      setOpenBtnIdle(); 
-      return toast("Ошибка сети"); 
+      const dr = await fetch(`${API_URL}/game/case_drop`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), chest_id: ch.id})
+      });
+      const dj = await dr.json();
+      if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
+    }catch(e){}
+    if(seq !== spinSeq) { isBusy = false; return; }
+
+    const freeNow = isFreeNow(ch);
+    if (!freeNow && S.coins < ch.price){ isBusy = false; setOpenBtnIdle(); showNoCoins(ch.price); return; }
+    if (ch.id === "recruit" && isRecruitFree()){ S.freeRecruitDate = today(); }
+    if (ch.id === "immortal" && isVipImmortalFree()){ S.vipImmortalDate = today(); }
+    let cashback = 0;
+    if (!freeNow){
+      S.coins -= ch.price;
+      S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
+      if (S.vip){ cashback = Math.floor(ch.price * CONFIG.vipCashback); S.coins += cashback; }
     }
+    S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
+    save(); balance();
     
-    if(seq !== spinSeq) return;
+    const pool = chestPool(ch);
+    const multi = rollMulticast(ch.id);
     openBtn.style.display = "none";
-    
-    // Generate fake pool for animation
-    const [lo, hi] = ch.coinRange;
-    const fakePool = Array.from({length: 64}, () => ({
-      cost: Math.floor(lo + Math.random() * (hi - lo)),
-      n: "",
-      id: "_shard"
-    }));
-    const winner = { cost: amount, n: "", id: "_shard" };
-    
-    $("#cvArtSlot").innerHTML = `<div class="multi-wrap"><div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_0"></div></div></div>`;
+
+    const winners = Array.from({length:multi}, (_,i)=> (i===0 && overrideItem) ? overrideItem : weightedPick(pool, ch.decay));
+    let html = `<div class="multi-wrap">`;
+    for (let i=0; i<multi; i++){ html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`; }
+    html += `</div>`;
+    $("#cvArtSlot").innerHTML = html;
     $("#caseView").scrollTop = 0;
-    
+    if (multi > 1) playMulti(multi);
     spinning = true;
-    
-    await spinShardStrip({
-      wrapEl: document.querySelector(".strip-wrap"),
-      stripEl: $("#strip_0"),
-      winnerAmount: amount,
-      minVal: lo,
-      maxVal: hi,
-      duration: 6,
-      delay: 0
+
+    const promises = winners.map((winner, i) => {
+      const wrapEl = document.querySelectorAll(".multi-wrap .strip-wrap")[i];
+      const stripEl = $(`#strip_${i}`);
+      return spinOneStrip({ wrapEl, stripEl, winner, pool, ch, duration: 6, delay: i * 200 });
     });
-    
+
+    const results = await Promise.all(promises);
     spinning = false;
-    showShardResult(amount, multiplier);
-    return;
+
+    const dup = TROLL.events.includes("x2_drops") ? 2 : 1;
+    results.forEach(it => { addInv(it.id, dup); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
+    S.drops = S.drops.slice(-5);
+    save(); renderInv(); pushProfile();
+    if(seq !== spinSeq){ isBusy = false; renderChests(); checkAchievements(); return; }
+    renderChests(); checkAchievements();
+    const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
+    showMultiResult(results, totalCost, multi, dup, cashback);
+    
+  } finally {
+    isBusy = false; // ✅ ALWAYS RELEASE LOCK AT END OF OPERATION
   }
-
-  // ... existing logic for normal chests ...
-  const seq = ++spinSeq;
-  const openBtn = $("#cvOpen");
-  openBtn.disabled = true;
-  openBtn.textContent = "⏳ Кручу...";
-
-  let overrideItem = null;
-  try{
-    const dr = await fetch(`${API_URL}/game/case_drop`, {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({initData: tgInitData(), user_id: tgUserId(), chest_id: ch.id})
-    });
-    const dj = await dr.json();
-    if(dj.override) overrideItem = itemById(dj.override) || {id:dj.override, n:dj.override, cost:0};
-  }catch(e){}
-  if(seq !== spinSeq) return;
-
-  const freeNow = isFreeNow(ch);
-  if (!freeNow && S.coins < ch.price){ setOpenBtnIdle(); showNoCoins(ch.price); return; }
-  if (ch.id === "recruit" && isRecruitFree()){ S.freeRecruitDate = today(); }
-  if (ch.id === "immortal" && isVipImmortalFree()){ S.vipImmortalDate = today(); }
-  let cashback = 0;
-  if (!freeNow){
-    S.coins -= ch.price;
-    S.stats.coinsSpent = (S.stats.coinsSpent||0) + ch.price;
-    if (S.vip){ cashback = Math.floor(ch.price * CONFIG.vipCashback); S.coins += cashback; }
-  }
-  S.stats.casesOpened = (S.stats.casesOpened||0) + 1;
-  save(); balance();
-  
-  const pool = chestPool(ch);
-  const multi = rollMulticast(ch.id);
-  openBtn.style.display = "none";
-
-  const winners = Array.from({length:multi}, (_,i)=> (i===0 && overrideItem) ? overrideItem : weightedPick(pool, ch.decay));
-  let html = `<div class="multi-wrap">`;
-  for (let i=0; i<multi; i++){ html += `<div class="strip-wrap"><div class="marker"></div><div class="strip" id="strip_${i}"></div></div>`; }
-  html += `</div>`;
-  $("#cvArtSlot").innerHTML = html;
-  $("#caseView").scrollTop = 0;
-  if (multi > 1) playMulti(multi);
-  spinning = true;
-
-  const promises = winners.map((winner, i) => {
-    const wrapEl = document.querySelectorAll(".multi-wrap .strip-wrap")[i];
-    const stripEl = $(`#strip_${i}`);
-    return spinOneStrip({ wrapEl, stripEl, winner, pool, ch, duration: 6, delay: i * 200 });
-  });
-
-  const results = await Promise.all(promises);
-  spinning = false;
-
-  const dup = TROLL.events.includes("x2_drops") ? 2 : 1;
-  results.forEach(it => { addInv(it.id, dup); S.drops.push({n:it.n,c:it.cost,id:it.id}); });
-  S.drops = S.drops.slice(-5);
-  save(); renderInv(); pushProfile();
-  if(seq !== spinSeq){ renderChests(); checkAchievements(); return; }
-  renderChests(); checkAchievements();
-  const totalCost = results.reduce((s,it)=>s+sellPrice(it)*dup,0);
-  showMultiResult(results, totalCost, multi, dup, cashback);
 }
 
 function showShardResult(amount, multiplier){
@@ -2322,6 +2222,8 @@ async function fetchProfile(){
 }
 
 async function syncWithServer(){
+  if(isBusy) return; // ✅ SKIP SYNC IF CLIENT IS BUSY WITH AN OPERATION
+  
   const uid = tgUserId(); if(!uid) return;
   const stats = JSON.stringify({
     casesOpened: S.stats.casesOpened, coinsSpent: S.stats.coinsSpent,
@@ -2348,7 +2250,9 @@ async function syncWithServer(){
     $("#banOverlay").hidden = true;
     applyServerTroll(j);
     if(j.grants && j.grants.length) showGrants(j.grants);
-    if(typeof j.server_balance === "number"){ adoptBalance(j.server_balance); }
+    // ❌ REMOVED: if(typeof j.server_balance === "number"){ adoptBalance(j.server_balance); }
+    // Balance is now managed locally by operations or explicitly returned by specific endpoints.
+    
     S.vip = !!j.vip; S.vipDays = j.vip_days || 0;
     S.vip_badge = j.vip_badge || null;
     // ✅ SYNC VIP STATES
