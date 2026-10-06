@@ -26,6 +26,9 @@ if not BOT_TOKEN:
     raise SystemExit("❌ Не задан BOT_TOKEN в Environment на Render!")
 
 ADMIN_PC_PASSWORD = os.environ.get("ADMIN_PC_PASSWORD", "")
+if not ADMIN_PC_PASSWORD:
+    print("⚠️ ADMIN_PC_PASSWORD не задан. Вход в PC-админку будет невозможен.")
+
 CHANNEL_USERNAME = "@the_kubicki"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "https://haress484.github.io/Dota-Drop-Telegram/").rstrip("/") + "/"
 ADMIN_URL = WEB_APP_URL + "admin.html"
@@ -197,7 +200,8 @@ class BroadcastStates(StatesGroup):
     waiting_content = State()
 
 class GiveawayStates(StatesGroup):
-    waiting_title = State()
+    waiting_media = State()      # ✅ НОВОЕ: Ждем фото
+    waiting_title = State()      # Ждем текст
     waiting_prize_type = State()
     waiting_prize_value = State()
     waiting_item_qty = State()
@@ -497,7 +501,7 @@ def play_kb(user_id):
                 InlineKeyboardButton(text="🎯 СКАН ЛИМИТОК", callback_data="admin_sniper_scan"),
             ],
             [
-                InlineKeyboardButton(text="🎲 РОЗЫГРЫШ", callback_data="admin_giveaway_menu") # ✅ ИЗМЕНЕНО
+                InlineKeyboardButton(text="🎲 РОЗЫГРЫШ", callback_data="admin_giveaway_menu")
             ]
         ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -544,7 +548,7 @@ async def cmd_start(message: Message, state: FSMContext):
     if not await check_sub(uid):
         sent = await message.answer(
             "👋 Привет! Чтобы получить доступ к боту, подпишись на канал:\n\n"
-            "📢 @the_kubicki\n\nПосле подписки нажми кнопку ниже.",
+            " @the_kubicki\n\nПосле подписки нажми кнопку ниже.",
             reply_markup=SUB_KB)
     else:
         sent = await message.answer(
@@ -2185,7 +2189,6 @@ async def cb_giveaway_list(cb: CallbackQuery):
 
     kb_rows = []
     for gw in rows:
-        # Показываем первые 30 символов названия
         title = gw['title'][:30] + "..." if len(gw['title']) > 30 else gw['title']
         count = len(gw.get('participants', []))
         kb_rows.append([InlineKeyboardButton(
@@ -2226,7 +2229,7 @@ async def cb_giveaway_manage(cb: CallbackQuery):
     await cb.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     await cb.answer()
 
-# ✅ ЗАВЕРШЕНИЕ РОЗЫГРЫША (DRAW)
+# ✅ ЗАВЕРШЕНИЕ РОЗЫГРЫША (DRAW) - ОТПРАВКА СООБЩЕНИЯ В КАНАЛ
 @dp.callback_query(F.data.startswith("gw_draw_"))
 async def cb_giveaway_draw(cb: CallbackQuery):
     if cb.from_user.id != OWNER_ID:
@@ -2251,7 +2254,6 @@ async def cb_giveaway_draw(cb: CallbackQuery):
         await cb.message.answer("Нет участников для розыгрыша.")
         return
         
-    # Фильтрация отписавшихся
     valid_participants = []
     for uid in participants:
         if await check_sub(uid):
@@ -2289,19 +2291,34 @@ async def cb_giveaway_draw(cb: CallbackQuery):
     })
     
     mentions_list = ", ".join([w["mention"] for w in winner_details])
-    final_text = f"{gw['title']}\n\n🏆 <b>РОЗЫГРЫШ ЗАВЕРШЕН!</b>\n<b>Победители:</b> {mentions_list}"
     
+    # ✅ 1. Редактируем старое сообщение (убираем кнопку)
     try:
         if gw.get("channel_post_id"):
-            await bot.edit_message_text(
+            await bot.edit_message_reply_markup(
                 chat_id=CHANNEL_USERNAME,
                 message_id=gw["channel_post_id"],
-                text=final_text,
-                parse_mode="HTML",
-                reply_markup=None # Убираем кнопку
+                reply_markup=None
             )
     except Exception as e:
-        print(f"Edit post error: {e}")
+        print(f"Edit markup error: {e}")
+
+    # ✅ 2. Отправляем НОВОЕ сообщение с итогами в канал
+    final_text = f"🏆 <b>ИТОГИ РОЗЫГРЫША</b>\n\n" \
+                 f"📝 {gw['title']}\n\n" \
+                 f"🎉 Победители: {mentions_list}\n\n" \
+                 f"🎁 Приз уже начислен!"
+                 
+    try:
+        await bot.send_message(
+            chat_id=CHANNEL_USERNAME,
+            text=final_text,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print(f"Send result message error: {e}")
+        await cb.message.answer(f"⚠️ Не удалось отправить пост в канал: {e}")
+        return
         
     await cb.message.answer(f"✅ Розыгрыш #{gid} завершен!\nПобедители: {mentions_list}")
 
@@ -2311,12 +2328,10 @@ async def cb_gw_join(cb: CallbackQuery):
     gid = int(cb.data.split("_")[2])
     uid = cb.from_user.id
     
-    # Проверка подписки
     if not await check_sub(uid):
         await cb.answer("⚠️ Сначала подпишись на канал!", show_alert=True)
         return
         
-    # Проверка аккаунта
     player_rows = await db.select("players", f"?user_id=eq.{uid}&limit=1")
     if not player_rows:
         await cb.answer("⚠️ Сначала зайди в бота и нажми Играть!", show_alert=True)
@@ -2338,11 +2353,9 @@ async def cb_gw_join(cb: CallbackQuery):
         await cb.answer("✅ Ты уже участвуешь!", show_alert=True)
         return
         
-    # Добавляем участника
     participants.append(uid)
     await db.update("giveaways", f"?id=eq.{gid}", {"participants": participants})
     
-    # Обновляем кнопку в сообщении
     new_count = len(participants)
     btn_text = gw.get("btn_text", "Участвовать")
     new_kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -2352,25 +2365,26 @@ async def cb_gw_join(cb: CallbackQuery):
     try:
         await cb.message.edit_reply_markup(reply_markup=new_kb)
     except:
-        pass # Если не удалось обновить (например, старое сообщение), просто игнорируем
+        pass
         
     await cb.answer("✅ Участие подтверждено!", show_alert=True)
 
-# ================= СОЗДАНИЕ РОЗЫГРЫША (FSM) =================
+# ================= СОЗДАНИЕ РОЗЫГРЫША (FSM) - ОБНОВЛЕНО =================
 @dp.callback_query(F.data == "admin_giveaway_start")
 async def cb_giveaway_start(cb: CallbackQuery, state: FSMContext):
     if cb.from_user.id != OWNER_ID:
         await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
-    await cb.message.edit_text("🎲 <b>Новый розыгрыш</b>\n\nПришли текст объявления розыгрыша (можно с эмодзи):", parse_mode="HTML")
-    await state.set_state(GiveawayStates.waiting_title)
+    await cb.message.edit_text("🎲 <b>Новый розыгрыш</b>\n\n1️⃣ Пришли <b>фото</b> для поста (или напиши 'Пропустить', если без фото):", parse_mode="HTML")
+    await state.set_state(GiveawayStates.waiting_media) # ✅ Сначала ждем фото
     await cb.answer()
 
-@dp.message(GiveawayStates.waiting_title)
-async def gw_wait_title(message: Message, state: FSMContext):
+# ✅ ШАГ 1: ЖДЕМ ФОТО
+@dp.message(GiveawayStates.waiting_media)
+async def gw_wait_media(message: Message, state: FSMContext):
     if message.from_user.id != OWNER_ID:
         return
-    title = message.text or ""
+        
     media_id = None
     if message.photo:
         media_id = message.photo[-1].file_id
@@ -2378,13 +2392,53 @@ async def gw_wait_title(message: Message, state: FSMContext):
         media_id = message.video.file_id
     elif message.document:
         media_id = message.document.file_id
-    await state.update_data(title=title, media_id=media_id)
+    
+    # Сохраняем медиа (если есть) и переходим к тексту
+    await state.update_data(media_id=media_id)
+    
+    if media_id:
+        await message.answer("📸 Фото принято!\n\n2️⃣ Теперь напиши <b>текст</b> объявления розыгрыша:", parse_mode="HTML")
+    else:
+        # Если текста нет и фото нет, но пользователь написал "Пропустить" или просто текст
+        if message.text and message.text.lower() in ["пропустить", "skip", "без фото"]:
+             await message.answer("⏭ Без фото.\n\n2️⃣ Теперь напиши <b>текст</b> объявления розыгрыша:", parse_mode="HTML")
+        elif message.text:
+            # Если прислал сразу текст вместо фото - считаем это текстом, фото нет
+            await state.update_data(title=message.text)
+            # Переходим сразу к выбору приза, пропуская шаг текста
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="💰 Осколки", callback_data="gw_prize_coins")],
+                [InlineKeyboardButton(text="📦 Предмет", callback_data="gw_prize_item")],
+                [InlineKeyboardButton(text="💎 VIP Статус", callback_data="gw_prize_vip")],
+            ])
+            await message.answer("Текст принят как объявление.\n\n3️⃣ Выбери тип приза:", reply_markup=kb)
+            await state.set_state(GiveawayStates.waiting_prize_type)
+            return
+        else:
+            await message.answer("❌ Нужно прислать фото или написать 'Пропустить'.")
+            return
+
+    await state.set_state(GiveawayStates.waiting_title)
+
+# ✅ ШАГ 2: ЖДЕМ ТЕКСТ
+@dp.message(GiveawayStates.waiting_title)
+async def gw_wait_title(message: Message, state: FSMContext):
+    if message.from_user.id != OWNER_ID:
+        return
+        
+    title = message.text
+    if not title:
+        await message.answer("❌ Текст не может быть пустым. Напиши описание розыгрыша:")
+        return
+        
+    await state.update_data(title=title)
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💰 Осколки", callback_data="gw_prize_coins")],
         [InlineKeyboardButton(text="📦 Предмет", callback_data="gw_prize_item")],
         [InlineKeyboardButton(text="💎 VIP Статус", callback_data="gw_prize_vip")],
     ])
-    await message.answer("Выбери тип приза:", reply_markup=kb)
+    await message.answer("3️⃣ Выбери тип приза:", reply_markup=kb)
     await state.set_state(GiveawayStates.waiting_prize_type)
 
 @dp.callback_query(F.data.startswith("gw_prize_"), GiveawayStates.waiting_prize_type)
@@ -2507,7 +2561,6 @@ async def gw_publish_cb(cb: CallbackQuery, state: FSMContext):
         return
     gid = res[0]['id']
     
-    # ✅ КНОПКА ТЕПЕРЬ CALLBACK, А НЕ URL
     kb_pub = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"{data['btn_text']} (0)", callback_data=f"gw_join_{gid}")]
     ])
@@ -2854,7 +2907,6 @@ async def start_web_server():
     app.router.add_route("*", "/game/vip_daily", handle_game_vip_daily)
     app.router.add_route("*", "/game/vip_daily_case", handle_game_vip_daily_case)
     app.router.add_route("*", "/game/vip_premium_status", handle_game_vip_premium_status)
-    # app.router.add_route("*", "/game/giveaway/join", handle_giveaway_join) # ✅ УДАЛЕНО, теперь через callback
     app.router.add_route("*", "/sync", handle_sync)
     app.router.add_route("*", "/push_stats", handle_push_stats)
     app.router.add_route("*", "/promo", handle_promo)
