@@ -14,6 +14,7 @@
             --gold: #f7c948;
             --grn: #3ddc84;
             --red: #e74c3c;
+            --blue: #3498db;
         }
         body {
             margin: 0; padding: 0;
@@ -70,11 +71,16 @@
             color: var(--txt);
             margin-top: 10px;
         }
+        .btn-blue {
+            background: var(--blue);
+            color: white;
+        }
 
         /* States */
         .status-icon { font-size: 64px; margin-bottom: 20px; display: block; }
         .success h1 { color: var(--grn); }
         .error h1 { color: var(--red); }
+        .info h1 { color: var(--blue); }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -97,13 +103,14 @@
         const tg = window.Telegram.WebApp;
 
         // Функция рендера состояний
-        function renderState(type, title, message, btnText, btnLink) {
+        function renderState(type, title, message, btnText, btnLink, btnClass = '') {
             const app = document.getElementById('app');
             let icon = '';
             let className = '';
 
             if (type === 'success') { icon = '✅'; className = 'success'; }
             else if (type === 'error') { icon = '❌'; className = 'error'; }
+            else if (type === 'info') { icon = 'ℹ️'; className = 'info'; }
             else if (type === 'loading') { 
                 app.innerHTML = `<div class="loader"></div><h1>${title}</h1><p>${message}</p>`;
                 return;
@@ -114,7 +121,7 @@
                 <span class="status-icon">${icon}</span>
                 <h1>${title}</h1>
                 <p>${message}</p>
-                ${btnText ? `<a href="${btnLink}" class="btn">${btnText}</a>` : ''}
+                ${btnText ? `<a href="${btnLink}" class="btn ${btnClass}">${btnText}</a>` : ''}
                 ${type === 'error' ? `<button class="btn btn-outline" onclick="window.close()">Закрыть</button>` : ''}
             `;
         }
@@ -142,15 +149,22 @@
                 const data = await response.json();
 
                 if (data.ok) {
-                    renderState('success', 'Вы участвуете!', 'Ваша заявка принята. Победители будут объявлены в канале.', 'Вернуться в игру', 'https://t.me/the_kubicki_bot'); 
-                    // Или ссылка на веб-апп: window.location.href = 'https://haress484.github.io/Dota-Drop-Telegram/';
+                    // Успешное участие (первый раз)
+                    renderState('success', 'Вы участвуете!', 'Ваша заявка принята. Победители будут объявлены в канале.', 'Вернуться в игру', 'https://t.me/the_kubicki_bot', 'btn-blue');
                 } else {
-                    let msg = 'Неизвестная ошибка';
-                    if (data.error === 'not_subscribed') msg = 'Вы не подписаны на канал! Подпишитесь и попробуйте снова.';
-                    if (data.error === 'already_joined') msg = 'Вы уже участвуете в этом розыгрыше!';
-                    if (data.error === 'no_account') msg = 'Аккаунт не найден. Сначала зайдите в бота.';
-                    
-                    renderState('error', 'Не удалось', msg);
+                    // Обработка ошибок
+                    if (data.error === 'already_joined') {
+                        // ✅ Игрок уже участвовал - показываем инфо, а не ошибку
+                        renderState('info', 'Вы уже участвуете', 'Ваша заявка уже была принята ранее. Ждите результатов!', 'Вернуться в игру', 'https://t.me/the_kubicki_bot', 'btn-blue');
+                    } else if (data.error === 'not_subscribed') {
+                        renderState('error', 'Нет подписки', 'Вы не подписаны на канал! Подпишитесь и попробуйте снова.', 'Подписаться', 'https://t.me/the_kubicki');
+                    } else if (data.error === 'no_account') {
+                        renderState('error', 'Нет аккаунта', 'Сначала зайдите в бота и нажмите "Играть".', 'Перейти в бота', 'https://t.me/the_kubicki_bot');
+                    } else if (data.error === 'inactive') {
+                        renderState('error', 'Розыгрыш завершен', 'Этот розыгрыш уже закончен.');
+                    } else {
+                        renderState('error', 'Ошибка', data.error || 'Неизвестная ошибка');
+                    }
                 }
             } catch (e) {
                 console.error(e);
