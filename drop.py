@@ -2290,8 +2290,9 @@ async def gw_publish_cb(cb: CallbackQuery, state: FSMContext):
         return
     gid = res[0]['id']
     app_link = f"{WEB_APP_URL}?action=giveaway&id={gid}"
+    # Используем url вместо web_app для совместимости с каналами
     kb_pub = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=data['btn_text'], web_app=WebAppInfo(url=app_link))]
+        [InlineKeyboardButton(text=data['btn_text'], url=app_link)]
     ])
     try:
         if data.get('media_id'):
