@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dota Drop Giveaway</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #0c1410;
+            --panel: #14251a;
+            --txt: #f3efe4;
+            --mut: #a8bfae;
+            --gold: #f7c948;
+            --grn: #3ddc84;
+            --red: #e74c3c;
+        }
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: var(--txt);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        p { color: var(--mut); font-size: 16px; line-height: 1.5; margin-bottom: 30px; }
+        
+        /* Loader */
+        .loader {
+            width: 60px; height: 60px;
+            border: 4px solid var(--panel);
+            border-top: 4px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            background: var(--gold);
+            color: #000;
+            padding: 14px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--mut);
+            color: var(--txt);
+            margin-top: 10px;
+        }
+
+        /* States */
+        .status-icon { font-size: 64px; margin-bottom: 20px; display: block; }
+        .success h1 { color: var(--grn); }
+        .error h1 { color: var(--red); }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app">
+        <div class="loader"></div>
+        <h1>Проверка участия...</h1>
+        <p>Подождите, мы проверяем вашу подписку и статус аккаунта.</p>
+    </div>
+
+    <script>
+        const API_URL = "https://dota-drop-telegram.onrender.com"; // Твой домен Render
+        
+        // Получаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const giveawayId = urlParams.get('id');
+        const tg = window.Telegram.WebApp;
+
+        // Функция рендера состояний
+        function renderState(type, title, message, btnText, btnLink) {
+            const app = document.getElementById('app');
+            let icon = '';
+            let className = '';
+
+            if (type === 'success') { icon = '✅'; className = 'success'; }
+            else if (type === 'error') { icon = '❌'; className = 'error'; }
+            else if (type === 'loading') { 
+                app.innerHTML = `<div class="loader"></div><h1>${title}</h1><p>${message}</p>`;
+                return;
+            }
+
+            app.className = `container ${className}`;
+            app.innerHTML = `
+                <span class="status-icon">${icon}</span>
+                <h1>${title}</h1>
+                <p>${message}</p>
+                ${btnText ? `<a href="${btnLink}" class="btn">${btnText}</a>` : ''}
+                ${type === 'error' ? `<button class="btn btn-outline" onclick="window.close()">Закрыть</button>` : ''}
+            `;
+        }
+
+        async function init() {
+            if (!giveawayId) {
+                renderState('error', 'Ошибка', 'Не указан ID розыгрыша.');
+                return;
+            }
+
+            // Подготовка данных Telegram
+            tg.ready();
+            const initData = tg.initData;
+
+            try {
+                const response = await fetch(`${API_URL}/game/giveaway/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: initData,
+                        giveaway_id: parseInt(giveawayId)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    renderState('success', 'Вы участвуете!', 'Ваша заявка принята. Победители будут объявлены в канале.', 'Вернуться в игру', 'https://t.me/the_kubicki_bot'); 
+                    // Или ссылка на веб-апп: window.location.href = 'https://haress484.github.io/Dota-Drop-Telegram/';
+                } else {
+                    let msg = 'Неизвестная ошибка';
+                    if (data.error === 'not_subscribed') msg = 'Вы не подписаны на канал! Подпишитесь и попробуйте снова.';
+                    if (data.error === 'already_joined') msg = 'Вы уже участвуете в этом розыгрыше!';
+                    if (data.error === 'no_account') msg = 'Аккаунт не найден. Сначала зайдите в бота.';
+                    
+                    renderState('error', 'Не удалось', msg);
+                }
+            } catch (e) {
+                console.error(e);
+                renderState('error', 'Ошибка сети', 'Не удалось связаться с сервером. Проверьте интернет.');
+            }
+        }
+
+        // Запуск
+        init();
+    </script>
+</body>
+</html>
