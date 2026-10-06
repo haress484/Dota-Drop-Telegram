@@ -203,7 +203,7 @@ class GiveawayStates(StatesGroup):
     waiting_title = State()
     waiting_prize_type = State()
     waiting_prize_value = State()
-    waiting_item_qty = State() # Отдельное состояние для количества предметов
+    waiting_item_qty = State()
     waiting_winner_count = State()
     waiting_btn_text = State()
     confirming = State()
@@ -2289,11 +2289,16 @@ async def gw_publish_cb(cb: CallbackQuery, state: FSMContext):
         await cb.message.answer("❌ Ошибка записи в базу данных.")
         return
     gid = res[0]['id']
-    app_link = f"{WEB_APP_URL}?action=giveaway&id={gid}"
+    
+    # ✅ ИСПРАВЛЕНИЕ: Ссылка ведет на отдельный файл giveaway.html
+    base_url = WEB_APP_URL.rstrip("/")
+    app_link = f"{base_url}/giveaway.html?id={gid}"
+    
     # Используем url вместо web_app для совместимости с каналами
     kb_pub = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=data['btn_text'], url=app_link)]
     ])
+    
     try:
         if data.get('media_id'):
             msg = await bot.send_photo(
@@ -2710,8 +2715,6 @@ async def handle_admin(request):
 
 # ================= PC ADMIN (Отдельный обработчик для токенов) =================
 async def handle_pc_admin(request):
-    # PC Админка использует те же эндпоинты, но авторизацию по токену
-    # Мы просто делегируем в handle_admin, так как admin_auth проверяет и токен, и initData
     return await handle_admin(request)
 
 async def start_web_server():
