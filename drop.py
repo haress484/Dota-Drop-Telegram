@@ -200,8 +200,8 @@ class BroadcastStates(StatesGroup):
     waiting_content = State()
 
 class GiveawayStates(StatesGroup):
-    waiting_media = State()      # ✅ НОВОЕ: Ждем фото
-    waiting_title = State()      # Ждем текст
+    waiting_media = State()
+    waiting_title = State()
     waiting_prize_type = State()
     waiting_prize_value = State()
     waiting_item_qty = State()
@@ -548,7 +548,7 @@ async def cmd_start(message: Message, state: FSMContext):
     if not await check_sub(uid):
         sent = await message.answer(
             "👋 Привет! Чтобы получить доступ к боту, подпишись на канал:\n\n"
-            " @the_kubicki\n\nПосле подписки нажми кнопку ниже.",
+            "📢 @the_kubicki\n\nПосле подписки нажми кнопку ниже.",
             reply_markup=SUB_KB)
     else:
         sent = await message.answer(
@@ -2123,33 +2123,101 @@ def format_mention(user_info):
     else:
         return f'<a href="tg://user?id={uid}">{safe_fname}</a>'
 
+# ✅ ОБНОВЛЕННАЯ ФУНКЦИЯ ВЫДАЧИ ПРИЗА (ЧЕРЕЗ АДМИН-ЛОГИКУ)
 async def apply_giveaway_prize(uid, prize_type, prize_value, prize_item_id):
-    if prize_type == "coins":
-        await add_balance(uid, prize_value)
-        return f"+{prize_value} осколков"
-    elif prize_type == "vip":
-        st = await get_stats(uid) or {}
-        old = st.get("vip_until")
-        now = datetime.now(timezone.utc)
-        base = now
-        if old:
-            try:
-                old_dt = datetime.fromisoformat(old)
-                if old_dt > now:
-                    base = old_dt
-            except Exception:
-                pass
-        new_until = base + timedelta(days=prize_value)
-        await merge_player_stats(uid, {"vip_until": new_until.isoformat()})
-        return f"VIP на {prize_value} дней"
-    elif prize_type == "item":
-        if not prize_item_id:
-            return "Ошибка: нет ID предмета"
-        st = await get_stats(uid) or {}
-        inv = dict(st.get("inventory", {}))
-        inv[prize_item_id] = inv.get(prize_item_id, 0) + prize_value
-        await merge_player_stats(uid, {"inventory": inv})
-        return f"{prize_item_id} x{prize_value}"
+    reason_text = "🎉 Ты победил в розыгрыше!"
+    
+    try:
+        if prize_type == "coins":
+            # Логика выдачи осколков (аналог /admin/grant type=coins)
+            new_bal, err = await add_balance(uid, int(prize_value))
+            if err:
+                print(f"[GIVEAWAY] Error adding coins to {uid}: {err}")
+                return f"Ошибка выдачи осколков"
+            
+            # Логируем действие как грант
+            await db.insert("grants", [{
+                "user_id": uid, 
+                "type": "coins", 
+                "amount": int(prize_value), 
+                "reason": reason_text,
+                "pre_applied": True
+            }])
+            return f"+{prize_value} осколков"
+
+        elif prize_type == "vip":
+            # Логика выдачи VIP (аналог /admin/grant type=vip)
+            days = int(prize_value)
+            now = datetime.now(timezone.utc)
+            base = now
+            
+            st = await get_stats(uid) or {}
+            old = st.get("vip_until")
+            if old:
+                try:
+                    old_dt = datetime.fromisoformat(old)
+                    if old_dt > now:
+                        base = old_dt
+                except Exception:
+                    pass
+            
+            new_until = base + timedelta(days=days)
+            err = await merge_player_stats(uid, {"vip_until": new_until.isoformat()})
+            
+            if err:
+                print(f"[GIVEAWAY] Error adding VIP to {uid}: {err}")
+                return "Ошибка выдачи VIP"
+
+            # Выдаем подарочный кейс за покупку VIP (как в админке)
+            await db.insert("grants", [{
+                "user_id": uid, 
+                "type": "item", 
+                "item_id": "gift_case", 
+                "amount": 1, 
+                "reason": f"{reason_text} (Бонус за VIP)",
+                "pre_applied": False
+            }])
+            
+            # Обновляем инвентарь подарков сразу
+            stats_gc, ginv_gc = await get_gift_inv(uid)
+            ginv_gc["gift_case"] = ginv_gc.get("gift_case", 0) + 1
+            await set_gift_inv(uid, stats_gc, ginv_gc)
+
+            return f"VIP статус на {days} дн. (+ Подарочный кейс)"
+
+        elif prize_type == "item":
+            # Логика выдачи предмета (аналог /admin/grant type=item)
+            if not prize_item_id:
+                return "Ошибка: не указан ID предмета"
+            
+            # Создаем грант на предмет
+            res = await db.insert("grants", [{
+                "user_id": uid, 
+                "type": "item", 
+                "item_id": prize_item_id, 
+                "amount": int(prize_value), 
+                "reason": reason_text,
+                "pre_applied": False
+            }])
+            
+            # Если это подарок Telegram, добавляем в gift_inv сразу
+            if prize_item_id in GIFT_CATALOG or prize_item_id == "gift_case":
+                stats, ginv = await get_gift_inv(uid)
+                ginv[prize_item_id] = ginv.get(prize_item_id, 0) + int(prize_value)
+                await set_gift_inv(uid, stats, ginv)
+            else:
+                # Для обычных предметов Dota добавляем в inventory сразу
+                st = await get_stats(uid) or {}
+                inv = dict(st.get("inventory", {}))
+                inv[prize_item_id] = inv.get(prize_item_id, 0) + int(prize_value)
+                await merge_player_stats(uid, {"inventory": inv})
+
+            return f"{prize_item_id} x{prize_value}"
+            
+    except Exception as e:
+        print(f"[GIVEAWAY] Critical error in apply_prize: {e}")
+        return "Критическая ошибка выдачи"
+
     return "Неизвестный тип приза"
 
 # ✅ НОВОЕ МЕНЮ РОЗЫГРЫШЕЙ
@@ -2229,11 +2297,11 @@ async def cb_giveaway_manage(cb: CallbackQuery):
     await cb.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     await cb.answer()
 
-# ✅ ЗАВЕРШЕНИЕ РОЗЫГРЫША (DRAW) - ОТПРАВКА СООБЩЕНИЯ В КАНАЛ
+# ✅ ЗАВЕРШЕНИЕ РОЗЫГРЫША (DRAW)
 @dp.callback_query(F.data.startswith("gw_draw_"))
 async def cb_giveaway_draw(cb: CallbackQuery):
     if cb.from_user.id != OWNER_ID:
-        await cb.answer("⛔", show_alert=True)
+        await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
         
     gid = int(cb.data.split("_")[2])
@@ -2241,48 +2309,70 @@ async def cb_giveaway_draw(cb: CallbackQuery):
     
     rows = await db.select("giveaways", f"?id=eq.{gid}")
     if not rows:
-        await cb.message.answer("Ошибка: розыгрыш не найден.")
+        await cb.message.answer("❌ Ошибка: розыгрыш не найден.")
         return
         
     gw = rows[0]
     if gw["status"] != "active":
-        await cb.message.answer("Этот розыгрыш уже завершен.")
+        await cb.message.answer("⚠️ Этот розыгрыш уже завершен.")
         return
         
     participants = gw.get("participants") or []
     if not participants:
-        await cb.message.answer("Нет участников для розыгрыша.")
+        await cb.message.answer("⚠️ Нет участников для розыгрыша.")
         return
         
     valid_participants = []
-    for uid in participants:
-        if await check_sub(uid):
-            valid_participants.append(uid)
+    for p_uid in participants:
+        try:
+            if await check_sub(p_uid):
+                valid_participants.append(p_uid)
+        except Exception as e:
+            print(f"Check sub error for {p_uid}: {e}")
             
     if not valid_participants:
-        await cb.message.answer("Все участники отписались от канала. Розыгрыш отменен.")
+        await cb.message.answer("⚠️ Все участники отписались. Розыгрыш отменен.")
         await db.update("giveaways", f"?id=eq.{gid}", {"status": "cancelled"})
         return
         
-    winner_count = gw.get("winner_count", 1)
-    if len(valid_participants) < winner_count:
-        winner_count = len(valid_participants)
-        
-    winners = random.sample(valid_participants, winner_count)
-    winner_details = []
+    winner_count = min(gw.get("winner_count", 1), len(valid_participants))
     
-    for uid in winners:
-        prize_desc = await apply_giveaway_prize(uid, gw["prize_type"], gw["prize_value"], gw.get("prize_item_id"))
-        p_rows = await db.select("players", f"?user_id=eq.{uid}&select=first_name,username")
-        info = p_rows[0] if p_rows else {"id": uid, "first_name": "Player", "username": None}
-        info["id"] = uid
-        mention = format_mention(info)
-        winner_details.append({"uid": uid, "mention": mention, "prize": prize_desc})
+    try:
+        winners = random.sample(valid_participants, winner_count)
+    except ValueError as e:
+        await cb.message.answer(f"❌ Ошибка выбора победителей: {e}")
+        return
+        
+    winner_details = []
+    prize_type = gw['prize_type']
+    prize_value = gw['prize_value']
+    prize_item_id = gw.get('prize_item_id')
+    
+    for w_uid in winners:
+        print(f"[GIVEAWAY] Issuing prize to {w_uid}: type={prize_type}, val={prize_value}, item={prize_item_id}")
         
         try:
-            await bot.send_message(uid, f"🎉 Поздравляем! Ты выиграл в розыгрыше '{gw['title']}'!\nПриз: {prize_desc}")
-        except:
-            pass
+            prize_desc = await apply_giveaway_prize(w_uid, prize_type, prize_value, prize_item_id)
+            print(f"[GIVEAWAY] Prize issued successfully: {prize_desc}")
+        except Exception as e:
+            print(f"[GIVEAWAY] ERROR issuing prize to {w_uid}: {e}")
+            prize_desc = f"Ошибка выдачи ({e})"
+            
+        p_rows = await db.select("players", f"?user_id=eq.{w_uid}&select=first_name,username")
+        info = p_rows[0] if p_rows else {"id": w_uid, "first_name": "Игрок", "username": None}
+        info["id"] = w_uid
+        mention = format_mention(info)
+        
+        winner_details.append({"uid": w_uid, "mention": mention, "prize": prize_desc})
+        
+        try:
+            await bot.send_message(
+                w_uid, 
+                f"🎉 <b>Поздравляем!</b>\n\nТы выиграл в розыгрыше:\n«{gw['title']}」\n\n🎁 Твой приз: {prize_desc}",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"[GIVEAWAY] Failed to notify winner {w_uid}: {e}")
             
     await db.update("giveaways", f"?id=eq.{gid}", {
         "status": "finished",
@@ -2292,7 +2382,6 @@ async def cb_giveaway_draw(cb: CallbackQuery):
     
     mentions_list = ", ".join([w["mention"] for w in winner_details])
     
-    # ✅ 1. Редактируем старое сообщение (убираем кнопку)
     try:
         if gw.get("channel_post_id"):
             await bot.edit_message_reply_markup(
@@ -2301,13 +2390,14 @@ async def cb_giveaway_draw(cb: CallbackQuery):
                 reply_markup=None
             )
     except Exception as e:
-        print(f"Edit markup error: {e}")
+        print(f"[GIVEAWAY] Edit markup error: {e}")
 
-    # ✅ 2. Отправляем НОВОЕ сообщение с итогами в канал
-    final_text = f"🏆 <b>ИТОГИ РОЗЫГРЫША</b>\n\n" \
-                 f"📝 {gw['title']}\n\n" \
-                 f"🎉 Победители: {mentions_list}\n\n" \
-                 f"🎁 Приз уже начислен!"
+    final_text = (
+        f"🏆 <b>ИТОГИ РОЗЫГРЫША</b>\n\n"
+        f"📝 {gw['title']}\n\n"
+        f"🎉 Победители: {mentions_list}\n\n"
+        f"🎁 Призы уже начислены!"
+    )
                  
     try:
         await bot.send_message(
@@ -2316,11 +2406,11 @@ async def cb_giveaway_draw(cb: CallbackQuery):
             parse_mode="HTML"
         )
     except Exception as e:
-        print(f"Send result message error: {e}")
-        await cb.message.answer(f"⚠️ Не удалось отправить пост в канал: {e}")
+        print(f"[GIVEAWAY] Send result error: {e}")
+        await cb.message.answer(f"⚠️ Итоги подведены, но пост в канал не ушел: {e}")
         return
         
-    await cb.message.answer(f"✅ Розыгрыш #{gid} завершен!\nПобедители: {mentions_list}")
+    await cb.message.answer(f"✅ Розыгрыш #{gid} успешно завершен!")
 
 # ✅ УЧАСТИЕ В РОЗЫГРЫШЕ (CALLBACK ИЗ КАНАЛА)
 @dp.callback_query(F.data.startswith("gw_join_"))
@@ -2369,17 +2459,16 @@ async def cb_gw_join(cb: CallbackQuery):
         
     await cb.answer("✅ Участие подтверждено!", show_alert=True)
 
-# ================= СОЗДАНИЕ РОЗЫГРЫША (FSM) - ОБНОВЛЕНО =================
+# ================= СОЗДАНИЕ РОЗЫГРЫША (FSM) =================
 @dp.callback_query(F.data == "admin_giveaway_start")
 async def cb_giveaway_start(cb: CallbackQuery, state: FSMContext):
     if cb.from_user.id != OWNER_ID:
         await cb.answer("⛔ Доступ запрещён", show_alert=True)
         return
     await cb.message.edit_text("🎲 <b>Новый розыгрыш</b>\n\n1️⃣ Пришли <b>фото</b> для поста (или напиши 'Пропустить', если без фото):", parse_mode="HTML")
-    await state.set_state(GiveawayStates.waiting_media) # ✅ Сначала ждем фото
+    await state.set_state(GiveawayStates.waiting_media)
     await cb.answer()
 
-# ✅ ШАГ 1: ЖДЕМ ФОТО
 @dp.message(GiveawayStates.waiting_media)
 async def gw_wait_media(message: Message, state: FSMContext):
     if message.from_user.id != OWNER_ID:
@@ -2393,19 +2482,15 @@ async def gw_wait_media(message: Message, state: FSMContext):
     elif message.document:
         media_id = message.document.file_id
     
-    # Сохраняем медиа (если есть) и переходим к тексту
     await state.update_data(media_id=media_id)
     
     if media_id:
         await message.answer("📸 Фото принято!\n\n2️⃣ Теперь напиши <b>текст</b> объявления розыгрыша:", parse_mode="HTML")
     else:
-        # Если текста нет и фото нет, но пользователь написал "Пропустить" или просто текст
         if message.text and message.text.lower() in ["пропустить", "skip", "без фото"]:
              await message.answer("⏭ Без фото.\n\n2️⃣ Теперь напиши <b>текст</b> объявления розыгрыша:", parse_mode="HTML")
         elif message.text:
-            # Если прислал сразу текст вместо фото - считаем это текстом, фото нет
             await state.update_data(title=message.text)
-            # Переходим сразу к выбору приза, пропуская шаг текста
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="💰 Осколки", callback_data="gw_prize_coins")],
                 [InlineKeyboardButton(text="📦 Предмет", callback_data="gw_prize_item")],
@@ -2420,7 +2505,6 @@ async def gw_wait_media(message: Message, state: FSMContext):
 
     await state.set_state(GiveawayStates.waiting_title)
 
-# ✅ ШАГ 2: ЖДЕМ ТЕКСТ
 @dp.message(GiveawayStates.waiting_title)
 async def gw_wait_title(message: Message, state: FSMContext):
     if message.from_user.id != OWNER_ID:
